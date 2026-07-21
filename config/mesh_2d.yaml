@@ -1,0 +1,20 @@
+solver: mesh
+
+mesh:
+  element_type: q4
+
+optimization:
+  method: gauss_newton
+  max_iterations: 30
+  convergence_threshold: 1.0e-3
+
+correlation:
+  criterion: znssd
+
+interpolation:
+  method: bspline
+
+initialization:
+  method: integer_search
+  subset_radius: 10
+  search_radius: 30

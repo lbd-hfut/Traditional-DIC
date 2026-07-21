@@ -1,0 +1,10 @@
+mode: stereo
+
+dic_solver: subset
+
+calibration:
+  file: stereo_calibration.yaml
+
+triangulation:
+  method: linear
+  nonlinear_refinement: true

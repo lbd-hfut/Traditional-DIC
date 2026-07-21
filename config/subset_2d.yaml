@@ -1,0 +1,22 @@
+solver: subset
+
+subset:
+  radius: 15
+
+shape_function:
+  order: 1
+
+optimization:
+  method: icgn
+  max_iterations: 30
+  convergence_threshold: 1.0e-3
+
+correlation:
+  criterion: znssd
+
+interpolation:
+  method: bspline
+
+initialization:
+  method: sift
+  search_radius: 30

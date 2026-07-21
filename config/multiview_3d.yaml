@@ -1,0 +1,7 @@
+mode: multiview
+
+dic_solver: subset
+
+triangulation:
+  minimum_views: 2
+  nonlinear_refinement: true
