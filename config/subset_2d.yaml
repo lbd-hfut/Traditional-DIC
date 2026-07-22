@@ -16,6 +16,7 @@ correlation:
 
 interpolation:
   method: bspline
+  degree: 5
 
 initialization:
   method: sift

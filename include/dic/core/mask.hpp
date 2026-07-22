@@ -3,14 +3,14 @@
  * @brief Binary image validity mask.
  *
  * Responsibilities:
- * - Define the public interface and data structures for this module.
- * - Keep dependencies explicit and module coupling low for future development.
+ * - Store a binary validity mask for image-domain computations.
+ * - Support ROI-mask images supplied by users without any GUI dependency.
  *
  * Inputs:
- * - Images, coordinates, parameters, configuration, or calibration data relevant to this module.
+ * - Width/height, boolean validity values, or optional mask image path.
  *
  * Outputs:
- * - Typed results, numerical values, solver state, or placeholder exceptions.
+ * - Pixel validity queries for ROI, Subset-DIC, and Mesh Generation.
  *
  * Dependencies:
  * - Eigen for numerical types.
@@ -18,13 +18,15 @@
  * - Internal Traditional-DIC modules declared by includes.
  *
  * TODO:
- * - Implement validated numerical algorithms.
- * - Add input validation, edge-case handling, and regression tests.
+ * - Add morphology/cleanup utilities only if downstream modules need them.
+ * - Add robust OpenCV mask loading tests.
  */
 
 #ifndef TRADITIONAL_DIC_INCLUDE_DIC_CORE_MASK_HPP
 #define TRADITIONAL_DIC_INCLUDE_DIC_CORE_MASK_HPP
 
+#include <cstddef>
+#include <string>
 #include <vector>
 
 namespace dic {
@@ -33,7 +35,19 @@ class Mask {
 public:
     Mask() = default;
     Mask(int width, int height);
+    Mask(int width, int height, std::vector<bool> data);
+    explicit Mask(const std::string& path);
+
+    int width() const;
+    int height() const;
+    bool empty() const;
+    bool contains(int x, int y) const;
+    std::size_t size() const;
+
     bool valid(int x, int y) const;
+    void set(int x, int y, bool valid);
+    void fill(bool valid);
+
 private:
     int width_{0};
     int height_{0};

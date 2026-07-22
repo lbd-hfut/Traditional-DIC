@@ -7,7 +7,7 @@ Traditional-DIC is a C++17/Python engineering skeleton for traditional digital i
 ## Project Structure
 
 - `include/dic/core`: image, ROI, masks, common types, and result containers.
-- `include/dic/interpolation`: bicubic and B-spline interpolation interfaces.
+- `include/dic/interpolation`: unified B-spline interpolation interfaces with configurable degree.
 - `include/dic/correlation`: SSD, ZNSSD, and ZNCC criteria.
 - `include/dic/initialization`: integer search, SIFT-ready initialization, feature matching, and subset-based mesh initialization.
 - `include/dic/subset`: 2D Subset-DIC orchestration, shape functions, ICGN solver, and propagation.

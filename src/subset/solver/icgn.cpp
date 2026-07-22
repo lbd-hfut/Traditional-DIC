@@ -25,7 +25,20 @@
 namespace dic {
 
 ICGNSolver::ICGNSolver(SubsetConfig config) : config_(config) {}
-Displacement2D ICGNSolver::solve(const Image& reference, const Image& deformed, const Eigen::Vector2d& point, const InitialDisplacement& initial) const { (void)reference; (void)deformed; return {point.x(), point.y(), initial.u, initial.v, initial.confidence, false}; }
+Displacement2D ICGNSolver::solve(const Image& reference, const Image& deformed, const Eigen::Vector2d& point, const InitialDisplacement& initial) const
+{
+    (void)reference;
+    (void)deformed;
+    Displacement2D result;
+    result.x = point.x();
+    result.y = point.y();
+    result.u = initial.u;
+    result.v = initial.v;
+    result.correlation = initial.confidence;
+    result.status = SolverStatus::NotConverged;
+    result.valid = false;
+    return result;
+}
 Eigen::VectorXd ICGNSolver::extract_reference_subset(const Image& reference, const Eigen::Vector2d& point) const { (void)reference; (void)point; return {}; }
 Eigen::MatrixXd ICGNSolver::compute_reference_gradient(const Image& reference, const Eigen::Vector2d& point) const { (void)reference; (void)point; return {}; }
 Eigen::MatrixXd ICGNSolver::compute_steepest_descent_images() const { return {}; }

@@ -6,6 +6,26 @@ __pycache__/
 # C extensions
 *.so
 
+# CMake / C++ build artifacts
+build*/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+compile_commands.json
+*.ninja
+*.vcxproj
+*.vcxproj.filters
+*.sln
+
+# Native binaries and debug artifacts
+*.exe
+*.dll
+*.lib
+*.obj
+*.pdb
+*.ilk
+*.exp
+
 # Distribution / packaging
 .Python
 build/
