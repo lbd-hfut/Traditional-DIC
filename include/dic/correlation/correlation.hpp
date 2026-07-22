@@ -1,16 +1,18 @@
 /**
  * @file correlation.hpp
- * @brief Abstract correlation criterion interface.
+ * @brief Abstract correlation criterion interface for DIC intensity vectors.
  *
  * Responsibilities:
- * - Define the public interface and data structures for this module.
- * - Keep dependencies explicit and module coupling low for future development.
+ * - Define a low-coupling interface for comparing reference and deformed subsets.
+ * - Standardize input validation expectations for all correlation criteria.
+ * - Support ROI/mask boundary subsets through per-sample weights.
  *
  * Inputs:
- * - Images, coordinates, parameters, configuration, or calibration data relevant to this module.
+ * - Equal-length Eigen vectors containing sampled grayscale intensities.
+ * - Optional equal-length nonnegative weights; weight 0 excludes non-ROI samples.
  *
  * Outputs:
- * - Typed results, numerical values, solver state, or placeholder exceptions.
+ * - A scalar criterion value whose interpretation is defined by each subclass.
  *
  * Dependencies:
  * - Eigen for numerical types.
@@ -18,8 +20,8 @@
  * - Internal Traditional-DIC modules declared by includes.
  *
  * TODO:
- * - Implement validated numerical algorithms.
- * - Add input validation, edge-case handling, and regression tests.
+ * - Add explicit valid-mask adapters for ROI and Mask modules.
+ * - Add SIMD/OpenMP paths for large batch subset evaluation.
  */
 
 #ifndef TRADITIONAL_DIC_INCLUDE_DIC_CORRELATION_CORRELATION_HPP
@@ -32,7 +34,17 @@ namespace dic {
 class CorrelationCriterion {
 public:
     virtual ~CorrelationCriterion() = default;
-    virtual double evaluate(const Eigen::VectorXd& reference, const Eigen::VectorXd& deformed) const = 0;
+
+    virtual double evaluate(
+        const Eigen::VectorXd& reference,
+        const Eigen::VectorXd& deformed
+    ) const = 0;
+
+    virtual double evaluate(
+        const Eigen::VectorXd& reference,
+        const Eigen::VectorXd& deformed,
+        const Eigen::VectorXd& weights
+    ) const = 0;
 };
 
 } // namespace dic

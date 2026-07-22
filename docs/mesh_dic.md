@@ -33,6 +33,13 @@ v0
 
 Do not mix mesh topology creation with Gauss-Newton, ICGN, triangulation, or strain calculation.
 
+## ROI / Mask Correlation
+
+Mesh-DIC element sampling must pass correlation weights for samples clipped by
+the user-supplied ROI or mask. Samples outside the valid region use weight `0`
+and are ignored by SSD/ZNSSD/ZNCC. Mesh generation still only creates topology;
+valid-sample weighting belongs to the image sampling and correlation stage.
+
 ## Mesh Solvers
 
 Mesh-DIC solver code is split by optimization formulation:
