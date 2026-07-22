@@ -26,6 +26,8 @@
 #define TRADITIONAL_DIC_INCLUDE_DIC_MESH_MESH_DIC_HPP
 
 #include <dic/core/image.hpp>
+#include <dic/core/roi.hpp>
+#include <dic/mesh/mesh_generation_config.hpp>
 #include <dic/core/result.hpp>
 #include <dic/mesh/mesh.hpp>
 #include <dic/mesh/mesh_config.hpp>
@@ -33,7 +35,33 @@
 
 namespace dic {
 
-class MeshDIC { public: explicit MeshDIC(MeshConfig config = {}); std::vector<Displacement2D> compute(const Image& reference, const Image& deformed, Mesh mesh) const; private: MeshConfig config_; };
+class MeshDIC {
+public:
+    explicit MeshDIC(MeshConfig config = {});
+
+    std::vector<Displacement2D> compute(
+        const Image& reference,
+        const Image& deformed,
+        Mesh mesh
+    ) const;
+
+    /**
+     * @brief Future convenience path for ROI -> Mesh Generation -> Mesh-DIC.
+     *
+     * This overload only reserves orchestration. Mesh generation initializes
+     * node coordinates, element topology, and connectivity. Displacement
+     * initialization for u0/v0 remains a separate Mesh-DIC stage.
+     */
+    std::vector<Displacement2D> compute(
+        const Image& reference,
+        const Image& deformed,
+        const ROI& roi,
+        const mesh::MeshGenerationConfig& mesh_generation_config
+    ) const;
+
+private:
+    MeshConfig config_;
+};
 
 } // namespace dic
 

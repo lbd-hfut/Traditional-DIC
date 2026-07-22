@@ -26,6 +26,17 @@ namespace dic {
 
 std::vector<Node>& Mesh::nodes() { return nodes_; }
 const std::vector<Node>& Mesh::nodes() const { return nodes_; }
+
+std::vector<MeshElementConnectivity>& Mesh::elements() { return elements_; }
+const std::vector<MeshElementConnectivity>& Mesh::elements() const { return elements_; }
+
 void Mesh::add_node(const Node& node) { nodes_.push_back(node); }
+void Mesh::add_element(const MeshElementConnectivity& element) { elements_.push_back(element); }
+
+void Mesh::clear()
+{
+    nodes_.clear();
+    elements_.clear();
+}
 
 } // namespace dic

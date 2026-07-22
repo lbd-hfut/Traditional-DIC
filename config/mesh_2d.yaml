@@ -3,6 +3,24 @@ solver: mesh
 mesh:
   element_type: q4
 
+# Mesh generation sizes are in image pixels.
+mesh_generation:
+  method: auto
+
+  element_type: q4
+
+  target_element_size: 20.0
+
+  fit_roi_boundary: true
+
+  remove_outside_elements: true
+
+  remove_outside_nodes: true
+
+  allow_partial_elements: false
+
+  min_element_quality: 0.1
+
 optimization:
   method: gauss_newton
   max_iterations: 30

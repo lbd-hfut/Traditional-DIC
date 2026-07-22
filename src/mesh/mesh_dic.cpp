@@ -20,11 +20,24 @@
  * - Add numerical tests and performance benchmarks.
  */
 
+#include <dic/mesh/generation/roi_mesh_generator.hpp>
 #include <dic/mesh/mesh_dic.hpp>
 
 namespace dic {
 
 MeshDIC::MeshDIC(MeshConfig config) : config_(config) {}
 std::vector<Displacement2D> MeshDIC::compute(const Image& reference, const Image& deformed, Mesh mesh) const { (void)reference; (void)deformed; (void)mesh; (void)config_; return {}; }
+
+std::vector<Displacement2D> MeshDIC::compute(
+    const Image& reference,
+    const Image& deformed,
+    const ROI& roi,
+    const mesh::MeshGenerationConfig& mesh_generation_config
+) const
+{
+    mesh::ROIMeshGenerator generator;
+    auto generated_mesh = generator.generate(roi, mesh_generation_config);
+    return compute(reference, deformed, generated_mesh);
+}
 
 } // namespace dic
