@@ -18,7 +18,8 @@
  * - Internal Traditional-DIC modules declared by includes.
  *
  * TODO:
- * - Implement validated numerical algorithms.
+ * - Route compute() to GlobalICGN or ForwardGaussNewton based on MeshConfig.
+ * - Add displacement initialization before solver execution.
  * - Add input validation, edge-case handling, and regression tests.
  */
 

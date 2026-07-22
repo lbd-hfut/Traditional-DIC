@@ -22,11 +22,31 @@
 
 #include <dic/mesh/generation/roi_mesh_generator.hpp>
 #include <dic/mesh/mesh_dic.hpp>
+#include <dic/mesh/solver/global_gauss_newton.hpp>
+#include <dic/mesh/solver/global_icgn.hpp>
 
 namespace dic {
 
 MeshDIC::MeshDIC(MeshConfig config) : config_(config) {}
-std::vector<Displacement2D> MeshDIC::compute(const Image& reference, const Image& deformed, Mesh mesh) const { (void)reference; (void)deformed; (void)mesh; (void)config_; return {}; }
+
+std::vector<Displacement2D> MeshDIC::compute(
+    const Image& reference,
+    const Image& deformed,
+    Mesh mesh
+) const
+{
+    // TODO: Run Mesh displacement initialization before the nonlinear solver.
+    if (config_.solver_method == MeshSolverMethod::ForwardGaussNewton) {
+        GlobalGaussNewton solver;
+        (void)solver.solve(reference, deformed, mesh);
+    } else {
+        GlobalICGN solver(config_);
+        (void)solver.solve(reference, deformed, mesh);
+    }
+
+    // TODO: Convert solved nodal displacements into Displacement2D results.
+    return {};
+}
 
 std::vector<Displacement2D> MeshDIC::compute(
     const Image& reference,

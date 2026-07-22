@@ -29,7 +29,18 @@
 
 namespace dic {
 
-struct MeshConfig { int max_iterations{30}; double convergence_threshold{1e-3}; int search_radius{20}; };
+enum class MeshSolverMethod {
+    GlobalICGN,
+    ForwardGaussNewton
+};
+
+struct MeshConfig {
+    MeshSolverMethod solver_method{MeshSolverMethod::GlobalICGN};
+    int max_iterations{30};
+    double convergence_threshold{1e-3};
+    int search_radius{20};
+    double regularization_alpha{0.0};
+};
 
 } // namespace dic
 

@@ -1,10 +1,10 @@
 /**
  * @file global_gauss_newton.cpp
- * @brief Minimal implementation placeholder for global Gauss-Newton.
+ * @brief Minimal forward-additive global Gauss-Newton implementation placeholder.
  *
  * Responsibilities:
- * - Provide linkable definitions matching the public header.
- * - Keep complex DIC mathematics marked as TODO for later implementation.
+ * - Provide linkable definitions matching the public forward GN header.
+ * - Keep this solver path separate from GlobalICGN.
  *
  * Inputs:
  * - Values supplied through the corresponding API.
@@ -16,7 +16,7 @@
  * - Corresponding public header plus Eigen/OpenCV-ready module boundaries.
  *
  * TODO:
- * - Replace placeholders with validated Traditional-DIC algorithms.
+ * - Reassemble Hessian and right-hand side every iteration using current warped state.
  * - Add numerical tests and performance benchmarks.
  */
 

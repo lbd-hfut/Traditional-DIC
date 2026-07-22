@@ -1,16 +1,16 @@
 /**
  * @file global_gauss_newton.hpp
- * @brief Forward global Gauss-Newton Mesh-DIC skeleton.
+ * @brief Forward-additive global Gauss-Newton Mesh-DIC solver skeleton.
  *
  * Responsibilities:
- * - Define the public interface and data structures for this module.
- * - Keep dependencies explicit and module coupling low for future development.
+ * - Define the forward-additive global Gauss-Newton solver interface.
+ * - Keep the reassembled-Hessian path separate from GlobalICGN.
  *
  * Inputs:
- * - Images, coordinates, parameters, configuration, or calibration data relevant to this module.
+ * - Reference/deformed images, Mesh topology, nodal displacement state, and solver settings.
  *
  * Outputs:
- * - Typed results, numerical values, solver state, or placeholder exceptions.
+ * - Updated nodal displacement state and convergence flag.
  *
  * Dependencies:
  * - Eigen for numerical types.
@@ -18,8 +18,8 @@
  * - Internal Traditional-DIC modules declared by includes.
  *
  * TODO:
- * - Implement validated numerical algorithms.
- * - Add input validation, edge-case handling, and regression tests.
+ * - Implement per-iteration Hessian/Jacobian assembly using deformed image gradients.
+ * - Add tests comparing forward GN and GlobalICGN convergence behavior.
  */
 
 #ifndef TRADITIONAL_DIC_INCLUDE_DIC_MESH_SOLVER_GLOBAL_GAUSS_NEWTON_HPP
@@ -27,6 +27,7 @@
 
 #include <dic/core/image.hpp>
 #include <dic/mesh/mesh.hpp>
+#include <Eigen/Dense>
 
 namespace dic {
 
@@ -36,10 +37,9 @@ public:
 private:
     // TODO: Mesh initialization -> iterate elements -> sampling points ->
     // natural coordinates -> shape functions -> displacement interpolation ->
-    // image warp -> deformed image interpolation -> image gradient -> residual
-    // -> local Jacobian/Hessian -> global sparse assembly -> sparse solve ->
-    // nodal displacement update -> convergence. Default path is forward
-    // Gauss-Newton, not Mesh IC-GN.
+    // image warp -> deformed image interpolation -> deformed image gradient ->
+    // residual -> per-iteration local Jacobian/Hessian -> global sparse
+    // assembly -> sparse solve -> nodal displacement update -> convergence.
     void initialize_mesh_displacement(Mesh& mesh);
     void assemble_system(const Image& reference, const Image& deformed, const Mesh& mesh);
     Eigen::VectorXd solve_increment();

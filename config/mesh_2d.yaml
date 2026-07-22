@@ -22,9 +22,10 @@ mesh_generation:
   min_element_quality: 0.1
 
 optimization:
-  method: gauss_newton
+  method: global_icgn
   max_iterations: 30
   convergence_threshold: 1.0e-3
+  regularization_alpha: 0.0
 
 correlation:
   criterion: znssd
