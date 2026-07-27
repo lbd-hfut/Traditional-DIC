@@ -34,6 +34,10 @@ struct Displacement2D {
     double y{0.0};
     double u{0.0};
     double v{0.0};
+    double du_dx{0.0};
+    double du_dy{0.0};
+    double dv_dx{0.0};
+    double dv_dy{0.0};
     double correlation{0.0};
     SolverStatus status{SolverStatus::InvalidInput};
     bool valid{false};

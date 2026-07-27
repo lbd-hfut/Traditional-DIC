@@ -26,15 +26,23 @@
 #define TRADITIONAL_DIC_INCLUDE_DIC_INITIALIZATION_SUBSET_INITIALIZER_HPP
 
 #include <dic/initialization/initializer.hpp>
+#include <dic/interpolation/bspline.hpp>
+#include <dic/subset/subset_config.hpp>
 
 namespace dic {
 
 class SubsetInitializer : public Initializer {
 public:
     explicit SubsetInitializer(int search_radius = 20);
+    explicit SubsetInitializer(SubsetConfig config);
     InitialDisplacement estimate(const Image& reference, const Image& deformed, const Eigen::Vector2d& point) const override;
+    InitialDisplacement estimate_with_interpolators(const Image& reference,
+                                                    const Image& deformed,
+                                                    const Eigen::Vector2d& point,
+                                                    const BSplineInterpolator& reference_interpolator,
+                                                    const BSplineInterpolator& deformed_interpolator) const;
 private:
-    int search_radius_{20};
+    SubsetConfig config_{};
 };
 
 } // namespace dic

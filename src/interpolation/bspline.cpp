@@ -17,16 +17,17 @@
  * - Image core container and Eigen matrix types.
  *
  * TODO:
- * - Replace the current edge-padded coefficient approximation with validated
- *   FFT or recursive B-spline prefiltering for cubic/quintic splines.
  * - Add SIMD/OpenMP acceleration for per-pixel local block construction.
- * - Add numerical regression tests against the reference Python/JAX pipeline.
+ * - Add numerical regression tests against more reference datasets.
  */
 
 #include <dic/interpolation/bspline.hpp>
 
+#include <unsupported/Eigen/FFT>
+
 #include <algorithm>
 #include <cmath>
+#include <complex>
 #include <stdexcept>
 #include <utility>
 
@@ -71,6 +72,19 @@ double plus_power(double x, int power)
 int clamp_index(int value, int lower, int upper)
 {
     return std::max(lower, std::min(value, upper));
+}
+
+int symmetric_index(int value, int size)
+{
+    if (size <= 0) {
+        return 0;
+    }
+    const int period = 2 * size;
+    int wrapped = value % period;
+    if (wrapped < 0) {
+        wrapped += period;
+    }
+    return wrapped < size ? wrapped : period - 1 - wrapped;
 }
 
 std::size_t flat_index(int x, int y, int width)
@@ -135,11 +149,104 @@ double evaluate_polynomial_dy(
     return value;
 }
 
+Eigen::MatrixXd build_local_block_on_demand(
+    const BSplinePrecomputedImage& precomputed,
+    int x,
+    int y
+)
+{
+    const int d = degree_value(precomputed.config.degree);
+    const int n = d + 1;
+    const int offset = d / 2;
+    const int top = y + precomputed.config.border - offset;
+    const int left = x + precomputed.config.border - offset;
+
+    Eigen::MatrixXd coefficient_block(n, n);
+    for (int row = 0; row < n; ++row) {
+        const int source_y = clamp_index(top + row, 0, static_cast<int>(precomputed.coefficients.rows()) - 1);
+        for (int col = 0; col < n; ++col) {
+            const int source_x = clamp_index(left + col, 0, static_cast<int>(precomputed.coefficients.cols()) - 1);
+            coefficient_block(row, col) = precomputed.coefficients(source_y, source_x);
+        }
+    }
+
+    return precomputed.qk * coefficient_block * precomputed.qk.transpose();
+}
+
+std::vector<double> build_prefilter_kernel(int length, BSplineDegree degree)
+{
+    const int d = degree_value(degree);
+    const int radius = d / 2;
+    std::vector<double> kernel(static_cast<std::size_t>(length), 0.0);
+    kernel[0] = BSplineImagePreprocessor::basis(0.0, 0, degree);
+    for (int offset = 1; offset <= radius; ++offset) {
+        const double value = BSplineImagePreprocessor::basis(static_cast<double>(offset), 0, degree);
+        kernel[static_cast<std::size_t>(offset)] = value;
+        kernel[static_cast<std::size_t>(length - offset)] = value;
+    }
+    return kernel;
+}
+
+std::vector<double> deconvolve_periodic_signal(
+    const std::vector<double>& signal,
+    const std::vector<double>& kernel
+)
+{
+    constexpr double epsilon = 1e-14;
+    Eigen::FFT<double> fft;
+    std::vector<std::complex<double>> signal_spectrum;
+    std::vector<std::complex<double>> kernel_spectrum;
+    fft.fwd(signal_spectrum, signal);
+    fft.fwd(kernel_spectrum, kernel);
+
+    for (std::size_t i = 0; i < signal_spectrum.size(); ++i) {
+        const double denom = std::norm(kernel_spectrum[i]);
+        if (denom <= epsilon) {
+            throw std::runtime_error("B-spline prefilter kernel has a near-zero FFT coefficient.");
+        }
+        signal_spectrum[i] /= kernel_spectrum[i];
+    }
+
+    std::vector<double> output;
+    fft.inv(output, signal_spectrum);
+    return output;
+}
+
+void deconvolve_rows(Eigen::MatrixXd& coefficients, BSplineDegree degree)
+{
+    const auto kernel = build_prefilter_kernel(static_cast<int>(coefficients.cols()), degree);
+    for (Eigen::Index y = 0; y < coefficients.rows(); ++y) {
+        std::vector<double> signal(static_cast<std::size_t>(coefficients.cols()));
+        for (Eigen::Index x = 0; x < coefficients.cols(); ++x) {
+            signal[static_cast<std::size_t>(x)] = coefficients(y, x);
+        }
+        const auto output = deconvolve_periodic_signal(signal, kernel);
+        for (Eigen::Index x = 0; x < coefficients.cols(); ++x) {
+            coefficients(y, x) = output[static_cast<std::size_t>(x)];
+        }
+    }
+}
+
+void deconvolve_columns(Eigen::MatrixXd& coefficients, BSplineDegree degree)
+{
+    const auto kernel = build_prefilter_kernel(static_cast<int>(coefficients.rows()), degree);
+    for (Eigen::Index x = 0; x < coefficients.cols(); ++x) {
+        std::vector<double> signal(static_cast<std::size_t>(coefficients.rows()));
+        for (Eigen::Index y = 0; y < coefficients.rows(); ++y) {
+            signal[static_cast<std::size_t>(y)] = coefficients(y, x);
+        }
+        const auto output = deconvolve_periodic_signal(signal, kernel);
+        for (Eigen::Index y = 0; y < coefficients.rows(); ++y) {
+            coefficients(y, x) = output[static_cast<std::size_t>(y)];
+        }
+    }
+}
+
 } // namespace
 
 bool BSplinePrecomputedImage::empty() const
 {
-    return width <= 0 || height <= 0 || local_polynomial_blocks.empty();
+    return width <= 0 || height <= 0 || coefficients.size() == 0;
 }
 
 const Eigen::MatrixXd& BSplinePrecomputedImage::local_block(int x, int y) const
@@ -154,8 +261,8 @@ BSplineImagePreprocessor::BSplineImagePreprocessor(BSplinePrecomputeConfig confi
     : config_(config)
 {
     validate_degree(config_.degree);
-    if (config_.border < 0) {
-        throw std::invalid_argument("B-spline border must be non-negative.");
+    if (config_.border < 3) {
+        config_.border = 3;
     }
 }
 
@@ -174,22 +281,38 @@ BSplinePrecomputedImage BSplineImagePreprocessor::compute(const Image& image) co
     result.gradient_x = Eigen::MatrixXd::Zero(result.height, result.width);
     result.gradient_y = Eigen::MatrixXd::Zero(result.height, result.width);
     result.local_polynomial_blocks.reserve(static_cast<std::size_t>(result.width * result.height));
-
     for (int y = 0; y < result.height; ++y) {
         for (int x = 0; x < result.width; ++x) {
             const auto coefficient_block = extract_coefficient_block(result.coefficients, x, y);
             auto local_block = build_local_polynomial_block(coefficient_block, result.qk);
-
-            // Same convention as the reference pipeline:
-            // fx = M[..., 0, 1], fy = M[..., 1, 0].
+            // Same convention as the SubsetDIC reference pipeline:
+            // gradients are extracted at the pixel center, dx = dy = 0.5.
             if (local_block.rows() > 1 && local_block.cols() > 1) {
-                result.gradient_x(y, x) = local_block(0, 1);
-                result.gradient_y(y, x) = local_block(1, 0);
+                result.gradient_x(y, x) = evaluate_polynomial_dx(local_block, 0.5, 0.5);
+                result.gradient_y(y, x) = evaluate_polynomial_dy(local_block, 0.5, 0.5);
             }
             result.local_polynomial_blocks.push_back(std::move(local_block));
         }
     }
 
+    return result;
+}
+
+BSplinePrecomputedImage BSplineImagePreprocessor::compute_lazy(const Image& image) const
+{
+    if (image.empty()) {
+        throw std::invalid_argument("Cannot precompute B-spline data for an empty image.");
+    }
+
+    BSplinePrecomputedImage result;
+    result.width = image.width();
+    result.height = image.height();
+    result.config = config_;
+    result.config.precompute_local_blocks = false;
+    result.qk = build_qk(config_.degree);
+    result.coefficients = form_coefficients(image);
+    result.gradient_x = Eigen::MatrixXd::Zero(result.height, result.width);
+    result.gradient_y = Eigen::MatrixXd::Zero(result.height, result.width);
     return result;
 }
 
@@ -248,17 +371,22 @@ Eigen::MatrixXd BSplineImagePreprocessor::form_coefficients(const Image& image) 
     Eigen::MatrixXd coefficients(image.height() + 2 * border, image.width() + 2 * border);
 
     for (int y = 0; y < coefficients.rows(); ++y) {
-        const int source_y = clamp_index(y - border, 0, image.height() - 1);
+        const int source_y = config_.use_exact_prefilter
+            ? symmetric_index(y - border, image.height())
+            : clamp_index(y - border, 0, image.height() - 1);
         for (int x = 0; x < coefficients.cols(); ++x) {
-            const int source_x = clamp_index(x - border, 0, image.width() - 1);
+            const int source_x = config_.use_exact_prefilter
+                ? symmetric_index(x - border, image.width())
+                : clamp_index(x - border, 0, image.width() - 1);
             coefficients(y, x) = static_cast<double>(image.at(source_x, source_y));
         }
     }
 
-    // TODO: The Python reference divides the padded image by the sampled
-    // B-spline kernel in Fourier space. Add the same exact prefilter here once
-    // an FFT backend is selected. Until then, this deterministic edge-padded
-    // coefficient image keeps downstream interfaces usable and testable.
+    if (config_.use_exact_prefilter) {
+        deconvolve_rows(coefficients, config_.degree);
+        deconvolve_columns(coefficients, config_.degree);
+    }
+
     return coefficients;
 }
 
@@ -313,37 +441,57 @@ BSplineInterpolator::BSplineInterpolator(BSplinePrecomputedImage precomputed)
 {
 }
 
+BSplineInterpolator::BSplineInterpolator(const BSplinePrecomputedImage* precomputed)
+    : config_(precomputed != nullptr ? precomputed->config : BSplinePrecomputeConfig{}),
+      external_precomputed_(precomputed)
+{
+}
+
 void BSplineInterpolator::precompute()
 {
     BSplineImagePreprocessor preprocessor(config_);
     precomputed_ = preprocessor.compute(image_);
+    external_precomputed_ = nullptr;
 }
 
 double BSplineInterpolator::value(double x, double y) const
 {
-    if (precomputed_.empty()) {
+    const auto& precomputed = external_precomputed_ != nullptr ? *external_precomputed_ : precomputed_;
+    if (precomputed.empty()) {
         throw std::runtime_error("B-spline interpolator has no precomputed image data.");
     }
 
-    const int ix = clamp_index(static_cast<int>(std::floor(x)), 0, precomputed_.width - 1);
-    const int iy = clamp_index(static_cast<int>(std::floor(y)), 0, precomputed_.height - 1);
+    const int ix = clamp_index(static_cast<int>(std::floor(x)), 0, precomputed.width - 1);
+    const int iy = clamp_index(static_cast<int>(std::floor(y)), 0, precomputed.height - 1);
     const double dx = x - static_cast<double>(ix);
     const double dy = y - static_cast<double>(iy);
-    return evaluate_polynomial(precomputed_.local_block(ix, iy), dx, dy);
+    if (!precomputed.local_polynomial_blocks.empty()) {
+        return evaluate_polynomial(precomputed.local_block(ix, iy), dx, dy);
+    }
+    const auto local_block = build_local_block_on_demand(precomputed, ix, iy);
+    return evaluate_polynomial(local_block, dx, dy);
 }
 
 Eigen::Vector2d BSplineInterpolator::gradient(double x, double y) const
 {
-    if (precomputed_.empty()) {
+    const auto& precomputed = external_precomputed_ != nullptr ? *external_precomputed_ : precomputed_;
+    if (precomputed.empty()) {
         throw std::runtime_error("B-spline interpolator has no precomputed image data.");
     }
 
-    const int ix = clamp_index(static_cast<int>(std::floor(x)), 0, precomputed_.width - 1);
-    const int iy = clamp_index(static_cast<int>(std::floor(y)), 0, precomputed_.height - 1);
+    const int ix = clamp_index(static_cast<int>(std::floor(x)), 0, precomputed.width - 1);
+    const int iy = clamp_index(static_cast<int>(std::floor(y)), 0, precomputed.height - 1);
     const double dx = x - static_cast<double>(ix);
     const double dy = y - static_cast<double>(iy);
-    const auto& block = precomputed_.local_block(ix, iy);
+    if (!precomputed.local_polynomial_blocks.empty()) {
+        const auto& block = precomputed.local_block(ix, iy);
+        return {
+            evaluate_polynomial_dx(block, dx, dy),
+            evaluate_polynomial_dy(block, dx, dy)
+        };
+    }
 
+    const auto block = build_local_block_on_demand(precomputed, ix, iy);
     return {
         evaluate_polynomial_dx(block, dx, dy),
         evaluate_polynomial_dy(block, dx, dy)
@@ -352,7 +500,7 @@ Eigen::Vector2d BSplineInterpolator::gradient(double x, double y) const
 
 const BSplinePrecomputedImage& BSplineInterpolator::precomputed() const
 {
-    return precomputed_;
+    return external_precomputed_ != nullptr ? *external_precomputed_ : precomputed_;
 }
 
 } // namespace dic

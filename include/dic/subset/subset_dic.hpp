@@ -26,13 +26,26 @@
 #define TRADITIONAL_DIC_INCLUDE_DIC_SUBSET_SUBSET_DIC_HPP
 
 #include <dic/core/image.hpp>
+#include <dic/core/mask.hpp>
 #include <dic/core/result.hpp>
 #include <dic/subset/subset_config.hpp>
 #include <vector>
 
 namespace dic {
 
-class SubsetDIC { public: explicit SubsetDIC(SubsetConfig config = {}); std::vector<Displacement2D> compute(const Image& reference, const Image& deformed) const; private: SubsetConfig config_; };
+class SubsetDIC {
+public:
+    explicit SubsetDIC(SubsetConfig config = {});
+
+    std::vector<Displacement2D> compute(const Image& reference,
+                                        const Image& deformed) const;
+    std::vector<Displacement2D> compute(const Image& reference,
+                                        const Image& deformed,
+                                        const Mask& roi) const;
+
+private:
+    SubsetConfig config_;
+};
 
 } // namespace dic
 

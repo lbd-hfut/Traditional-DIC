@@ -17,13 +17,15 @@
  * - GlobalICGN public header, Eigen, GlobalAssembler, and LinearSolver.
  *
  * TODO:
- * - Implement reference-gradient precomputation from B-spline image preprocessing.
+ * - Complete element-level use of B-spline reference-gradient precomputation.
  * - Assemble the constant Hessian only once from reference gradients and FE shape matrices.
  * - Assemble residual/right-hand side every iteration using warped deformed intensities.
  * - Add regularization contribution and boundary-condition handling.
  */
 
 #include <dic/mesh/solver/global_icgn.hpp>
+
+#include <dic/interpolation/bspline.hpp>
 
 #include <stdexcept>
 
@@ -68,11 +70,10 @@ GlobalICGN::ReferencePrecompute GlobalICGN::precompute_reference_terms(
     (void)mesh;
 
     ReferencePrecompute precompute;
-    precompute.gradient_x = Eigen::MatrixXd::Zero(reference.height(), reference.width());
-    precompute.gradient_y = Eigen::MatrixXd::Zero(reference.height(), reference.width());
-
-    // TODO: Use BSplineImagePreprocessor output so Mesh-DIC and Subset-DIC share
-    // the same B-spline coefficients, local polynomial blocks, and gradients.
+    BSplineImagePreprocessor image_preprocessor(config_.image_precompute);
+    precompute.bspline = image_preprocessor.compute(reference);
+    precompute.gradient_x = precompute.bspline.gradient_x;
+    precompute.gradient_y = precompute.bspline.gradient_y;
     return precompute;
 }
 
@@ -90,7 +91,8 @@ void GlobalICGN::assemble_constant_hessian(
     // TODO:
     // 1. Iterate elements and sampling/Gauss points in the reference image.
     // 2. Evaluate natural coordinates and element shape matrix N.
-    // 3. Read fixed reference gradient [Df/Dx, Df/Dy].
+    // 3. Read fixed reference gradient [Df/Dx, Df/Dy] from the shared
+    //    B-spline full-image precompute.
     // 4. Accumulate local Hessian (N^T * grad_f) * (N^T * grad_f)^T.
     // 5. Add optional regularization, e.g. alpha * DN^T * DN.
     // 6. Assemble once into precompute.constant_hessian.
@@ -114,7 +116,8 @@ Eigen::VectorXd GlobalICGN::assemble_residual_rhs(
     // TODO:
     // 1. Interpolate nodal displacement to each element sampling point.
     // 2. Warp deformed image coordinates x + u(x).
-    // 3. Evaluate deformed intensity with BSplineInterpolator.
+    // 3. Evaluate deformed intensity with the same B-spline full-image
+    //    precompute path used by Subset-DIC.
     // 4. Compute residual f(x) - g(x + u).
     // 5. Multiply by fixed steepest descent terms N^T * grad_f.
     // 6. Add regularization residual, then assemble global rhs.

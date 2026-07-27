@@ -31,12 +31,30 @@
 
 namespace dic {
 
-struct FeatureMatch { Eigen::Vector2d reference_point{0.0, 0.0}; Eigen::Vector2d deformed_point{0.0, 0.0}; Eigen::Vector2d displacement{0.0, 0.0}; double confidence{0.0}; bool valid{false}; };
+struct FeatureMatcherConfig {
+    int max_features{4000};
+    double ratio_threshold{0.75};
+    double robust_mad_factor{5.0};
+};
+
+struct FeatureMatch {
+    Eigen::Vector2d reference_point{0.0, 0.0};
+    Eigen::Vector2d deformed_point{0.0, 0.0};
+    Eigen::Vector2d displacement{0.0, 0.0};
+    double confidence{0.0};
+    bool valid{false};
+    bool ratio_passed{false};
+    bool mutual{false};
+    bool robust_inlier{false};
+};
+
 class FeatureMatcher {
 public:
-    // TODO: Add OpenCV SIFT detection, descriptor matching, Lowe ratio,
-    // RANSAC, and outlier rejection.
+    explicit FeatureMatcher(FeatureMatcherConfig config = {});
     std::vector<FeatureMatch> match(const Image& reference, const Image& deformed) const;
+
+private:
+    FeatureMatcherConfig config_{};
 };
 
 } // namespace dic

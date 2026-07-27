@@ -25,16 +25,26 @@
 #ifndef TRADITIONAL_DIC_INCLUDE_DIC_INITIALIZATION_SIFT_INITIALIZER_HPP
 #define TRADITIONAL_DIC_INCLUDE_DIC_INITIALIZATION_SIFT_INITIALIZER_HPP
 
+#include <dic/initialization/feature_matcher.hpp>
 #include <dic/initialization/initializer.hpp>
 
 namespace dic {
 
+struct SIFTInitializerConfig {
+    FeatureMatcherConfig matcher{};
+    int interpolation_neighbors{8};
+    double interpolation_radius{180.0};
+};
+
 class SIFTInitializer : public Initializer {
 public:
     explicit SIFTInitializer(int search_radius = 20);
+    explicit SIFTInitializer(SIFTInitializerConfig config);
     InitialDisplacement estimate(const Image& reference, const Image& deformed, const Eigen::Vector2d& point) const override;
+    InitialDisplacement estimate_from_matches(const std::vector<FeatureMatch>& matches,
+                                              const Eigen::Vector2d& point) const;
 private:
-    int search_radius_{20};
+    SIFTInitializerConfig config_{};
 };
 
 } // namespace dic

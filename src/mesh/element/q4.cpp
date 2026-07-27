@@ -1,31 +1,28 @@
-/**
- * @file q4.cpp
- * @brief Minimal implementation placeholder for q4.
- *
- * Responsibilities:
- * - Provide linkable definitions matching the public header.
- * - Keep complex DIC mathematics marked as TODO for later implementation.
- *
- * Inputs:
- * - Values supplied through the corresponding API.
- *
- * Outputs:
- * - Placeholder values or explicit not-implemented exceptions.
- *
- * Dependencies:
- * - Corresponding public header plus Eigen/OpenCV-ready module boundaries.
- *
- * TODO:
- * - Replace placeholders with validated Traditional-DIC algorithms.
- * - Add numerical tests and performance benchmarks.
- */
-
 #include <dic/mesh/element/q4.hpp>
+
+#include "shape_func_internal.hpp"
 
 namespace dic {
 
 int Q4Element::node_count() const { return 4; }
-Eigen::VectorXd Q4Element::shape_functions(double xi, double eta) const { (void)xi; (void)eta; return Eigen::VectorXd::Zero(4); }
-Eigen::MatrixXd Q4Element::shape_function_derivatives(double xi, double eta) const { (void)xi; (void)eta; return Eigen::MatrixXd::Zero(4, 2); }
+
+Eigen::VectorXd Q4Element::shape_functions(double xi, double eta) const {
+    double N[4], dN_dxi[4], dN_deta[4];
+    mesh::internal::shape_functions_q4(xi, eta, N, dN_dxi, dN_deta);
+    Eigen::VectorXd result(4);
+    for (int i = 0; i < 4; ++i) result[i] = N[i];
+    return result;
+}
+
+Eigen::MatrixXd Q4Element::shape_function_derivatives(double xi, double eta) const {
+    double N[4], dN_dxi[4], dN_deta[4];
+    mesh::internal::shape_functions_q4(xi, eta, N, dN_dxi, dN_deta);
+    Eigen::MatrixXd result(4, 2);
+    for (int i = 0; i < 4; ++i) {
+        result(i, 0) = dN_dxi[i];
+        result(i, 1) = dN_deta[i];
+    }
+    return result;
+}
 
 } // namespace dic

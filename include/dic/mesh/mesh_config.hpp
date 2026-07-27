@@ -25,7 +25,8 @@
 #ifndef TRADITIONAL_DIC_INCLUDE_DIC_MESH_MESH_CONFIG_HPP
 #define TRADITIONAL_DIC_INCLUDE_DIC_MESH_MESH_CONFIG_HPP
 
-
+#include <dic/initialization/seed_config.hpp>
+#include <dic/interpolation/bspline.hpp>
 
 namespace dic {
 
@@ -40,6 +41,16 @@ struct MeshConfig {
     double convergence_threshold{1e-3};
     int search_radius{20};
     double regularization_alpha{0.0};
+    BSplinePrecomputeConfig image_precompute{};
+    SeedInitializationConfig seed_initialization{};
+
+    struct SIFTNodeInitializationConfig {
+        int max_features{4000};
+        double ratio_threshold{0.75};
+        int interpolation_neighbors{8};
+        double interpolation_radius{180.0};
+        double robust_mad_factor{5.0};
+    } sift_node_initialization{};
 };
 
 } // namespace dic

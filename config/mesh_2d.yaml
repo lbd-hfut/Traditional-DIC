@@ -1,40 +1,75 @@
-solver: mesh
+solver: mesh  # options: subset, mesh
 
 mesh:
-  element_type: q4
+  element_type: q4  # options: t3, q4, q8
 
 # Mesh generation sizes are in image pixels.
 mesh_generation:
+  # options: auto, manual, structured, unstructured
+  # auto: use the built-in ROI/mask generator.
+  # manual: read a user-supplied mesh from nodes_file/elements_file.
   method: auto
 
-  element_type: q4
+  element_type: q4  # options: t3, q4, q8
 
-  target_element_size: 20.0
+  # Required when method: manual. Ignored by auto/structured/unstructured.
+  nodes_file: case/2D/ring/user_mesh_q4_annulus_r4_c12/nodes_Q4.txt
+  elements_file: case/2D/ring/user_mesh_q4_annulus_r4_c12/elements_Q4.txt
 
-  fit_roi_boundary: true
+  target_element_size: 35.0  # positive pixels; target characteristic element size
 
-  remove_outside_elements: true
+  min_element_size: 18.0  # 0 or positive pixels; lower accepted element size
 
-  remove_outside_nodes: true
+  max_element_size: 55.0  # 0 or positive pixels; upper accepted element size
 
-  allow_partial_elements: false
+  fit_roi_boundary: true  # options: true, false
 
-  min_element_quality: 0.1
+  remove_outside_elements: true  # options: true, false
+
+  remove_outside_nodes: true  # options: true, false
+
+  allow_partial_elements: false  # options: true, false
+
+  min_element_quality: 0.1  # non-negative; larger rejects poorer elements
+
+  max_aspect_ratio: 6.0  # positive; larger allows more elongated elements
+
+  min_jacobian: 0.05  # positive; lower bound for accepted element Jacobian quality
 
 optimization:
-  method: global_icgn
-  max_iterations: 30
-  convergence_threshold: 1.0e-3
-  regularization_alpha: 0.0
+  method: global_icgn  # options: global_icgn, forward_gauss_newton
+  max_iterations: 30  # positive integer
+  convergence_threshold: 1.0e-3  # positive floating point tolerance
+  regularization_alpha: 0.0  # non-negative displacement-gradient regularization weight
 
 correlation:
-  criterion: znssd
+  criterion: znssd  # options: znssd, zncc, ssd
 
 interpolation:
-  method: bspline
-  degree: 5
+  method: bspline  # options: bspline
+  degree: 5  # options: 1, 3, 5
 
 initialization:
-  method: integer_search
-  subset_radius: 10
-  search_radius: 30
+  # options: sift, integer_search
+  # sift: use sparse SIFT matches, robust filtering, and nodal interpolation.
+  # integer_search: initialize every mesh node by integer subset search.
+  method: sift
+
+  integer_search:
+    subset_radius: 10  # positive integer pixels
+    search_radius: 30  # non-negative integer pixels
+
+  subpixel_refinement:
+    enabled: true  # options: true, false
+    shape_function: first_order  # options: first_order, second_order, 1, 2
+    optimizer: icgn  # options: icgn, forward_gauss_newton
+    subset_radius: 15  # positive integer pixels
+    max_iterations: 30  # positive integer
+    convergence_threshold: 1.0e-3  # positive floating point tolerance
+
+  sift_node_initialization:
+    max_features: 4000  # positive integer
+    ratio_threshold: 0.75  # positive; Lowe ratio threshold, typically 0.6-0.9
+    interpolation_neighbors: 8  # positive integer
+    interpolation_radius: 180.0  # positive pixels
+    robust_mad_factor: 5.0  # positive; robust outlier cutoff multiplier

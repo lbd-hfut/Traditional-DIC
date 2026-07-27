@@ -4,7 +4,7 @@
  *
  * Responsibilities:
  * - Store grayscale image data as row-major float pixels.
- * - Provide path-based loading when OpenCV is available.
+ * - Provide path-based loading and shared DIC preprocessing helpers.
  * - Provide memory-based construction for tests and Python bindings.
  *
  * Inputs:
@@ -19,7 +19,6 @@
  * - Internal Traditional-DIC modules declared by includes.
  *
  * TODO:
- * - Add optional normalization policy for DIC workflows.
  * - Add OpenCV-backed loading tests for common image formats.
  */
 
@@ -32,10 +31,35 @@
 
 namespace dic {
 
+class Mask;
+
+enum class ImageColorMode {
+    Unchanged,
+    Grayscale
+};
+
+enum class ImageIntensityScale {
+    Preserve,
+    Unit
+};
+
+enum class ImageNormalization {
+    None,
+    MaxIntensity,
+    GlobalMeanStd,
+    RoiMeanStd
+};
+
+struct ImageLoadOptions {
+    ImageColorMode color_mode{ImageColorMode::Grayscale};
+    ImageIntensityScale intensity_scale{ImageIntensityScale::Unit};
+};
+
 class Image {
 public:
     Image();
     explicit Image(const std::string& path);
+    Image(const std::string& path, ImageLoadOptions options);
     Image(int width, int height, std::vector<float> data);
 
     int width() const;
@@ -55,6 +79,16 @@ private:
     int height_{0};
     std::vector<float> data_;
 };
+
+Image normalize_image(
+    const Image& image,
+    ImageNormalization normalization,
+    const Mask* roi = nullptr
+);
+
+Image normalize_global_mean_std(const Image& image);
+Image normalize_max_intensity(const Image& image);
+Image normalize_roi_mean_std(const Image& image, const Mask& roi);
 
 } // namespace dic
 

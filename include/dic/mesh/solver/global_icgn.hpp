@@ -34,6 +34,7 @@
 #include <dic/mesh/mesh_config.hpp>
 #include <dic/mesh/solver/assembler.hpp>
 #include <dic/mesh/solver/linear_solver.hpp>
+#include <dic/interpolation/bspline.hpp>
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 
@@ -51,6 +52,7 @@ public:
 
 private:
     struct ReferencePrecompute {
+        BSplinePrecomputedImage bspline;
         Eigen::MatrixXd gradient_x;
         Eigen::MatrixXd gradient_y;
         Eigen::SparseMatrix<double> constant_hessian;

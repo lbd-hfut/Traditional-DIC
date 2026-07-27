@@ -19,9 +19,7 @@
  * - Internal Traditional-DIC modules declared by includes.
  *
  * TODO:
- * - Replace the first-pass edge-padded coefficient approximation with validated FFT
- *   or recursive B-spline prefiltering for degree 3/5.
- * - Add numerical equivalence tests against the reference Python/JAX pipeline.
+ * - Add numerical equivalence tests against more reference datasets.
  */
 
 #ifndef TRADITIONAL_DIC_INCLUDE_DIC_INTERPOLATION_BSPLINE_HPP
@@ -42,13 +40,30 @@ enum class BSplineDegree {
 };
 
 struct BSplinePrecomputeConfig {
+    BSplinePrecomputeConfig() = default;
+    BSplinePrecomputeConfig(BSplineDegree degree_value, int border_value, bool exact_prefilter)
+        : degree(degree_value),
+          border(border_value),
+          use_exact_prefilter(exact_prefilter),
+          precompute_local_blocks(true)
+    {
+    }
+    BSplinePrecomputeConfig(BSplineDegree degree_value,
+                            int border_value,
+                            bool exact_prefilter,
+                            bool local_blocks)
+        : degree(degree_value),
+          border(border_value),
+          use_exact_prefilter(exact_prefilter),
+          precompute_local_blocks(local_blocks)
+    {
+    }
+
     BSplineDegree degree{BSplineDegree::Quintic};
     int border{3};
 
-    // TODO: Enable exact FFT/recursive coefficient prefiltering once the
-    // numerical backend is selected. The current default keeps a usable,
-    // deterministic edge-padded coefficient image for downstream integration.
-    bool use_exact_prefilter{false};
+    bool use_exact_prefilter{true};
+    bool precompute_local_blocks{true};
 };
 
 struct BSplinePrecomputedImage {
@@ -71,6 +86,7 @@ public:
     explicit BSplineImagePreprocessor(BSplinePrecomputeConfig config = {});
 
     BSplinePrecomputedImage compute(const Image& image) const;
+    BSplinePrecomputedImage compute_lazy(const Image& image) const;
 
     static Eigen::MatrixXd build_qk(BSplineDegree degree);
     static double basis(double x, int derivative_order, BSplineDegree degree);
@@ -98,6 +114,7 @@ public:
         BSplinePrecomputeConfig config
     );
     explicit BSplineInterpolator(BSplinePrecomputedImage precomputed);
+    explicit BSplineInterpolator(const BSplinePrecomputedImage* precomputed);
 
     void precompute();
     double value(double x, double y) const override;
@@ -109,6 +126,7 @@ private:
     BSplinePrecomputeConfig config_;
     Image image_;
     BSplinePrecomputedImage precomputed_;
+    const BSplinePrecomputedImage* external_precomputed_{nullptr};
 };
 
 } // namespace dic

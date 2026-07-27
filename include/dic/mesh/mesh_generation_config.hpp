@@ -25,6 +25,8 @@
 #ifndef TRADITIONAL_DIC_INCLUDE_DIC_MESH_MESH_GENERATION_CONFIG_HPP
 #define TRADITIONAL_DIC_INCLUDE_DIC_MESH_MESH_GENERATION_CONFIG_HPP
 
+#include <string>
+
 namespace dic::mesh {
 
 enum class MeshElementType {
@@ -36,6 +38,7 @@ enum class MeshElementType {
 enum class MeshGenerationMethod {
     Structured,
     Unstructured,
+    Manual,
     Auto
 };
 
@@ -53,6 +56,17 @@ struct MeshGenerationConfig {
 
     // Target characteristic element size in image pixels.
     double target_element_size{20.0};
+    double min_element_size{0.0};
+    double max_element_size{0.0};
+
+    // Manual mesh input files. Required when method == Manual.
+    // Format:
+    //   nodes_file:    node_id, x, y
+    //   elements_file: element_id, n1, n2, ...
+    // Node ids in elements_file are 1-based, matching common exported mesh
+    // tables and the diagnostic tools in tools/.
+    std::string nodes_file{};
+    std::string elements_file{};
 
     // Whether the generated mesh should follow the ROI boundary.
     bool fit_roi_boundary{true};
@@ -68,6 +82,8 @@ struct MeshGenerationConfig {
 
     // Minimum accepted element quality.
     double min_element_quality{0.1};
+    double max_aspect_ratio{6.0};
+    double min_jacobian{0.05};
 };
 
 } // namespace dic::mesh

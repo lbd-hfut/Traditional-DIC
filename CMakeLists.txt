@@ -9,13 +9,43 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(CompilerOptions)
 include(Dependencies)
 
+if(NOT OpenCV_FOUND AND DEFINED OpenCV_DIR)
+    get_filename_component(_opencv_prefix "${OpenCV_DIR}/.." ABSOLUTE)
+    set(_opencv_include "${_opencv_prefix}/include")
+    set(_opencv_lib_dir "${_opencv_prefix}/lib")
+    set(_opencv_required_libs
+        opencv_core4100
+        opencv_flann4100
+        opencv_imgproc4100
+        opencv_imgcodecs4100
+        opencv_features2d4100
+        opencv_calib3d4100
+    )
+    set(_opencv_manual_libs)
+    set(_opencv_manual_found TRUE)
+    foreach(_opencv_lib IN LISTS _opencv_required_libs)
+        find_library(${_opencv_lib}_PATH NAMES ${_opencv_lib} PATHS "${_opencv_lib_dir}" NO_DEFAULT_PATH)
+        if(${_opencv_lib}_PATH)
+            list(APPEND _opencv_manual_libs "${${_opencv_lib}_PATH}")
+        else()
+            set(_opencv_manual_found FALSE)
+        endif()
+    endforeach()
+    if(_opencv_manual_found AND EXISTS "${_opencv_include}/opencv2/core.hpp")
+        set(OpenCV_FOUND TRUE)
+        set(OpenCV_INCLUDE_DIRS "${_opencv_include}")
+        set(OpenCV_LIBS ${_opencv_manual_libs})
+        message(STATUS "Using manual OpenCV libraries from ${_opencv_lib_dir}")
+    endif()
+endif()
+
 file(GLOB_RECURSE TRADITIONAL_DIC_CORE_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 add_library(traditional_dic_core ${TRADITIONAL_DIC_CORE_SOURCES})
 add_library(traditional_dic::core ALIAS traditional_dic_core)
 target_include_directories(traditional_dic_core PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>" "$<INSTALL_INTERFACE:include>")
 target_compile_features(traditional_dic_core PUBLIC cxx_std_17)
 traditional_dic_apply_compiler_options(traditional_dic_core)
-target_link_libraries(traditional_dic_core PUBLIC Eigen3::Eigen)
+target_link_libraries(traditional_dic_core PUBLIC Eigen3::Eigen yaml-cpp::yaml-cpp)
 if(OpenCV_FOUND)
     target_link_libraries(traditional_dic_core PUBLIC ${OpenCV_LIBS})
     target_compile_definitions(traditional_dic_core PUBLIC TRADITIONAL_DIC_HAS_OPENCV=1)
@@ -30,6 +60,7 @@ if(TRADITIONAL_DIC_BUILD_TESTS)
         file(GLOB_RECURSE TRADITIONAL_DIC_TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp")
         add_executable(traditional_dic_tests ${TRADITIONAL_DIC_TEST_SOURCES})
         target_link_libraries(traditional_dic_tests PRIVATE traditional_dic_core GTest::gtest_main)
+        target_include_directories(traditional_dic_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/mesh")
         include(GoogleTest)
         gtest_discover_tests(traditional_dic_tests)
     else()
@@ -43,4 +74,46 @@ if(TRADITIONAL_DIC_BUILD_BENCHMARKS)
         add_executable(${bench_name} ${bench_src})
         target_link_libraries(${bench_name} PRIVATE traditional_dic_core)
     endforeach()
+endif()
+
+add_executable(dump_bspline_precompute tools/dump_bspline_precompute.cpp)
+target_link_libraries(dump_bspline_precompute PRIVATE traditional_dic_core)
+
+add_executable(seed_matching_diagnostic tools/seed_matching_diagnostic.cpp)
+target_link_libraries(seed_matching_diagnostic PRIVATE traditional_dic_core)
+
+add_executable(subset_dic_diagnostic tools/subset_dic_diagnostic.cpp)
+target_link_libraries(subset_dic_diagnostic PRIVATE traditional_dic_core)
+
+add_executable(mesh_dic_diagnostic tools/mesh_dic_diagnostic.cpp)
+target_link_libraries(mesh_dic_diagnostic PRIVATE traditional_dic_core)
+target_include_directories(mesh_dic_diagnostic PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/mesh")
+
+add_executable(mesh_boundary_diagnostic tools/mesh_boundary_diagnostic.cpp)
+target_link_libraries(mesh_boundary_diagnostic PRIVATE traditional_dic_core)
+
+add_executable(mesh_input_diagnostic tools/mesh_input_diagnostic.cpp)
+target_link_libraries(mesh_input_diagnostic PRIVATE traditional_dic_core)
+target_include_directories(mesh_input_diagnostic PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/mesh")
+
+add_executable(mesh_auto_generation_diagnostic tools/mesh_auto_generation_diagnostic.cpp)
+target_link_libraries(mesh_auto_generation_diagnostic PRIVATE traditional_dic_core)
+
+add_executable(mesh_g2l_diagnostic tools/mesh_g2l_diagnostic.cpp)
+target_link_libraries(mesh_g2l_diagnostic PRIVATE traditional_dic_core)
+target_include_directories(mesh_g2l_diagnostic PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/mesh")
+
+add_executable(mesh_node_initialization_diagnostic tools/mesh_node_initialization_diagnostic.cpp)
+target_link_libraries(mesh_node_initialization_diagnostic PRIVATE traditional_dic_core)
+
+add_executable(mesh_sift_pipeline_diagnostic tools/mesh_sift_pipeline_diagnostic.cpp)
+target_link_libraries(mesh_sift_pipeline_diagnostic PRIVATE traditional_dic_core)
+target_include_directories(mesh_sift_pipeline_diagnostic PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/mesh")
+
+if(OpenCV_FOUND)
+    add_executable(mesh_sift_node_initialization_diagnostic tools/mesh_sift_node_initialization_diagnostic.cpp)
+    target_link_libraries(mesh_sift_node_initialization_diagnostic PRIVATE traditional_dic_core)
+    target_include_directories(mesh_sift_node_initialization_diagnostic PRIVATE ${OpenCV_INCLUDE_DIRS})
+    target_link_libraries(mesh_sift_node_initialization_diagnostic PRIVATE ${OpenCV_LIBS})
+    target_compile_definitions(mesh_sift_node_initialization_diagnostic PRIVATE TRADITIONAL_DIC_HAS_OPENCV=1)
 endif()

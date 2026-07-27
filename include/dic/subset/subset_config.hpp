@@ -25,11 +25,26 @@
 #ifndef TRADITIONAL_DIC_INCLUDE_DIC_SUBSET_SUBSET_CONFIG_HPP
 #define TRADITIONAL_DIC_INCLUDE_DIC_SUBSET_SUBSET_CONFIG_HPP
 
-
+#include <dic/initialization/seed_config.hpp>
+#include <dic/interpolation/bspline.hpp>
 
 namespace dic {
 
-struct SubsetConfig { int subset_radius{15}; int max_iterations{30}; double convergence_threshold{1e-3}; bool use_second_order{false}; int search_radius{20}; };
+struct SubsetConfig {
+    int subset_radius{15};
+    int max_iterations{30};
+    double convergence_threshold{1e-3};
+    bool use_second_order{false};
+    int search_radius{20};
+    int propagation_spacing{5};
+    int propagation_max_points{0};
+    double propagation_max_znssd{0.5};
+    BSplinePrecomputeConfig image_precompute{};
+    SeedInitializationConfig seed_initialization{};
+    SeedSelectionConfig seed_selection{};
+    SubsetShapeFunctionMethod shape_function{SubsetShapeFunctionMethod::FirstOrder};
+    SubsetOptimizationMethod optimizer{SubsetOptimizationMethod::ICGN};
+};
 
 } // namespace dic
 

@@ -25,6 +25,7 @@
 #ifndef TRADITIONAL_DIC_INCLUDE_DIC_SUBSET_SOLVER_ICGN_HPP
 #define TRADITIONAL_DIC_INCLUDE_DIC_SUBSET_SOLVER_ICGN_HPP
 
+#include <dic/interpolation/bspline.hpp>
 #include <dic/subset/solver/subset_solver.hpp>
 #include <dic/subset/subset_config.hpp>
 
@@ -34,7 +35,22 @@ class ICGNSolver : public SubsetSolver {
 public:
     explicit ICGNSolver(SubsetConfig config = {});
     Displacement2D solve(const Image& reference, const Image& deformed, const Eigen::Vector2d& point, const InitialDisplacement& initial) const override;
+    Displacement2D solve_with_interpolators(const Image& reference,
+                                            const Image& deformed,
+                                            const Eigen::Vector2d& point,
+                                            const InitialDisplacement& initial,
+                                            const BSplineInterpolator& reference_interpolator,
+                                            const BSplineInterpolator& deformed_interpolator) const;
 private:
+    Displacement2D solve_first_order(const Image& reference, const Image& deformed, const Eigen::Vector2d& point, const InitialDisplacement& initial) const;
+    Displacement2D solve_first_order(const Image& reference,
+                                     const Image& deformed,
+                                     const Eigen::Vector2d& point,
+                                     const InitialDisplacement& initial,
+                                     const BSplineInterpolator& reference_interpolator,
+                                     const BSplineInterpolator& deformed_interpolator) const;
+    Displacement2D solve_second_order_placeholder(const Eigen::Vector2d& point, const InitialDisplacement& initial) const;
+
     // TODO: Reference subset -> reference gradient -> shape Jacobian ->
     // steepest descent images -> Hessian precomputation -> warp deformed image
     // -> B-spline interpolation -> ZNSSD residual -> delta parameters ->
