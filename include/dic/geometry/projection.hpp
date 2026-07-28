@@ -25,12 +25,19 @@
 #ifndef TRADITIONAL_DIC_INCLUDE_DIC_GEOMETRY_PROJECTION_HPP
 #define TRADITIONAL_DIC_INCLUDE_DIC_GEOMETRY_PROJECTION_HPP
 
-#include <dic/calibration/camera_model.hpp>
 #include <Eigen/Dense>
+#include <dic/calibration/camera_model.hpp>
 
 namespace dic {
 
+Eigen::Vector3d world_to_camera(const Eigen::Vector3d& point, const CameraModel& camera);
+Eigen::Vector2d distort_normalized_point(const Eigen::Vector2d& normalized,
+                                         const std::vector<double>& distortion);
 Eigen::Vector2d project_point(const Eigen::Vector3d& point, const CameraModel& camera);
+double reprojection_error(const Eigen::Vector3d& point,
+                          const Eigen::Vector2d& observation,
+                          const CameraModel& camera);
+double camera_depth(const Eigen::Vector3d& point, const CameraModel& camera);
 
 } // namespace dic
 

@@ -3,7 +3,8 @@
  * @brief Reliability-guided DIC propagation (ncorr RG-DIC algorithm).
  *
  * Algorithm:
- * 1. Build a grid of points over the entire image at spacing intervals.
+ * 1. Build a reduced grid of full-resolution points using ncorr's
+ *    stride convention: stride = spacing + 1.
  * 2. Place pre-computed seed point(s) onto the grid.
  * 3. Use a min-heap priority queue ordered by ZNSSD (lower = more reliable).
  * 4. Loop:
@@ -14,8 +15,6 @@
  *       - Run ICGN.
  *       - If ICGN passes strict acceptance (ZNSSD < 0.1, delta disp < 1 px):
  *         mark valid & push to queue for further propagation.
- *       - If ICGN fails: fallback to full integer search + ICGN.
- *         If fallback passes looser acceptance (ZNSSD < 0.5): mark valid.
  * 5. Output: dense grid with every point marked valid or invalid.
  *
  * Reference: ncorr_alg_rgdic.cpp, ncorr_alg_dicanalysis.m
@@ -56,6 +55,11 @@ struct QueueItem {
 // ---------------------------------------------------------------------------
 bool in_bounds(int x, int y, int w, int h) {
     return x >= 0 && y >= 0 && x < w && y < h;
+}
+
+int ceil_div(int value, int divisor)
+{
+    return (value + divisor - 1) / divisor;
 }
 
 bool all_finite_6(double u, double v,
@@ -106,8 +110,8 @@ BSplinePrecomputedImage build_reference_gradient_cache(const Image& reference, B
 ReliabilityPropagation::ReliabilityPropagation(SubsetConfig config)
     : config_(config)
 {
-    if (config_.propagation_spacing < 1) {
-        config_.propagation_spacing = 1;
+    if (config_.propagation_spacing < 0) {
+        config_.propagation_spacing = 0;
     }
 }
 
@@ -130,7 +134,7 @@ PropagationResult ReliabilityPropagation::propagate(
         reference.width()  != roi.width()        ||
         reference.height() != roi.height()       ||
         config_.subset_radius < 1                ||
-        config_.propagation_spacing < 1          ||
+        config_.propagation_spacing < 0          ||
         seeds.empty()) {
         return result;
     }
@@ -138,11 +142,13 @@ PropagationResult ReliabilityPropagation::propagate(
     const int ref_w  = reference.width();
     const int ref_h  = reference.height();
     const int radius = config_.subset_radius;
-    const int step   = config_.propagation_spacing;
+    const int step   = config_.propagation_spacing + 1;
 
-    // --- Grid dimensions ---
-    const int grid_w = ref_w / step;
-    const int grid_h = ref_h / step;
+    // --- Reduced-grid dimensions ---
+    // ncorr's spacing parameter is a gap count; its propagation stride is
+    // spacing + 1, and output plots use ceil(image_size / stride).
+    const int grid_w = ceil_div(ref_w, step);
+    const int grid_h = ceil_div(ref_h, step);
     if (grid_w <= 0 || grid_h <= 0) return result;
 
     const int total_grid = grid_w * grid_h;

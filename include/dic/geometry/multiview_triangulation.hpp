@@ -25,13 +25,29 @@
 #ifndef TRADITIONAL_DIC_INCLUDE_DIC_GEOMETRY_MULTIVIEW_TRIANGULATION_HPP
 #define TRADITIONAL_DIC_INCLUDE_DIC_GEOMETRY_MULTIVIEW_TRIANGULATION_HPP
 
-#include <dic/calibration/camera_model.hpp>
 #include <Eigen/Dense>
+#include <dic/calibration/camera_model.hpp>
 #include <vector>
 
 namespace dic {
 
+struct TriangulationOptions {
+    double max_reprojection_error = 2.0;
+    bool require_positive_depth = true;
+};
+
+struct TriangulationResult {
+    Eigen::Vector3d point = Eigen::Vector3d::Zero();
+    double mean_reprojection_error = 0.0;
+    double max_reprojection_error = 0.0;
+    int observations_used = 0;
+    bool valid = false;
+};
+
 Eigen::Vector3d triangulate_multiview(const std::vector<Eigen::Vector2d>& observations, const std::vector<CameraModel>& cameras);
+TriangulationResult triangulate_multiview_checked(const std::vector<Eigen::Vector2d>& observations,
+                                                  const std::vector<CameraModel>& cameras,
+                                                  const TriangulationOptions& options = {});
 
 } // namespace dic
 

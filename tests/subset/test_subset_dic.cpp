@@ -1,5 +1,6 @@
 #include <dic/core/image.hpp>
 #include <dic/core/mask.hpp>
+#include <dic/subset/seed/reliability_propagation.hpp>
 #include <dic/subset/subset_dic.hpp>
 #include <gtest/gtest.h>
 
@@ -73,4 +74,36 @@ TEST(SubsetDIC, PropagatesReliablePointsFromAutomaticSeed)
         EXPECT_NEAR(result.v, -1.4, 0.6);
     }
     EXPECT_GT(valid_found, 5);
+}
+
+TEST(ReliabilityPropagation, UsesNcorrSpacingAsReducedGridStride)
+{
+    const auto reference = make_subset_dic_image(11, 10, 0.0, 0.0);
+    const auto deformed = make_subset_dic_image(11, 10, 0.0, 0.0);
+    dic::Mask roi(11, 10);
+    roi.fill(true);
+
+    dic::SubsetConfig config;
+    config.subset_radius = 1;
+    config.max_iterations = 1;
+    config.propagation_spacing = 4;
+
+    dic::PropagationSeed seed;
+    seed.point = Eigen::Vector2d(5.0, 5.0);
+    seed.displacement.x = 5.0;
+    seed.displacement.y = 5.0;
+    seed.displacement.valid = true;
+    seed.displacement.status = dic::SolverStatus::Success;
+
+    const dic::ReliabilityPropagation propagation(config);
+    const auto result = propagation.propagate(reference, deformed, roi, {seed});
+
+    EXPECT_EQ(result.spacing, 5);
+    EXPECT_EQ(result.grid_width, 3);
+    EXPECT_EQ(result.grid_height, 2);
+    ASSERT_EQ(result.points.size(), 6U);
+    EXPECT_DOUBLE_EQ(result.points[0].x, 0.0);
+    EXPECT_DOUBLE_EQ(result.points[1].x, 5.0);
+    EXPECT_DOUBLE_EQ(result.points[2].x, 10.0);
+    EXPECT_DOUBLE_EQ(result.points[3].y, 5.0);
 }

@@ -3,7 +3,9 @@
  * @brief Reliability-guided DIC propagation (RG-DIC).
  *
  * Responsibilities:
- * - Starting from pre-computed seed points, propagate outward using a
+ * - Starting from pre-computed seed points, propagate outward on ncorr's
+ *   reduced grid, where the full-resolution stride is spacing + 1.
+ * - Use a
  *   priority queue ordered by ZNSSD correlation coefficient (lower = more reliable).
  * - For each computed point, extrapolate initial displacement to 4-connected
  *   neighbors using the first-order affine warp parameters.
@@ -40,7 +42,7 @@ struct PropagationSeed {
 struct PropagationResult {
     int grid_width{0};
     int grid_height{0};
-    int spacing{0};
+    int spacing{0};  // Full-resolution stride, equal to config spacing + 1.
     std::vector<Displacement2D> points;
     int points_computed{0};
 };

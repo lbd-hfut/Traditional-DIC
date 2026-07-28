@@ -256,6 +256,10 @@ __marimo__/
 /case/**/sift_node_initialization*/
 /case/**/field_visualization/
 /case/**/ring/padding_roi_truncation_test/
+/case/**/displacements.csv
+/case/**/stats.json
+/case/**/overview.png
+/case/**/subset_field_*.png
 
 # Local visualization artifacts
 /visualizations/

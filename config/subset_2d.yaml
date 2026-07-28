@@ -53,5 +53,5 @@ seed_selection:
   kmeans_sample_limit: 20000  # positive integer
 
 reliability_propagation:
-  spacing: 10  # positive integer pixels
+  spacing: 3  # positive integer pixels
   max_znssd: 0.2  # non-negative; lower is stricter

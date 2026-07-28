@@ -25,12 +25,32 @@
 #ifndef TRADITIONAL_DIC_INCLUDE_DIC_GEOMETRY_STEREO_TRIANGULATION_HPP
 #define TRADITIONAL_DIC_INCLUDE_DIC_GEOMETRY_STEREO_TRIANGULATION_HPP
 
-#include <dic/calibration/camera_model.hpp>
 #include <Eigen/Dense>
+#include <dic/calibration/camera_model.hpp>
+#include <dic/geometry/multiview_triangulation.hpp>
+#include <vector>
 
 namespace dic {
 
 Eigen::Vector3d triangulate_stereo(const Eigen::Vector2d& point_left, const Eigen::Vector2d& point_right, const CameraModel& left, const CameraModel& right);
+TriangulationResult triangulate_stereo_checked(const Eigen::Vector2d& point_left,
+                                               const Eigen::Vector2d& point_right,
+                                               const CameraModel& left,
+                                               const CameraModel& right,
+                                               const TriangulationOptions& options = {});
+
+struct StereoReconstructionResult {
+    std::vector<Eigen::Vector3d> points;
+    std::vector<double> mean_reprojection_errors;
+    std::vector<unsigned char> valid_mask;
+    double mean_reprojection_error = 0.0;
+};
+
+StereoReconstructionResult reconstruct_stereo_points(const std::vector<Eigen::Vector2d>& left_points,
+                                                     const std::vector<Eigen::Vector2d>& right_points,
+                                                     const CameraModel& left,
+                                                     const CameraModel& right,
+                                                     const TriangulationOptions& options = {});
 
 } // namespace dic
 
