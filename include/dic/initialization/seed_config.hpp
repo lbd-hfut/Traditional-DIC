@@ -18,6 +18,11 @@ enum class SubsetOptimizationMethod {
     ForwardGaussNewton
 };
 
+enum class CorrelationCriterionKind {
+    SSD,
+    ZNSSD
+};
+
 enum class SeedQualityMetric {
     ZNCC,
     ZNSSD,
@@ -36,6 +41,7 @@ struct SeedSubpixelRefinementConfig {
     bool enabled{true};
     SubsetShapeFunctionMethod shape_function{SubsetShapeFunctionMethod::FirstOrder};
     SubsetOptimizationMethod optimizer{SubsetOptimizationMethod::ICGN};
+    CorrelationCriterionKind objective{CorrelationCriterionKind::ZNSSD};
     int subset_radius{15};
     int max_iterations{30};
     double convergence_threshold{1e-3};

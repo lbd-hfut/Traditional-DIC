@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -125,6 +126,11 @@ int main(int argc, char** argv)
         const std::string roi_path = argv[3];
         const std::string out_csv = argv[4];
         const std::string config_path = argv[5];
+        auto out = std::make_unique<std::ofstream>(out_csv);
+        if (!(*out)) {
+            std::cerr << "Failed to open output CSV: " << out_csv << '\n';
+            return EXIT_FAILURE;
+        }
 
         const auto reference = read_bmp_image(reference_path);
         const auto deformed = read_bmp_image(deformed_path);
@@ -134,28 +140,22 @@ int main(int argc, char** argv)
         const dic::SubsetDIC solver(config);
         const auto results = solver.compute(reference, deformed, roi);
 
-        std::ofstream out(out_csv);
-        if (!out) {
-            std::cerr << "Failed to open output CSV: " << out_csv << '\n';
-            return EXIT_FAILURE;
-        }
-
-        out << "index,x,y,u,v,matched_x,matched_y,quality,du_dx,du_dy,dv_dx,dv_dy,valid\n";
+        (*out) << "index,x,y,u,v,matched_x,matched_y,quality,du_dx,du_dy,dv_dx,dv_dy,valid\n";
         for (std::size_t i = 0; i < results.size(); ++i) {
             const auto& result = results[i];
-            out << i << ','
-                << result.x << ','
-                << result.y << ','
-                << result.u << ','
-                << result.v << ','
-                << result.x + result.u << ','
-                << result.y + result.v << ','
-                << result.correlation << ','
-                << result.du_dx << ','
-                << result.du_dy << ','
-                << result.dv_dx << ','
-                << result.dv_dy << ','
-                << (result.valid ? 1 : 0) << '\n';
+            (*out) << i << ','
+                   << result.x << ','
+                   << result.y << ','
+                   << result.u << ','
+                   << result.v << ','
+                   << result.x + result.u << ','
+                   << result.y + result.v << ','
+                   << result.correlation << ','
+                   << result.du_dx << ','
+                   << result.du_dy << ','
+                   << result.dv_dx << ','
+                   << result.dv_dy << ','
+                   << (result.valid ? 1 : 0) << '\n';
         }
 
         int valid_count = 0;

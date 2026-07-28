@@ -236,7 +236,6 @@ CircularSubsetRegion extract_circular_subset(const SubsetRegion& region,
                                              int radius,
                                              bool truncate_subset)
 {
-    (void)truncate_subset;
     if (radius < 0) {
         throw std::invalid_argument("Subset radius must be non-negative.");
     }
@@ -266,7 +265,7 @@ CircularSubsetRegion extract_circular_subset(const SubsetRegion& region,
         bool in_run = false;
         int range = 0;
         for (int py = top; py <= bottom; ++py) {
-            const bool valid = region.contains(x + dx, py);
+            const bool valid = !truncate_subset || region.contains(x + dx, py);
             if (valid) {
                 subset.mask[(py - (y - radius)) + col * diameter] = 1;
                 subset.region.upperbound = std::min(subset.region.upperbound, py);

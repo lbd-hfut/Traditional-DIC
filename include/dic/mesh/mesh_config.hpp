@@ -37,6 +37,7 @@ enum class MeshSolverMethod {
 
 struct MeshConfig {
     MeshSolverMethod solver_method{MeshSolverMethod::GlobalICGN};
+    CorrelationCriterionKind objective{CorrelationCriterionKind::SSD};
     int max_iterations{30};
     double convergence_threshold{1e-3};
     int search_radius{20};

@@ -107,3 +107,34 @@ TEST(ReliabilityPropagation, UsesNcorrSpacingAsReducedGridStride)
     EXPECT_DOUBLE_EQ(result.points[2].x, 10.0);
     EXPECT_DOUBLE_EQ(result.points[3].y, 5.0);
 }
+
+TEST(ReliabilityPropagation, SnapsOffGridSeedToNearestReducedGridPoint)
+{
+    const auto reference = make_subset_dic_image(32, 32, 0.0, 0.0);
+    const auto deformed = make_subset_dic_image(32, 32, 0.0, 0.0);
+    dic::Mask roi(32, 32);
+    roi.fill(true);
+
+    dic::SubsetConfig config;
+    config.subset_radius = 4;
+    config.max_iterations = 10;
+    config.convergence_threshold = 1e-6;
+    config.propagation_spacing = 3;
+
+    dic::PropagationSeed seed;
+    seed.point = Eigen::Vector2d(10.0, 9.0);
+    seed.displacement.x = 10.0;
+    seed.displacement.y = 9.0;
+    seed.displacement.valid = true;
+    seed.displacement.status = dic::SolverStatus::Success;
+
+    const dic::ReliabilityPropagation propagation(config);
+    const auto result = propagation.propagate(reference, deformed, roi, {seed});
+
+    ASSERT_EQ(result.grid_width, 8);
+    ASSERT_EQ(result.grid_height, 8);
+    const auto& snapped = result.points[2 + 2 * result.grid_width];
+    EXPECT_TRUE(snapped.valid);
+    EXPECT_DOUBLE_EQ(snapped.x, 8.0);
+    EXPECT_DOUBLE_EQ(snapped.y, 8.0);
+}

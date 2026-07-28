@@ -152,6 +152,53 @@ static int recommended_mesh_padding(const MeshConfig& config)
     return std::max(0, search_radius) + std::max(0, init_radius) + bspline_border;
 }
 
+static void global_icgn_znssd_placeholder(Eigen::VectorXd& U)
+{
+    // ZNSSD global mesh optimization needs a result/status API before it can
+    // report an explicit not-implemented state; keep U at initialization.
+    (void)U;
+}
+
+static void global_forward_gn_znssd_placeholder(Eigen::VectorXd& U)
+{
+    // ZNSSD global mesh optimization needs a result/status API before it can
+    // report an explicit not-implemented state; keep U at initialization.
+    (void)U;
+}
+
+static void solve_global_mesh_displacement(
+    const MeshConfig& config,
+    const StiffnessCache& cache,
+    const G2LOutput& g2l,
+    const double* ref_img,
+    int img_h,
+    int img_w,
+    const int* elements,
+    int n_elements,
+    Eigen::VectorXd& U,
+    const BSplineInterpolator* def_interp,
+    double alpha,
+    double tol,
+    int max_it)
+{
+    if (config.solver_method == MeshSolverMethod::ForwardGaussNewton) {
+        if (config.objective == CorrelationCriterionKind::ZNSSD) {
+            global_forward_gn_znssd_placeholder(U);
+            return;
+        }
+        global_forward_gn(cache, g2l, ref_img, img_h, img_w,
+                          elements, n_elements, U, def_interp, alpha, tol, max_it);
+        return;
+    }
+
+    if (config.objective == CorrelationCriterionKind::ZNSSD) {
+        global_icgn_znssd_placeholder(U);
+        return;
+    }
+    global_icgn(cache, g2l, ref_img, img_h, img_w,
+                elements, n_elements, U, def_interp, alpha, tol, max_it);
+}
+
 MeshDIC::MeshDIC(MeshConfig config) : config_(config) {}
 
 std::vector<Displacement2D> MeshDIC::compute(
@@ -271,12 +318,8 @@ std::vector<Displacement2D> MeshDIC::compute(
     // ---- 8. Global solver ----
     double tol = config_.convergence_threshold;
     int max_it = config_.max_iterations;
-    if (config_.solver_method == MeshSolverMethod::ForwardGaussNewton)
-        global_forward_gn(cache, g2l, ref_flat.data(), img_h, img_w,
-            elements_flat.data(), n_elements, U, &def_interp, alpha, tol, max_it);
-    else
-        global_icgn(cache, g2l, ref_flat.data(), img_h, img_w,
-            elements_flat.data(), n_elements, U, &def_interp, alpha, tol, max_it);
+    solve_global_mesh_displacement(config_, cache, g2l, ref_flat.data(), img_h, img_w,
+        elements_flat.data(), n_elements, U, &def_interp, alpha, tol, max_it);
 
     // ---- 9-10. Write back + convert ----
     auto& mesh_nodes = mesh.nodes();

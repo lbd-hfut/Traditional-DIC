@@ -46,6 +46,7 @@ struct SubsetConfig {
     SeedSelectionConfig seed_selection{};
     SubsetShapeFunctionMethod shape_function{SubsetShapeFunctionMethod::FirstOrder};
     SubsetOptimizationMethod optimizer{SubsetOptimizationMethod::ICGN};
+    CorrelationCriterionKind objective{CorrelationCriterionKind::ZNSSD};
 };
 
 } // namespace dic

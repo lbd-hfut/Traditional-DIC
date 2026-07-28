@@ -44,7 +44,7 @@ optimization:
   mirror_image_padding: true  # options: true, false; true mirror-pads images for interpolation/search near image boundaries
 
 correlation:
-  criterion: znssd  # options: znssd, zncc, ssd
+  criterion: znssd  # options: znssd, ssd
 
 interpolation:
   method: bspline  # options: bspline

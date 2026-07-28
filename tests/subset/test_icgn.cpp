@@ -55,6 +55,25 @@ TEST(Icgn, RefinesSubpixelTranslation)
     EXPECT_NEAR(result.v, -0.65, 0.15);
 }
 
+TEST(Icgn, FirstOrderSsdIsAStablePlaceholder)
+{
+    const auto reference = make_shifted_image(32, 32, 0.0, 0.0);
+    const auto deformed = make_shifted_image(32, 32, 1.0, 0.0);
+
+    dic::SubsetConfig config;
+    config.objective = dic::CorrelationCriterionKind::SSD;
+
+    const dic::ICGNSolver solver(config);
+    const dic::InitialDisplacement initial{0.75, 0.25, 0.0, 0.0, 0.0, 0.0, 0.7, true};
+    const auto result = solver.solve(reference, deformed, Eigen::Vector2d(16.0, 16.0), initial);
+
+    EXPECT_FALSE(result.valid);
+    EXPECT_EQ(result.status, dic::SolverStatus::NotConverged);
+    EXPECT_DOUBLE_EQ(result.u, 0.75);
+    EXPECT_DOUBLE_EQ(result.v, 0.25);
+    EXPECT_DOUBLE_EQ(result.correlation, 0.7);
+}
+
 TEST(Icgn, RefinesMaskedSubsetNearPaddedBoundary)
 {
     const auto reference = make_shifted_image(64, 64, 0.0, 0.0);

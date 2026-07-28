@@ -1,35 +1,45 @@
 /**
  * @file strain_2d.hpp
- * @brief 2D strain postprocessing placeholder.
+ * @brief 2D strain computation from displacement gradient fields.
  *
  * Responsibilities:
- * - Define the public interface and data structures for this module.
- * - Keep dependencies explicit and module coupling low for future development.
- *
- * Inputs:
- * - Images, coordinates, parameters, configuration, or calibration data relevant to this module.
- *
- * Outputs:
- * - Typed results, numerical values, solver state, or placeholder exceptions.
+ * - Compute infinitesimal strain (exx, eyy, exy) from displacement gradient.
+ * - Compute Green-Lagrange strain for large deformations.
+ * - Support both direct gradient input and node-based gradient computation
+ *   (delegates to mesh/postprocess/strain for mesh-based DIC results).
  *
  * Dependencies:
  * - Eigen for numerical types.
- * - OpenCV interfaces are reserved for image loading, SIFT, and calibration where needed.
- * - Internal Traditional-DIC modules declared by includes.
- *
- * TODO:
- * - Implement validated numerical algorithms.
- * - Add input validation, edge-case handling, and regression tests.
+ * - dic/mesh/postprocess/strain.hpp for mesh-based path.
  */
 
 #ifndef TRADITIONAL_DIC_INCLUDE_DIC_POSTPROCESS_STRAIN_2D_HPP
 #define TRADITIONAL_DIC_INCLUDE_DIC_POSTPROCESS_STRAIN_2D_HPP
 
 #include <dic/postprocess/strain.hpp>
+#include <Eigen/Dense>
+#include <vector>
 
 namespace dic {
 
-Strain2D compute_strain_2d();
+/// --- Built-in direct 2D strain ---
+
+/// Compute infinitesimal strain from displacement gradient.
+/// grad_u = [[du/dx, du/dy], [dv/dx, dv/dy]]
+Strain2D compute_strain_from_gradient(const Eigen::Matrix2d& grad_u);
+
+/// Compute Green-Lagrange strain from displacement gradient.
+/// E = 0.5 * (grad_u + grad_u^T + grad_u^T * grad_u)
+Strain2D compute_green_lagrange_strain(const Eigen::Matrix2d& grad_u);
+
+/// Compute finite strain from deformation gradient F.
+/// F = I + grad_u; E = 0.5 * (F^T * F - I)
+Strain2D compute_strain_from_deformation_gradient(const Eigen::Matrix2d& F);
+
+/// Batch computation from displacement gradients at multiple points.
+/// grad_u[i] = [[du/dx, du/dy], [dv/dx, dv/dy]] at point i.
+std::vector<Strain2D> compute_strain_2d_batch(
+    const std::vector<Eigen::Matrix2d>& displacement_gradients);
 
 } // namespace dic
 

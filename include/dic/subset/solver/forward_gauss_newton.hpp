@@ -15,10 +15,16 @@ public:
                          const InitialDisplacement& initial) const override;
 
 private:
-    Displacement2D solve_first_order_placeholder(const Eigen::Vector2d& point,
-                                                 const InitialDisplacement& initial) const;
-    Displacement2D solve_second_order_placeholder(const Eigen::Vector2d& point,
-                                                  const InitialDisplacement& initial) const;
+    Displacement2D solve_first_order_znssd_placeholder(const Eigen::Vector2d& point,
+                                                       const InitialDisplacement& initial) const;
+    Displacement2D solve_first_order_ssd_placeholder(const Eigen::Vector2d& point,
+                                                     const InitialDisplacement& initial) const;
+    Displacement2D solve_second_order_znssd_placeholder(const Eigen::Vector2d& point,
+                                                        const InitialDisplacement& initial) const;
+    Displacement2D solve_second_order_ssd_placeholder(const Eigen::Vector2d& point,
+                                                      const InitialDisplacement& initial) const;
+    Displacement2D solve_unimplemented(const Eigen::Vector2d& point,
+                                       const InitialDisplacement& initial) const;
     SubsetConfig config_;
 };
 

@@ -41,3 +41,27 @@ TEST(ForwardGaussNewtonSolver, SupportsSecondOrderPlaceholderSelection)
     EXPECT_EQ(result.status, dic::SolverStatus::NotConverged);
     EXPECT_FALSE(result.valid);
 }
+
+TEST(ForwardGaussNewtonSolver, DispatchesObjectivePlaceholders)
+{
+    const dic::Image reference(3, 3, std::vector<float>(9, 0.0F));
+    const dic::Image deformed(3, 3, std::vector<float>(9, 0.0F));
+    const dic::InitialDisplacement initial{0.2, -0.1, 0.0, 0.0, 0.0, 0.0, 0.4, true};
+
+    dic::SubsetConfig config;
+    for (const auto objective : {dic::CorrelationCriterionKind::SSD, dic::CorrelationCriterionKind::ZNSSD}) {
+        config.objective = objective;
+        for (const auto shape : {dic::SubsetShapeFunctionMethod::FirstOrder,
+                                 dic::SubsetShapeFunctionMethod::SecondOrder}) {
+            config.shape_function = shape;
+            config.use_second_order = shape == dic::SubsetShapeFunctionMethod::SecondOrder;
+            const dic::ForwardGaussNewtonSolver solver(config);
+            const auto result = solver.solve(reference, deformed, Eigen::Vector2d(1.0, 1.0), initial);
+
+            EXPECT_DOUBLE_EQ(result.u, 0.2);
+            EXPECT_DOUBLE_EQ(result.v, -0.1);
+            EXPECT_EQ(result.status, dic::SolverStatus::NotConverged);
+            EXPECT_FALSE(result.valid);
+        }
+    }
+}

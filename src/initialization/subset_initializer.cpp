@@ -87,6 +87,7 @@ InitialDisplacement SubsetInitializer::estimate_with_interpolators(
     solver_config.max_iterations = subpixel_config.max_iterations;
     solver_config.shape_function = subpixel_config.shape_function;
     solver_config.optimizer = subpixel_config.optimizer;
+    solver_config.objective = subpixel_config.objective;
     solver_config.use_second_order =
         subpixel_config.shape_function == SubsetShapeFunctionMethod::SecondOrder;
 
@@ -186,6 +187,7 @@ InitialDisplacement SubsetInitializer::estimate_with_mask_interpolators(
     solver_config.max_iterations = subpixel_config.max_iterations;
     solver_config.shape_function = subpixel_config.shape_function;
     solver_config.optimizer = subpixel_config.optimizer;
+    solver_config.objective = subpixel_config.objective;
     solver_config.use_second_order =
         subpixel_config.shape_function == SubsetShapeFunctionMethod::SecondOrder;
 

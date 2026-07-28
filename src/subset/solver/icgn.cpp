@@ -129,10 +129,18 @@ Displacement2D ICGNSolver::solve(
     const InitialDisplacement& initial
 ) const
 {
-    if (config_.shape_function == SubsetShapeFunctionMethod::SecondOrder || config_.use_second_order) {
-        return solve_second_order_placeholder(point, initial);
+    const bool second_order = config_.shape_function == SubsetShapeFunctionMethod::SecondOrder ||
+                              config_.use_second_order;
+    if (second_order) {
+        if (config_.objective == CorrelationCriterionKind::SSD) {
+            return solve_second_order_ssd_placeholder(point, initial);
+        }
+        return solve_second_order_znssd_placeholder(point, initial);
     }
-    return solve_first_order(reference, deformed, point, initial);
+    if (config_.objective == CorrelationCriterionKind::SSD) {
+        return solve_first_order_ssd_placeholder(point, initial);
+    }
+    return solve_first_order_znssd(reference, deformed, point, initial);
 }
 
 Displacement2D ICGNSolver::solve_with_interpolators(
@@ -144,10 +152,18 @@ Displacement2D ICGNSolver::solve_with_interpolators(
     const BSplineInterpolator& deformed_interpolator
 ) const
 {
-    if (config_.shape_function == SubsetShapeFunctionMethod::SecondOrder || config_.use_second_order) {
-        return solve_second_order_placeholder(point, initial);
+    const bool second_order = config_.shape_function == SubsetShapeFunctionMethod::SecondOrder ||
+                              config_.use_second_order;
+    if (second_order) {
+        if (config_.objective == CorrelationCriterionKind::SSD) {
+            return solve_second_order_ssd_placeholder(point, initial);
+        }
+        return solve_second_order_znssd_placeholder(point, initial);
     }
-    return solve_first_order(reference, deformed, point, initial, reference_interpolator, deformed_interpolator);
+    if (config_.objective == CorrelationCriterionKind::SSD) {
+        return solve_first_order_ssd_placeholder(point, initial);
+    }
+    return solve_first_order_znssd(reference, deformed, point, initial, reference_interpolator, deformed_interpolator);
 }
 
 Displacement2D ICGNSolver::solve_with_mask(
@@ -160,14 +176,22 @@ Displacement2D ICGNSolver::solve_with_mask(
     const BSplineInterpolator& deformed_interpolator
 ) const
 {
-    if (config_.shape_function == SubsetShapeFunctionMethod::SecondOrder || config_.use_second_order) {
-        return solve_second_order_placeholder(point, initial);
+    const bool second_order = config_.shape_function == SubsetShapeFunctionMethod::SecondOrder ||
+                              config_.use_second_order;
+    if (second_order) {
+        if (config_.objective == CorrelationCriterionKind::SSD) {
+            return solve_second_order_ssd_placeholder(point, initial);
+        }
+        return solve_second_order_znssd_placeholder(point, initial);
     }
-    return solve_first_order_masked(
+    if (config_.objective == CorrelationCriterionKind::SSD) {
+        return solve_first_order_ssd_placeholder(point, initial);
+    }
+    return solve_first_order_znssd_masked(
         reference, deformed, roi, point, initial, reference_interpolator, deformed_interpolator);
 }
 
-Displacement2D ICGNSolver::solve_first_order(
+Displacement2D ICGNSolver::solve_first_order_znssd(
     const Image& reference,
     const Image& deformed,
     const Eigen::Vector2d& point,
@@ -176,10 +200,10 @@ Displacement2D ICGNSolver::solve_first_order(
 {
     BSplineInterpolator reference_interpolator(reference, config_.image_precompute);
     BSplineInterpolator deformed_interpolator(deformed, config_.image_precompute);
-    return solve_first_order(reference, deformed, point, initial, reference_interpolator, deformed_interpolator);
+    return solve_first_order_znssd(reference, deformed, point, initial, reference_interpolator, deformed_interpolator);
 }
 
-Displacement2D ICGNSolver::solve_first_order(
+Displacement2D ICGNSolver::solve_first_order_znssd(
     const Image& reference,
     const Image& deformed,
     const Eigen::Vector2d& point,
@@ -362,7 +386,7 @@ Displacement2D ICGNSolver::solve_first_order(
     return result;
 }
 
-Displacement2D ICGNSolver::solve_first_order_masked(
+Displacement2D ICGNSolver::solve_first_order_znssd_masked(
     const Image& reference,
     const Image& deformed,
     const Mask& roi,
@@ -553,7 +577,31 @@ Displacement2D ICGNSolver::solve_first_order_masked(
     return result;
 }
 
-Displacement2D ICGNSolver::solve_second_order_placeholder(
+Displacement2D ICGNSolver::solve_first_order_ssd_placeholder(
+    const Eigen::Vector2d& point,
+    const InitialDisplacement& initial
+) const
+{
+    return solve_unimplemented(point, initial);
+}
+
+Displacement2D ICGNSolver::solve_second_order_znssd_placeholder(
+    const Eigen::Vector2d& point,
+    const InitialDisplacement& initial
+) const
+{
+    return solve_unimplemented(point, initial);
+}
+
+Displacement2D ICGNSolver::solve_second_order_ssd_placeholder(
+    const Eigen::Vector2d& point,
+    const InitialDisplacement& initial
+) const
+{
+    return solve_unimplemented(point, initial);
+}
+
+Displacement2D ICGNSolver::solve_unimplemented(
     const Eigen::Vector2d& point,
     const InitialDisplacement& initial
 ) const

@@ -41,6 +41,13 @@ SubsetOptimizationMethod parse_optimizer(const std::string& value)
     throw std::runtime_error("Unknown optimization method: " + value);
 }
 
+CorrelationCriterionKind parse_correlation_criterion(const std::string& value)
+{
+    if (value == "znssd") return CorrelationCriterionKind::ZNSSD;
+    if (value == "ssd") return CorrelationCriterionKind::SSD;
+    throw std::runtime_error("Unknown correlation criterion: " + value);
+}
+
 SeedInitializationMethod parse_init_method(const std::string& value)
 {
     if (value == "integer_search") return SeedInitializationMethod::IntegerSearch;
@@ -70,6 +77,14 @@ void parse_optimization_section(const YAML::Node& node, SubsetConfig& config)
     }
     if (node["convergence_threshold"]) {
         config.convergence_threshold = node["convergence_threshold"].as<double>();
+    }
+}
+
+void parse_correlation_section(const YAML::Node& node, SubsetConfig& config)
+{
+    if (node["criterion"]) {
+        config.objective = parse_correlation_criterion(node["criterion"].as<std::string>());
+        config.seed_initialization.subpixel.objective = config.objective;
     }
 }
 
@@ -133,6 +148,12 @@ void parse_subpixel_refinement(const YAML::Node& node, SeedSubpixelRefinementCon
     }
     if (node["optimizer"]) {
         cfg.optimizer = parse_optimizer(node["optimizer"].as<std::string>());
+    }
+    if (node["objective"]) {
+        cfg.objective = parse_correlation_criterion(node["objective"].as<std::string>());
+    }
+    if (node["criterion"]) {
+        cfg.objective = parse_correlation_criterion(node["criterion"].as<std::string>());
     }
     if (node["subset_radius"]) {
         cfg.subset_radius = node["subset_radius"].as<int>();
@@ -232,6 +253,9 @@ SubsetConfig load_subset_config_from_yaml(const std::string& path)
         if (root["shape_function"]) {
             parse_shape_function_section(root["shape_function"], config);
         }
+        if (root["correlation"]) {
+            parse_correlation_section(root["correlation"], config);
+        }
         if (root["optimization"]) {
             parse_optimization_section(root["optimization"], config);
         }
@@ -277,6 +301,9 @@ SubsetConfig load_subset_config_from_yaml_string(const std::string& content)
         }
         if (root["shape_function"]) {
             parse_shape_function_section(root["shape_function"], config);
+        }
+        if (root["correlation"]) {
+            parse_correlation_section(root["correlation"], config);
         }
         if (root["optimization"]) {
             parse_optimization_section(root["optimization"], config);

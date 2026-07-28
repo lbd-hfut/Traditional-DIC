@@ -51,3 +51,18 @@ TEST(SubsetRegion, ExtractsCircularSubsetWithinRegion)
     EXPECT_TRUE(subset.region.contains(2, 2));
     EXPECT_EQ(subset.mask[1 + 1 * 3], 1);
 }
+
+TEST(SubsetRegion, TruncationFlagControlsRoiClipping)
+{
+    const auto mask = make_column_major_mask(5, 5);
+    const auto regions = dic::form_subset_regions(mask, 5, 5);
+    ASSERT_EQ(regions.size(), 1);
+
+    const auto full_circle = dic::extract_circular_subset(regions[0], 1, 2, 1, false);
+    const auto truncated = dic::extract_circular_subset(regions[0], 1, 2, 1, true);
+
+    EXPECT_EQ(full_circle.region.totalpoints, 5);
+    EXPECT_EQ(truncated.region.totalpoints, 4);
+    EXPECT_TRUE(full_circle.region.contains(0, 2));
+    EXPECT_FALSE(truncated.region.contains(0, 2));
+}

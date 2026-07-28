@@ -72,6 +72,13 @@ bool all_finite_6(double u, double v,
            std::isfinite(corr);
 }
 
+int nearest_grid_index(int coordinate, int step, int limit)
+{
+    const int index = static_cast<int>(std::llround(static_cast<double>(coordinate) /
+                                                    static_cast<double>(step)));
+    return std::clamp(index, 0, limit - 1);
+}
+
 BSplinePrecomputedImage build_reference_gradient_cache(const Image& reference, BSplinePrecomputeConfig config)
 {
     BSplinePrecomputedImage cache;
@@ -185,39 +192,80 @@ PropagationResult ReliabilityPropagation::propagate(
     // Process each seed
     // -------------------------------------------------------------------
     for (const auto& seed : seeds) {
-        const int seed_x = static_cast<int>(std::round(seed.point.x()));
-        const int seed_y = static_cast<int>(std::round(seed.point.y()));
+        const int seed_x_raw = static_cast<int>(std::round(seed.point.x()));
+        const int seed_y_raw = static_cast<int>(std::round(seed.point.y()));
 
-        if (!in_bounds(seed_x, seed_y, ref_w, ref_h)) continue;
-        if (!roi.valid(seed_x, seed_y)) continue;
+        if (!in_bounds(seed_x_raw, seed_y_raw, ref_w, ref_h)) continue;
+        if (!roi.valid(seed_x_raw, seed_y_raw)) continue;
 
-        const int gx_seed = seed_x / step;
-        const int gy_seed = seed_y / step;
+        const int gx_seed = nearest_grid_index(seed_x_raw, step, grid_w);
+        const int gy_seed = nearest_grid_index(seed_y_raw, step, grid_h);
         if (gx_seed < 0 || gx_seed >= grid_w ||
             gy_seed < 0 || gy_seed >= grid_h) continue;
+
+        const int seed_x = gx_seed * step;
+        const int seed_y = gy_seed * step;
+        if (!in_bounds(seed_x, seed_y, ref_w, ref_h)) continue;
+        if (!roi.valid(seed_x, seed_y)) continue;
 
         const int seed_idx = gy_seed * grid_w + gx_seed;
         if (calculated[seed_idx]) continue;
 
+        InitialDisplacement seed_initial;
+        seed_initial.u = seed.displacement.u;
+        seed_initial.v = seed.displacement.v;
+        seed_initial.du_dx = seed.displacement.du_dx;
+        seed_initial.du_dy = seed.displacement.du_dy;
+        seed_initial.dv_dx = seed.displacement.dv_dx;
+        seed_initial.dv_dy = seed.displacement.dv_dy;
+        seed_initial.confidence = seed.displacement.correlation;
+        seed_initial.valid = true;
+
+        Displacement2D aligned_seed = seed.displacement;
+        if (seed_x != seed_x_raw || seed_y != seed_y_raw) {
+            aligned_seed = config_.truncate_roi_subsets
+                ? icgn_solver.solve_with_mask(
+                    reference, deformed,
+                    roi,
+                    Eigen::Vector2d(static_cast<double>(seed_x), static_cast<double>(seed_y)),
+                    seed_initial,
+                    reference_interp,
+                    deformed_interp)
+                : icgn_solver.solve_with_interpolators(
+                    reference, deformed,
+                    Eigen::Vector2d(static_cast<double>(seed_x), static_cast<double>(seed_y)),
+                    seed_initial,
+                    reference_interp,
+                    deformed_interp);
+            if (!aligned_seed.valid ||
+                aligned_seed.status != SolverStatus::Success ||
+                !all_finite_6(aligned_seed.u, aligned_seed.v,
+                              aligned_seed.du_dx, aligned_seed.du_dy,
+                              aligned_seed.dv_dx, aligned_seed.dv_dy,
+                              aligned_seed.correlation)) {
+                continue;
+            }
+        }
+
         // Place seed
         calculated[seed_idx] = 1;
-        result.points[seed_idx]          = seed.displacement;
-        result.points[seed_idx].x        = seed.point.x();
-        result.points[seed_idx].y        = seed.point.y();
+        result.points[seed_idx]          = aligned_seed;
+        result.points[seed_idx].x        = static_cast<double>(seed_x);
+        result.points[seed_idx].y        = static_cast<double>(seed_y);
         result.points[seed_idx].valid    = true;
         result.points[seed_idx].status   = SolverStatus::Success;
         ++points_computed;
 
         QueueItem seed_item;
-        seed_item.corrcoef = 0.0;  // seed always highest priority
+        seed_item.corrcoef = std::max(0.0, aligned_seed.correlation);
         seed_item.grid_x   = gx_seed;
         seed_item.grid_y   = gy_seed;
-        seed_item.u        = seed.displacement.u;
-        seed_item.v        = seed.displacement.v;
-        seed_item.du_dx    = seed.displacement.du_dx;
-        seed_item.du_dy    = seed.displacement.du_dy;
-        seed_item.dv_dx    = seed.displacement.dv_dx;
-        seed_item.dv_dy    = seed.displacement.dv_dy;
+        seed_item.u        = aligned_seed.u;
+        seed_item.v        = aligned_seed.v;
+        seed_item.du_dx    = aligned_seed.du_dx;
+        seed_item.du_dy    = aligned_seed.du_dy;
+        seed_item.dv_dx    = aligned_seed.dv_dx;
+        seed_item.dv_dy    = aligned_seed.dv_dy;
 
         std::priority_queue<QueueItem> queue;
         queue.push(seed_item);
