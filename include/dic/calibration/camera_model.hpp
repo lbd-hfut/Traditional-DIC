@@ -26,11 +26,24 @@
 #define TRADITIONAL_DIC_INCLUDE_DIC_CALIBRATION_CAMERA_MODEL_HPP
 
 #include <Eigen/Dense>
+#include <string>
 #include <vector>
 
 namespace dic {
 
-struct CameraModel { Eigen::Matrix3d K = Eigen::Matrix3d::Identity(); std::vector<double> distortion; Eigen::Matrix3d R = Eigen::Matrix3d::Identity(); Eigen::Vector3d t = Eigen::Vector3d::Zero(); Eigen::Matrix<double, 3, 4> projection_matrix() const; };
+struct CameraModel {
+    Eigen::Matrix3d K = Eigen::Matrix3d::Identity();
+    std::vector<double> distortion;
+    Eigen::Matrix3d R = Eigen::Matrix3d::Identity();
+    Eigen::Vector3d t = Eigen::Vector3d::Zero();
+    int image_width = 0;
+    int image_height = 0;
+    double rms_error = 0.0;
+    std::string label;
+
+    Eigen::Matrix<double, 3, 4> projection_matrix() const;
+    Eigen::Vector3d camera_center() const;
+};
 
 } // namespace dic
 

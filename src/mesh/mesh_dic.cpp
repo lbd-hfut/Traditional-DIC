@@ -7,6 +7,7 @@
 #include <dic/initialization/feature_matcher.hpp>
 #include <dic/initialization/seed_config.hpp>
 #include <dic/initialization/sift_initializer.hpp>
+#include <dic/subset/padding.hpp>
 
 #include "coordinate/g2l_internal.hpp"
 #include "solver/fem_assembler.hpp"
@@ -141,6 +142,16 @@ static int initialize_nodes_with_sift_route(
     return initialized;
 }
 
+static int recommended_mesh_padding(const MeshConfig& config)
+{
+    const int init_radius = std::max(config.seed_initialization.integer_search.subset_radius,
+                                     config.seed_initialization.subpixel.subset_radius);
+    const int bspline_border = std::max(0, config.image_precompute.border);
+    const int search_radius = std::max(config.search_radius,
+                                       config.seed_initialization.integer_search.search_radius);
+    return std::max(0, search_radius) + std::max(0, init_radius) + bspline_border;
+}
+
 MeshDIC::MeshDIC(MeshConfig config) : config_(config) {}
 
 std::vector<Displacement2D> MeshDIC::compute(
@@ -153,7 +164,10 @@ std::vector<Displacement2D> MeshDIC::compute(
         throw std::invalid_argument("MeshDIC requires reference and deformed images with matching dimensions.");
     }
 
-    int img_h = reference.height(), img_w = reference.width();
+    const int pad = config_.mirror_image_padding ? recommended_mesh_padding(config_) : 0;
+    const Image solver_reference = pad > 0 ? mirror_pad_image(reference, pad) : reference;
+    const Image solver_deformed = pad > 0 ? mirror_pad_image(deformed, pad) : deformed;
+    int img_h = solver_reference.height(), img_w = solver_reference.width();
 
     // ---- 1. Convert mesh to flat arrays ----
     std::vector<double> nodes_coord;
@@ -161,11 +175,18 @@ std::vector<Displacement2D> MeshDIC::compute(
     mesh::MeshElementType elem_type;
     mesh_to_flat(mesh, nodes_coord, elements_flat, elem_type);
     int n_nodes = static_cast<int>(nodes_coord.size() / 2);
+    std::vector<double> solver_nodes_coord = nodes_coord;
+    if (pad > 0) {
+        for (int i = 0; i < n_nodes; ++i) {
+            solver_nodes_coord[2 * i] += static_cast<double>(pad);
+            solver_nodes_coord[2 * i + 1] += static_cast<double>(pad);
+        }
+    }
 
     // ---- 2. B-spline precompute through the shared interpolation module ----
     BSplineImagePreprocessor preproc(config_.image_precompute);
-    BSplinePrecomputedImage ref_precomp = preproc.compute(reference);
-    BSplinePrecomputedImage def_precomp = preproc.compute(deformed);
+    BSplinePrecomputedImage ref_precomp = preproc.compute(solver_reference);
+    BSplinePrecomputedImage def_precomp = preproc.compute(solver_deformed);
     Eigen::MatrixXd& grad_x = ref_precomp.gradient_x;
     Eigen::MatrixXd& grad_y = ref_precomp.gradient_y;
     if (grad_x.size() == 0 || grad_y.size() == 0) {
@@ -174,9 +195,9 @@ std::vector<Displacement2D> MeshDIC::compute(
         for (int y = 0; y < img_h; ++y)
             for (int x = 0; x < img_w; ++x) {
                 if (x > 0 && x < img_w - 1)
-                    grad_x(y, x) = (reference.at(x+1, y) - reference.at(x-1, y)) * 0.5;
+                    grad_x(y, x) = (solver_reference.at(x+1, y) - solver_reference.at(x-1, y)) * 0.5;
                 if (y > 0 && y < img_h - 1)
-                    grad_y(y, x) = (reference.at(x, y+1) - reference.at(x, y-1)) * 0.5;
+                    grad_y(y, x) = (solver_reference.at(x, y+1) - solver_reference.at(x, y-1)) * 0.5;
             }
     }
 
@@ -190,8 +211,8 @@ std::vector<Displacement2D> MeshDIC::compute(
     for (int y = 0; y < img_h; ++y)
         for (int x = 0; x < img_w; ++x) {
             int idx = y * img_w + x;
-            ref_flat[idx] = static_cast<double>(reference.at(x, y));
-            def_flat[idx] = static_cast<double>(deformed.at(x, y));
+            ref_flat[idx] = static_cast<double>(solver_reference.at(x, y));
+            def_flat[idx] = static_cast<double>(solver_deformed.at(x, y));
             fx_flat[idx] = grad_x(y, x);
             fy_flat[idx] = grad_y(y, x);
         }
@@ -199,13 +220,13 @@ std::vector<Displacement2D> MeshDIC::compute(
     // ---- 4-5. Build inform + G2L ----
     int n_elements = static_cast<int>(elements_flat.size()) /
         ((elem_type == mesh::MeshElementType::Q8) ? 9 : nodes_per_element(elem_type));
-    auto inform = mesh::build_inform(nodes_coord.data(), n_nodes,
+    auto inform = mesh::build_inform(solver_nodes_coord.data(), n_nodes,
         elements_flat.data(), n_elements, elem_type, img_h, img_w);
     int n_pixels = static_cast<int>(inform.size() / 3);
 
     G2LParams g2l_params; g2l_params.max_iter = 200;
     auto g2l = compute_global_to_local(inform.data(), n_pixels,
-        nodes_coord.data(), n_nodes, elements_flat.data(), n_elements,
+        solver_nodes_coord.data(), n_nodes, elements_flat.data(), n_elements,
         img_h, img_w, elem_type, g2l_params);
 
     // ---- 6. Assemble stiffness ----
@@ -235,10 +256,10 @@ std::vector<Displacement2D> MeshDIC::compute(
         if (init_valid[static_cast<std::size_t>(i)]) {
             continue;
         }
-        Eigen::Vector2d pt(nodes_coord[2 * i], nodes_coord[2 * i + 1]);
+        Eigen::Vector2d pt(solver_nodes_coord[2 * i], solver_nodes_coord[2 * i + 1]);
         if (pt.x() < 0 || pt.x() >= img_w || pt.y() < 0 || pt.y() >= img_h) continue;
         auto init = int_search.estimate_with_interpolators(
-            reference, deformed, pt, ref_interp, def_interp);
+            solver_reference, solver_deformed, pt, ref_interp, def_interp);
         if (init.valid) {
             U(2 * i) = init.u;
             U(2 * i + 1) = init.v;

@@ -255,9 +255,13 @@ __marimo__/
 /case/**/node_initialization/
 /case/**/sift_node_initialization*/
 /case/**/field_visualization/
+/case/**/ring/padding_roi_truncation_test/
 
 # Local visualization artifacts
 /visualizations/
 
 # Python extension build outputs
 *.pyd
+
+# .agents of claude chatgpt deepcode opencode
+/.agents/

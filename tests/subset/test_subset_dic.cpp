@@ -47,7 +47,6 @@ dic::SubsetConfig make_subset_dic_config()
     config.seed_selection.max_znssd = 0.5;
     config.seed_selection.min_texture_std = 0.0;
     config.propagation_spacing = 8;
-    config.propagation_max_points = 40;
     config.propagation_max_znssd = 0.5;
     return config;
 }

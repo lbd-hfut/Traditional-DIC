@@ -27,6 +27,7 @@
 
 #include <dic/initialization/initializer.hpp>
 #include <dic/interpolation/bspline.hpp>
+#include <dic/core/mask.hpp>
 #include <dic/subset/subset_config.hpp>
 
 namespace dic {
@@ -41,6 +42,16 @@ public:
                                                     const Eigen::Vector2d& point,
                                                     const BSplineInterpolator& reference_interpolator,
                                                     const BSplineInterpolator& deformed_interpolator) const;
+    InitialDisplacement estimate_with_mask(const Image& reference,
+                                           const Image& deformed,
+                                           const Mask& roi,
+                                           const Eigen::Vector2d& point) const;
+    InitialDisplacement estimate_with_mask_interpolators(const Image& reference,
+                                                        const Image& deformed,
+                                                        const Mask& roi,
+                                                        const Eigen::Vector2d& point,
+                                                        const BSplineInterpolator& reference_interpolator,
+                                                        const BSplineInterpolator& deformed_interpolator) const;
 private:
     SubsetConfig config_{};
 };

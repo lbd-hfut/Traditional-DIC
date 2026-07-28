@@ -52,6 +52,7 @@ private:
     SeedEvaluation evaluate_candidate(const Image& reference,
                                       const Image& deformed,
                                       const Eigen::Vector2d& point,
+                                      const Mask& roi,
                                       const SubsetInitializer& initializer,
                                       const BSplineInterpolator& reference_interpolator,
                                       const BSplineInterpolator& deformed_interpolator) const;

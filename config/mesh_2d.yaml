@@ -41,6 +41,7 @@ optimization:
   max_iterations: 30  # positive integer
   convergence_threshold: 1.0e-3  # positive floating point tolerance
   regularization_alpha: 0.0  # non-negative displacement-gradient regularization weight
+  mirror_image_padding: true  # options: true, false; true mirror-pads images for interpolation/search near image boundaries
 
 correlation:
   criterion: znssd  # options: znssd, zncc, ssd

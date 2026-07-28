@@ -41,6 +41,7 @@ struct MeshConfig {
     double convergence_threshold{1e-3};
     int search_radius{20};
     double regularization_alpha{0.0};
+    bool mirror_image_padding{false};
     BSplinePrecomputeConfig image_precompute{};
     SeedInitializationConfig seed_initialization{};
 

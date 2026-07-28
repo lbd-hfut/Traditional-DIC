@@ -149,6 +149,7 @@ SeedSelectionResult SeedSelector::select_best_seed(const Image& reference,
             reference,
             deformed,
             point,
+            roi,
             initializer,
             reference_interpolator,
             deformed_interpolator
@@ -179,10 +180,24 @@ std::vector<Eigen::Vector2d> SeedSelector::generate_candidates(const Image& refe
 
     std::vector<RoiPoint> points;
     points.reserve(roi.size());
-    for (int y = 0; y < roi.height(); ++y) {
-        for (int x = 0; x < roi.width(); ++x) {
-            if (roi.valid(x, y) && is_candidate_margin_valid(roi, x, y)) {
-                points.push_back({x, y});
+    if (config_.truncate_roi_subsets) {
+        const auto& integer_config = config_.seed_initialization.integer_search;
+        const auto& subpixel_config = config_.seed_initialization.subpixel;
+        const int radius = std::max(integer_config.subset_radius, subpixel_config.subset_radius);
+        const int margin = radius + integer_config.search_radius;
+        for (int y = margin; y < roi.height() - margin; ++y) {
+            for (int x = margin; x < roi.width() - margin; ++x) {
+                if (roi.valid(x, y)) {
+                    points.push_back({x, y});
+                }
+            }
+        }
+    } else {
+        for (int y = 0; y < roi.height(); ++y) {
+            for (int x = 0; x < roi.width(); ++x) {
+                if (roi.valid(x, y) && is_candidate_margin_valid(roi, x, y)) {
+                    points.push_back({x, y});
+                }
             }
         }
     }
@@ -201,15 +216,28 @@ std::vector<Eigen::Vector2d> SeedSelector::generate_candidates(const Image& refe
     }
 
     const int requested = std::max(1, config_.seed_selection.seed_count);
+    const auto sampled_points = deterministic_sample(points, config_.seed_selection.kmeans_sample_limit);
     if (requested == 1) {
-        const auto& point = *std::max_element(points.begin(), points.end(), [&](const RoiPoint& lhs, const RoiPoint& rhs) {
-            return local_texture_std(reference, lhs.x, lhs.y) < local_texture_std(reference, rhs.x, rhs.y);
-        });
-        candidates.emplace_back(static_cast<double>(point.x), static_cast<double>(point.y));
+        double best_std = -1.0;
+        RoiPoint best_point{};
+        bool found = false;
+        for (const auto& point : sampled_points) {
+            if (!is_candidate_margin_valid(roi, point.x, point.y)) {
+                continue;
+            }
+            const double texture = local_texture_std(reference, point.x, point.y);
+            if (!found || texture > best_std) {
+                best_std = texture;
+                best_point = point;
+                found = true;
+            }
+        }
+        if (found) {
+            candidates.emplace_back(static_cast<double>(best_point.x), static_cast<double>(best_point.y));
+        }
         return candidates;
     }
 
-    const auto sampled_points = deterministic_sample(points, config_.seed_selection.kmeans_sample_limit);
     auto centers = initialize_centers(sampled_points, requested);
     run_kmeans(sampled_points, centers, config_.seed_selection.kmeans_iterations);
 
@@ -334,16 +362,28 @@ bool SeedSelector::is_candidate_margin_valid(const Mask& roi, int x, int y) cons
         return false;
     }
 
+    int valid_samples = 0;
+    int full_samples = 0;
     for (int yy = y - radius; yy <= y + radius; ++yy) {
         for (int xx = x - radius; xx <= x + radius; ++xx) {
             const int dx = xx - x;
             const int dy = yy - y;
-            if (dx * dx + dy * dy <= radius * radius && !roi.valid(xx, yy)) {
-                return false;
+            if (dx * dx + dy * dy <= radius * radius) {
+                ++full_samples;
+                if (roi.valid(xx, yy)) {
+                    ++valid_samples;
+                } else if (!config_.truncate_roi_subsets) {
+                    return false;
+                }
             }
         }
     }
-    return true;
+    if (!config_.truncate_roi_subsets) {
+        return valid_samples == full_samples;
+    }
+    const int min_samples = std::max(config_.min_valid_samples,
+        static_cast<int>(std::ceil(config_.min_valid_sample_ratio * static_cast<double>(full_samples))));
+    return valid_samples >= std::max(6, min_samples);
 }
 
 double SeedSelector::local_texture_std(const Image& reference, int x, int y) const
@@ -392,6 +432,7 @@ bool SeedSelector::quality_passes(double quality) const
 SeedEvaluation SeedSelector::evaluate_candidate(const Image& reference,
                                                 const Image& deformed,
                                                 const Eigen::Vector2d& point,
+                                                const Mask& roi,
                                                 const SubsetInitializer& initializer,
                                                 const BSplineInterpolator& reference_interpolator,
                                                 const BSplineInterpolator& deformed_interpolator) const
@@ -399,9 +440,10 @@ SeedEvaluation SeedSelector::evaluate_candidate(const Image& reference,
     SeedEvaluation evaluation;
     evaluation.point = point;
 
-    const auto initial = initializer.estimate_with_interpolators(
+    const auto initial = initializer.estimate_with_mask_interpolators(
         reference,
         deformed,
+        roi,
         point,
         reference_interpolator,
         deformed_interpolator

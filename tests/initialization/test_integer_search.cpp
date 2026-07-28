@@ -1,6 +1,8 @@
 #include <dic/core/image.hpp>
+#include <dic/core/mask.hpp>
 #include <dic/initialization/integer_search.hpp>
 #include <dic/initialization/subset_initializer.hpp>
+#include <dic/subset/padding.hpp>
 #include <gtest/gtest.h>
 
 #include <cmath>
@@ -101,6 +103,34 @@ TEST(IntegerSearch, PyramidSearchFindsLargeIntegerShift)
     EXPECT_TRUE(initial.valid);
     EXPECT_DOUBLE_EQ(initial.u, 18.0);
     EXPECT_DOUBLE_EQ(initial.v, -14.0);
+}
+
+TEST(IntegerSearch, UsesRoiTruncatedSamplesNearPaddedImageBoundary)
+{
+    const auto reference = make_search_image(48, 48, 0.0, 0.0);
+    const auto deformed = make_search_image(48, 48, 2.0, -1.0);
+    dic::Mask roi(reference.width(), reference.height());
+    roi.fill(true);
+
+    dic::SubsetConfig subset_config;
+    subset_config.truncate_roi_subsets = true;
+    subset_config.subset_radius = 9;
+    subset_config.seed_initialization.integer_search.subset_radius = 9;
+    subset_config.seed_initialization.integer_search.search_radius = 5;
+    subset_config.seed_initialization.subpixel.enabled = false;
+
+    const int pad = dic::recommended_subset_padding(subset_config);
+    const auto padded_reference = dic::mirror_pad_image(reference, pad);
+    const auto padded_deformed = dic::mirror_pad_image(deformed, pad);
+    const auto padded_roi = dic::zero_pad_mask(roi, pad);
+
+    const dic::IntegerSearchInitializer initializer(subset_config.seed_initialization);
+    const auto initial = initializer.estimate_with_mask(
+        padded_reference, padded_deformed, padded_roi, Eigen::Vector2d(2.0 + pad, 24.0 + pad));
+
+    EXPECT_TRUE(initial.valid);
+    EXPECT_DOUBLE_EQ(initial.u, 2.0);
+    EXPECT_DOUBLE_EQ(initial.v, -1.0);
 }
 
 TEST(SubsetInitializer, RunsIntegerSearchAndSubpixelRefinement)

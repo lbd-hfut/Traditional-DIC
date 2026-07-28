@@ -24,6 +24,14 @@
 
 namespace dic {
 
-Eigen::Matrix<double, 3, 4> CameraModel::projection_matrix() const { Eigen::Matrix<double, 3, 4> extrinsic; extrinsic.block<3, 3>(0, 0) = R; extrinsic.col(3) = t; return K * extrinsic; }
+Eigen::Matrix<double, 3, 4> CameraModel::projection_matrix() const
+{
+    Eigen::Matrix<double, 3, 4> extrinsic;
+    extrinsic.block<3, 3>(0, 0) = R;
+    extrinsic.col(3) = t;
+    return K * extrinsic;
+}
+
+Eigen::Vector3d CameraModel::camera_center() const { return -R.transpose() * t; }
 
 } // namespace dic

@@ -68,6 +68,36 @@ bool all_finite_6(double u, double v,
            std::isfinite(corr);
 }
 
+BSplinePrecomputedImage build_reference_gradient_cache(const Image& reference, BSplinePrecomputeConfig config)
+{
+    BSplinePrecomputedImage cache;
+    cache.width = reference.width();
+    cache.height = reference.height();
+    cache.config = config;
+    cache.coefficients = Eigen::MatrixXd::Zero(1, 1);
+    cache.gradient_x = Eigen::MatrixXd::Zero(cache.height, cache.width);
+    cache.gradient_y = Eigen::MatrixXd::Zero(cache.height, cache.width);
+
+    for (int y = 0; y < cache.height; ++y) {
+        const int ym = std::max(0, y - 1);
+        const int yp = std::min(cache.height - 1, y + 1);
+        const double y_denominator = static_cast<double>(std::max(1, yp - ym));
+        for (int x = 0; x < cache.width; ++x) {
+            const int xm = std::max(0, x - 1);
+            const int xp = std::min(cache.width - 1, x + 1);
+            const double x_denominator = static_cast<double>(std::max(1, xp - xm));
+            cache.gradient_x(y, x) =
+                (static_cast<double>(reference.at(xp, y)) - static_cast<double>(reference.at(xm, y))) /
+                x_denominator;
+            cache.gradient_y(y, x) =
+                (static_cast<double>(reference.at(x, yp)) - static_cast<double>(reference.at(x, ym))) /
+                y_denominator;
+        }
+    }
+
+    return cache;
+}
+
 } // namespace
 
 // ---------------------------------------------------------------------------
@@ -134,17 +164,16 @@ PropagationResult ReliabilityPropagation::propagate(
     BSplinePrecomputeConfig bspline_cfg = config_.image_precompute;
     bspline_cfg.use_exact_prefilter = false;
     BSplineImagePreprocessor preprocessor(bspline_cfg);
+    const auto reference_precomputed = build_reference_gradient_cache(reference, bspline_cfg);
     const auto deformed_precomputed = preprocessor.compute(deformed);
+    const BSplineInterpolator reference_interp(&reference_precomputed);
     const BSplineInterpolator deformed_interp(deformed_precomputed);
-
-    // Reference interpolator (shared, used in solve_with_interpolators)
-    BSplineInterpolator reference_interp(reference, config_.image_precompute);
 
     int points_computed = 0;
 
-    // Ncorr hard-coded thresholds (from rgdic.cpp lines 55-56)
-    constexpr double cutoff_corrcoef_propagation = 0.1;
-    constexpr double cutoff_disp = 1.0;
+    const double cutoff_corrcoef_propagation = config_.propagation_max_znssd;
+    const double cutoff_disp = static_cast<double>(step);
+    ICGNSolver icgn_solver(config_);
 
     // -------------------------------------------------------------------
     // Process each seed
@@ -248,13 +277,20 @@ PropagationResult ReliabilityPropagation::propagate(
                 initial.dv_dy  = item.dv_dy;
                 initial.valid   = true;
 
-                ICGNSolver icgn_solver(config_);
-                const auto icgn_result = icgn_solver.solve_with_interpolators(
-                    reference, deformed,
-                    Eigen::Vector2d(static_cast<double>(nx), static_cast<double>(ny)),
-                    initial,
-                    reference_interp,
-                    deformed_interp);
+                const auto icgn_result = config_.truncate_roi_subsets
+                    ? icgn_solver.solve_with_mask(
+                        reference, deformed,
+                        roi,
+                        Eigen::Vector2d(static_cast<double>(nx), static_cast<double>(ny)),
+                        initial,
+                        reference_interp,
+                        deformed_interp)
+                    : icgn_solver.solve_with_interpolators(
+                        reference, deformed,
+                        Eigen::Vector2d(static_cast<double>(nx), static_cast<double>(ny)),
+                        initial,
+                        reference_interp,
+                        deformed_interp);
 
                 calculated[nidx] = 1;
 
@@ -287,30 +323,6 @@ PropagationResult ReliabilityPropagation::propagate(
                     next.dv_dx    = icgn_result.dv_dx;
                     next.dv_dy    = icgn_result.dv_dy;
                     queue.push(next);
-                } else {
-                    // --- Fallback: full integer search + ICGN ---
-                    // (ncorr lines 489-516: calc_seed_point, acceptance ZNSSD < 0.5)
-                    SubsetInitializer fallback(config_);
-                    const auto fb = fallback.estimate(
-                        reference, deformed,
-                        Eigen::Vector2d(static_cast<double>(nx), static_cast<double>(ny)));
-
-                    if (fb.valid &&
-                        std::isfinite(fb.u) && std::isfinite(fb.v) &&
-                        std::isfinite(fb.confidence) &&
-                        fb.confidence < 0.5 &&
-                        std::abs(fb.u) <= static_cast<double>(radius) + 1.0 &&
-                        std::abs(fb.v) <= static_cast<double>(radius) + 1.0) {
-                        result.points[nidx].x           = static_cast<double>(nx);
-                        result.points[nidx].y           = static_cast<double>(ny);
-                        result.points[nidx].u           = fb.u;
-                        result.points[nidx].v           = fb.v;
-                        result.points[nidx].correlation = fb.confidence;
-                        result.points[nidx].status      = SolverStatus::Success;
-                        result.points[nidx].valid       = true;
-                        ++points_computed;
-                    }
-                    // else: remains invalid (default-constructed Displacement2D)
                 }
             }
         }

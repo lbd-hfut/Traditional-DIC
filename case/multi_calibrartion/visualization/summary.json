@@ -1,0 +1,19 @@
+{
+  "num_cameras": 12,
+  "num_sparse_points": 14400,
+  "num_observations": 73920,
+  "per_camera_observations": {
+    "cam_0": 6160,
+    "cam_1": 6160,
+    "cam_2": 6160,
+    "cam_3": 6160,
+    "cam_4": 6160,
+    "cam_5": 6160,
+    "cam_6": 6160,
+    "cam_7": 6160,
+    "cam_8": 6160,
+    "cam_9": 6160,
+    "cam_10": 6160,
+    "cam_11": 6160
+  }
+}

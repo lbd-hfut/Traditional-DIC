@@ -1,5 +1,8 @@
 #include <dic/core/image.hpp>
+#include <dic/core/mask.hpp>
 #include <dic/initialization/initializer.hpp>
+#include <dic/interpolation/bspline.hpp>
+#include <dic/subset/padding.hpp>
 #include <dic/subset/solver/icgn.hpp>
 #include <gtest/gtest.h>
 
@@ -50,6 +53,46 @@ TEST(Icgn, RefinesSubpixelTranslation)
     EXPECT_EQ(result.status, dic::SolverStatus::Success);
     EXPECT_NEAR(result.u, 1.35, 0.15);
     EXPECT_NEAR(result.v, -0.65, 0.15);
+}
+
+TEST(Icgn, RefinesMaskedSubsetNearPaddedBoundary)
+{
+    const auto reference = make_shifted_image(64, 64, 0.0, 0.0);
+    const auto deformed = make_shifted_image(64, 64, 1.35, -0.65);
+    dic::Mask roi(reference.width(), reference.height());
+    roi.fill(true);
+
+    dic::SubsetConfig config;
+    config.subset_radius = 10;
+    config.max_iterations = 40;
+    config.convergence_threshold = 1e-5;
+    config.image_precompute.degree = dic::BSplineDegree::Cubic;
+    config.truncate_roi_subsets = true;
+    config.min_valid_sample_ratio = 0.35;
+    config.min_valid_samples = 12;
+
+    const int pad = dic::recommended_subset_padding(config);
+    const auto padded_reference = dic::mirror_pad_image(reference, pad);
+    const auto padded_deformed = dic::mirror_pad_image(deformed, pad);
+    const auto padded_roi = dic::zero_pad_mask(roi, pad);
+    const dic::BSplineInterpolator reference_interpolator(padded_reference, config.image_precompute);
+    const dic::BSplineInterpolator deformed_interpolator(padded_deformed, config.image_precompute);
+
+    const dic::ICGNSolver solver(config);
+    const dic::InitialDisplacement initial{1.0, -1.0, 0.0, 0.0, 0.0, 0.0, 1.0, true};
+    const auto result = solver.solve_with_mask(
+        padded_reference,
+        padded_deformed,
+        padded_roi,
+        Eigen::Vector2d(3.0 + pad, 32.0 + pad),
+        initial,
+        reference_interpolator,
+        deformed_interpolator);
+
+    EXPECT_TRUE(result.valid);
+    EXPECT_EQ(result.status, dic::SolverStatus::Success);
+    EXPECT_NEAR(result.u, 1.35, 0.35);
+    EXPECT_NEAR(result.v, -0.65, 0.35);
 }
 
 TEST(Icgn, SecondOrderShapeFunctionIsAStablePlaceholder)

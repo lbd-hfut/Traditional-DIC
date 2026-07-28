@@ -7,6 +7,7 @@
 
 #include <dic/subset/seed/reliability_propagation.hpp>
 #include <dic/subset/seed/seed_selector.hpp>
+#include <dic/subset/padding.hpp>
 #include <dic/subset/subset_dic.hpp>
 
 #include <algorithm>
@@ -49,9 +50,14 @@ std::vector<Displacement2D> SubsetDIC::compute(
         return empty_result;
     }
 
+    const int pad = config_.truncate_roi_subsets ? recommended_subset_padding(config_) : 0;
+    const Image padded_reference = pad > 0 ? mirror_pad_image(reference, pad) : reference;
+    const Image padded_deformed = pad > 0 ? mirror_pad_image(deformed, pad) : deformed;
+    const Mask padded_roi = pad > 0 ? zero_pad_mask(roi, pad) : roi;
+
     // 1. Select seed candidates
     SeedSelector selector(config_);
-    const auto seed_result = selector.select_best_seed(reference, deformed, roi);
+    const auto seed_result = selector.select_best_seed(padded_reference, padded_deformed, padded_roi);
 
     if (!seed_result.found) {
         return empty_result;
@@ -71,7 +77,7 @@ std::vector<Displacement2D> SubsetDIC::compute(
     // 3. Run reliability-guided propagation
     ReliabilityPropagation propagation(config_);
     const auto result = propagation.propagate(
-        reference, deformed, roi, propagation_seeds);
+        padded_reference, padded_deformed, padded_roi, propagation_seeds);
 
     if (result.points_computed == 0) {
         return empty_result;
@@ -83,7 +89,19 @@ std::vector<Displacement2D> SubsetDIC::compute(
     if (result.points_computed == 0) {
         return empty_result;
     }
-    return result.points;
+    std::vector<Displacement2D> adjusted;
+    adjusted.reserve(result.points.size());
+    for (auto point : result.points) {
+        point.x -= static_cast<double>(pad);
+        point.y -= static_cast<double>(pad);
+        if (point.x < 0.0 || point.y < 0.0 ||
+            point.x >= static_cast<double>(reference.width()) ||
+            point.y >= static_cast<double>(reference.height())) {
+            continue;
+        }
+        adjusted.push_back(point);
+    }
+    return adjusted;
 }
 
 } // namespace dic

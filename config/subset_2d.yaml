@@ -2,6 +2,9 @@ solver: subset  # options: subset, mesh
 
 subset:
   radius: 15  # positive integer pixels
+  truncate_roi_subsets: true  # options: true, false; true clips subset samples by ROI mask
+  min_valid_sample_ratio: 0.5  # range: 0.0 to 1.0; minimum retained circular samples
+  min_valid_samples: 12  # positive integer; hard lower bound for retained samples
 
 shape_function:
   order: 1  # options: first_order, second_order, 1, 2
@@ -51,5 +54,4 @@ seed_selection:
 
 reliability_propagation:
   spacing: 10  # positive integer pixels
-  max_points: 2000  # positive integer
   max_znssd: 0.2  # non-negative; lower is stricter

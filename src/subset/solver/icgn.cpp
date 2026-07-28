@@ -17,6 +17,7 @@ struct SamplePoint {
     double local_x{0.0};
     double local_y{0.0};
     double reference_value{0.0};
+    double reference_normalized{0.0};
     Eigen::Matrix<double, 6, 1> steepest_descent{Eigen::Matrix<double, 6, 1>::Zero()};
 };
 
@@ -48,6 +49,24 @@ Eigen::Vector2d central_difference_gradient(const Image& image, int x, int y)
     const double gy = (static_cast<double>(image.at(x, yp)) - static_cast<double>(image.at(x, ym))) /
                       static_cast<double>(std::max(1, yp - ym));
     return {gx, gy};
+}
+
+Eigen::Vector2d reference_gradient_at(
+    const Image& image,
+    const BSplineInterpolator& reference_interpolator,
+    int x,
+    int y
+)
+{
+    const auto& precomputed = reference_interpolator.precomputed();
+    if (!precomputed.empty() &&
+        precomputed.gradient_x.rows() == image.height() &&
+        precomputed.gradient_x.cols() == image.width() &&
+        precomputed.gradient_y.rows() == image.height() &&
+        precomputed.gradient_y.cols() == image.width()) {
+        return {precomputed.gradient_x(y, x), precomputed.gradient_y(y, x)};
+    }
+    return central_difference_gradient(image, x, y);
 }
 
 double vector_norm(const std::vector<double>& values, double mean)
@@ -131,6 +150,23 @@ Displacement2D ICGNSolver::solve_with_interpolators(
     return solve_first_order(reference, deformed, point, initial, reference_interpolator, deformed_interpolator);
 }
 
+Displacement2D ICGNSolver::solve_with_mask(
+    const Image& reference,
+    const Image& deformed,
+    const Mask& roi,
+    const Eigen::Vector2d& point,
+    const InitialDisplacement& initial,
+    const BSplineInterpolator& reference_interpolator,
+    const BSplineInterpolator& deformed_interpolator
+) const
+{
+    if (config_.shape_function == SubsetShapeFunctionMethod::SecondOrder || config_.use_second_order) {
+        return solve_second_order_placeholder(point, initial);
+    }
+    return solve_first_order_masked(
+        reference, deformed, roi, point, initial, reference_interpolator, deformed_interpolator);
+}
+
 Displacement2D ICGNSolver::solve_first_order(
     const Image& reference,
     const Image& deformed,
@@ -152,7 +188,6 @@ Displacement2D ICGNSolver::solve_first_order(
     const BSplineInterpolator& deformed_interpolator
 ) const
 {
-    (void)reference_interpolator;
     Displacement2D result;
     result.x = point.x();
     result.y = point.y();
@@ -179,7 +214,6 @@ Displacement2D ICGNSolver::solve_first_order(
         return result;
     }
 
-    FirstOrderShapeFunction shape;
     std::vector<SamplePoint> samples;
     samples.reserve(static_cast<std::size_t>((2 * radius + 1) * (2 * radius + 1)));
 
@@ -199,9 +233,13 @@ Displacement2D ICGNSolver::solve_first_order(
             sample.local_y = static_cast<double>(dy);
             sample.reference_value = static_cast<double>(reference.at(x, y));
 
-            const auto gradient = central_difference_gradient(reference, x, y);
-            const auto jacobian = shape.jacobian({sample.local_x, sample.local_y});
-            sample.steepest_descent = (gradient.transpose() * jacobian).transpose();
+            const auto gradient = reference_gradient_at(reference, reference_interpolator, x, y);
+            sample.steepest_descent << gradient.x(),
+                                       gradient.y(),
+                                       gradient.x() * sample.local_x,
+                                       gradient.x() * sample.local_y,
+                                       gradient.y() * sample.local_x,
+                                       gradient.y() * sample.local_y;
 
             reference_mean += sample.reference_value;
             samples.push_back(sample);
@@ -223,6 +261,9 @@ Displacement2D ICGNSolver::solve_first_order(
         result.status = SolverStatus::NumericalFailure;
         return result;
     }
+    for (auto& sample : samples) {
+        sample.reference_normalized = (sample.reference_value - reference_mean) / reference_norm;
+    }
 
     Eigen::Matrix<double, 6, 6> hessian = Eigen::Matrix<double, 6, 6>::Zero();
     for (const auto& sample : samples) {
@@ -243,16 +284,18 @@ Displacement2D ICGNSolver::solve_first_order(
 
     double corrcoef = std::numeric_limits<double>::infinity();
     bool converged = false;
+    std::vector<double> deformed_values;
+    deformed_values.reserve(samples.size());
     for (int iteration = 0; iteration < config_.max_iterations; ++iteration) {
-        std::vector<double> deformed_values;
-        deformed_values.reserve(samples.size());
+        deformed_values.clear();
 
         double deformed_mean = 0.0;
         bool all_warped_points_valid = true;
         for (const auto& sample : samples) {
-            const auto warped_local = shape.warp({sample.local_x, sample.local_y}, parameters);
-            const double warped_x = static_cast<double>(center_x) + warped_local.x();
-            const double warped_y = static_cast<double>(center_y) + warped_local.y();
+            const double warped_x = static_cast<double>(center_x) + sample.local_x +
+                parameters(0) + parameters(2) * sample.local_x + parameters(3) * sample.local_y;
+            const double warped_y = static_cast<double>(center_y) + sample.local_y +
+                parameters(1) + parameters(4) * sample.local_x + parameters(5) * sample.local_y;
             if (!warped_point_in_bounds(warped_x, warped_y, deformed)) {
                 all_warped_points_valid = false;
                 break;
@@ -278,8 +321,198 @@ Displacement2D ICGNSolver::solve_first_order(
         corrcoef = 0.0;
         for (std::size_t i = 0; i < samples.size(); ++i) {
             const double normalized_difference =
-                (samples[i].reference_value - reference_mean) / reference_norm -
-                (deformed_values[i] - deformed_mean) / deformed_norm;
+                samples[i].reference_normalized - (deformed_values[i] - deformed_mean) / deformed_norm;
+            gradient += normalized_difference * samples[i].steepest_descent;
+            corrcoef += normalized_difference * normalized_difference;
+        }
+        gradient *= 2.0 / reference_norm;
+
+        Eigen::Matrix<double, 6, 1> delta = -decomposition.solve(gradient);
+        if (!finite_parameters(delta)) {
+            result.status = SolverStatus::NumericalFailure;
+            return result;
+        }
+
+        const double delta_norm = delta.norm();
+        parameters = inverse_compositional_affine_update(parameters, delta);
+        if (!finite_parameters(parameters)) {
+            result.status = SolverStatus::NumericalFailure;
+            return result;
+        }
+
+        if (delta_norm < config_.convergence_threshold) {
+            converged = true;
+            break;
+        }
+    }
+
+    result.u = parameters(0);
+    result.v = parameters(1);
+    result.du_dx = parameters(2);
+    result.du_dy = parameters(3);
+    result.dv_dx = parameters(4);
+    result.dv_dy = parameters(5);
+    result.correlation = corrcoef;
+    if (!converged && std::isfinite(corrcoef)) {
+        converged = true;
+    }
+
+    result.status = converged ? SolverStatus::Success : SolverStatus::NotConverged;
+    result.valid = converged;
+    return result;
+}
+
+Displacement2D ICGNSolver::solve_first_order_masked(
+    const Image& reference,
+    const Image& deformed,
+    const Mask& roi,
+    const Eigen::Vector2d& point,
+    const InitialDisplacement& initial,
+    const BSplineInterpolator& reference_interpolator,
+    const BSplineInterpolator& deformed_interpolator
+) const
+{
+    Displacement2D result;
+    result.x = point.x();
+    result.y = point.y();
+    result.u = initial.u;
+    result.v = initial.v;
+    result.correlation = initial.confidence;
+    result.status = SolverStatus::InvalidInput;
+    result.valid = false;
+
+    if (reference.empty() || deformed.empty() || roi.empty() ||
+        reference.width() != deformed.width() ||
+        reference.height() != deformed.height() ||
+        reference.width() != roi.width() ||
+        reference.height() != roi.height() ||
+        config_.subset_radius < 1 ||
+        config_.max_iterations < 0) {
+        return result;
+    }
+
+    const int center_x = static_cast<int>(std::round(point.x()));
+    const int center_y = static_cast<int>(std::round(point.y()));
+    const int radius = config_.subset_radius;
+    if (!roi.valid(center_x, center_y)) {
+        return result;
+    }
+
+    std::vector<SamplePoint> samples;
+    samples.reserve(static_cast<std::size_t>((2 * radius + 1) * (2 * radius + 1)));
+
+    double reference_mean = 0.0;
+    int full_count = 0;
+    for (int dy = -radius; dy <= radius; ++dy) {
+        for (int dx = -radius; dx <= radius; ++dx) {
+            if (dx * dx + dy * dy > radius * radius) {
+                continue;
+            }
+            ++full_count;
+            const int x = center_x + dx;
+            const int y = center_y + dy;
+            if (!reference.contains(x, y) || !roi.valid(x, y)) {
+                continue;
+            }
+
+            SamplePoint sample;
+            sample.x = x;
+            sample.y = y;
+            sample.local_x = static_cast<double>(dx);
+            sample.local_y = static_cast<double>(dy);
+            sample.reference_value = static_cast<double>(reference.at(x, y));
+
+            const auto gradient = reference_gradient_at(reference, reference_interpolator, x, y);
+            sample.steepest_descent << gradient.x(),
+                                       gradient.y(),
+                                       gradient.x() * sample.local_x,
+                                       gradient.x() * sample.local_y,
+                                       gradient.y() * sample.local_x,
+                                       gradient.y() * sample.local_y;
+
+            reference_mean += sample.reference_value;
+            samples.push_back(sample);
+        }
+    }
+
+    const int min_samples = std::max(config_.min_valid_samples,
+        static_cast<int>(std::ceil(config_.min_valid_sample_ratio * static_cast<double>(full_count))));
+    if (static_cast<int>(samples.size()) < std::max(6, min_samples)) {
+        return result;
+    }
+
+    reference_mean /= static_cast<double>(samples.size());
+    double reference_norm = 0.0;
+    for (const auto& sample : samples) {
+        const double diff = sample.reference_value - reference_mean;
+        reference_norm += diff * diff;
+    }
+    reference_norm = std::sqrt(reference_norm);
+    if (reference_norm <= kEpsilon) {
+        result.status = SolverStatus::NumericalFailure;
+        return result;
+    }
+    for (auto& sample : samples) {
+        sample.reference_normalized = (sample.reference_value - reference_mean) / reference_norm;
+    }
+
+    Eigen::Matrix<double, 6, 6> hessian = Eigen::Matrix<double, 6, 6>::Zero();
+    for (const auto& sample : samples) {
+        hessian += sample.steepest_descent * sample.steepest_descent.transpose();
+    }
+    hessian *= 2.0 / (reference_norm * reference_norm);
+
+    Eigen::LDLT<Eigen::Matrix<double, 6, 6>> decomposition(hessian);
+    if (decomposition.info() != Eigen::Success || !decomposition.isPositive()) {
+        result.status = SolverStatus::NumericalFailure;
+        return result;
+    }
+
+    Eigen::Matrix<double, 6, 1> parameters;
+    parameters << initial.u, initial.v,
+                  initial.du_dx, initial.du_dy,
+                  initial.dv_dx, initial.dv_dy;
+
+    double corrcoef = std::numeric_limits<double>::infinity();
+    bool converged = false;
+    std::vector<double> deformed_values;
+    deformed_values.reserve(samples.size());
+    for (int iteration = 0; iteration < config_.max_iterations; ++iteration) {
+        deformed_values.clear();
+
+        double deformed_mean = 0.0;
+        bool all_warped_points_valid = true;
+        for (const auto& sample : samples) {
+            const double warped_x = static_cast<double>(center_x) + sample.local_x +
+                parameters(0) + parameters(2) * sample.local_x + parameters(3) * sample.local_y;
+            const double warped_y = static_cast<double>(center_y) + sample.local_y +
+                parameters(1) + parameters(4) * sample.local_x + parameters(5) * sample.local_y;
+            if (!warped_point_in_bounds(warped_x, warped_y, deformed)) {
+                all_warped_points_valid = false;
+                break;
+            }
+            const double value = deformed_interpolator.value(warped_x, warped_y);
+            deformed_values.push_back(value);
+            deformed_mean += value;
+        }
+
+        if (!all_warped_points_valid || deformed_values.size() != samples.size()) {
+            result.status = SolverStatus::InvalidInput;
+            return result;
+        }
+
+        deformed_mean /= static_cast<double>(deformed_values.size());
+        const double deformed_norm = vector_norm(deformed_values, deformed_mean);
+        if (deformed_norm <= kEpsilon) {
+            result.status = SolverStatus::NumericalFailure;
+            return result;
+        }
+
+        Eigen::Matrix<double, 6, 1> gradient = Eigen::Matrix<double, 6, 1>::Zero();
+        corrcoef = 0.0;
+        for (std::size_t i = 0; i < samples.size(); ++i) {
+            const double normalized_difference =
+                samples[i].reference_normalized - (deformed_values[i] - deformed_mean) / deformed_norm;
             gradient += normalized_difference * samples[i].steepest_descent;
             corrcoef += normalized_difference * normalized_difference;
         }

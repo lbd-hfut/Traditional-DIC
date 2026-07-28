@@ -86,6 +86,15 @@ void parse_subset_section(const YAML::Node& node, SubsetConfig& config)
     if (node["radius"]) {
         config.subset_radius = node["radius"].as<int>();
     }
+    if (node["truncate_roi_subsets"]) {
+        config.truncate_roi_subsets = node["truncate_roi_subsets"].as<bool>();
+    }
+    if (node["min_valid_sample_ratio"]) {
+        config.min_valid_sample_ratio = node["min_valid_sample_ratio"].as<double>();
+    }
+    if (node["min_valid_samples"]) {
+        config.min_valid_samples = node["min_valid_samples"].as<int>();
+    }
 }
 
 void parse_shape_function_section(const YAML::Node& node, SubsetConfig& config)
@@ -195,9 +204,6 @@ void parse_reliability_propagation_section(const YAML::Node& node, SubsetConfig&
 {
     if (node["spacing"]) {
         config.propagation_spacing = node["spacing"].as<int>();
-    }
-    if (node["max_points"]) {
-        config.propagation_max_points = node["max_points"].as<int>();
     }
     if (node["max_znssd"]) {
         config.propagation_max_znssd = node["max_znssd"].as<double>();

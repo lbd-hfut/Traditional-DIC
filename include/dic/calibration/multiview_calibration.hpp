@@ -26,9 +26,78 @@
 #define TRADITIONAL_DIC_INCLUDE_DIC_CALIBRATION_MULTIVIEW_CALIBRATION_HPP
 
 #include <dic/calibration/camera_model.hpp>
+#include <Eigen/Dense>
+#include <string>
 #include <vector>
 
 namespace dic {
+
+struct FeatureTrackObservation {
+    int image_index = -1;
+    Eigen::Vector2d point = Eigen::Vector2d::Zero();
+};
+
+struct SparsePoint3D {
+    Eigen::Vector3d point = Eigen::Vector3d::Zero();
+    std::vector<FeatureTrackObservation> observations;
+    double reprojection_error = 0.0;
+};
+
+struct MultiviewCalibrationOptions {
+    int max_features = 8000;
+    double match_ratio = 0.75;
+    double ransac_reprojection_threshold = 2.0;
+    double min_triangulation_angle_degrees = 1.0;
+    int min_inlier_matches = 80;
+    bool refine_bundle = false;
+    std::vector<CameraModel> initial_cameras;
+};
+
+struct MultiviewCalibrationResult {
+    std::vector<CameraModel> cameras;
+    std::vector<SparsePoint3D> sparse_points;
+    std::vector<std::vector<int>> inlier_match_counts;
+    double mean_reprojection_error = 0.0;
+};
+
+struct MultiviewScaleObservation {
+    int camera_index = -1;
+    std::vector<Eigen::Vector2d> image_points;
+};
+
+struct MultiviewScaleOptions {
+    int board_rows = 0;
+    int board_cols = 0;
+    double square_size = 1.0;
+    double max_reprojection_error = 3.0;
+    double trim_fraction = 0.20;
+    int min_common_corners = 12;
+};
+
+struct MultiviewScaleResult {
+    double sfm_to_world_scale = 1.0;
+    double world_to_sfm_scale = 1.0;
+    double sfm_square_size_mean = 0.0;
+    double sfm_square_size_median = 0.0;
+    double sfm_square_size_std = 0.0;
+    double edge_cv = 0.0;
+    int triangulated_corners = 0;
+    int valid_edges = 0;
+    std::vector<Eigen::Vector3d> triangulated_board_points_sfm;
+    std::vector<double> edge_lengths_sfm;
+    std::vector<CameraModel> scaled_cameras;
+    std::vector<SparsePoint3D> scaled_sparse_points;
+};
+
+MultiviewCalibrationResult calibrate_multiview_colmap_like(
+    const std::vector<std::string>& image_paths,
+    const MultiviewCalibrationOptions& options = {});
+
+MultiviewScaleResult estimate_multiview_chessboard_scale(
+    const std::vector<CameraModel>& cameras,
+    const std::vector<SparsePoint3D>& sparse_points,
+    const std::vector<MultiviewScaleObservation>& observations,
+    const MultiviewScaleOptions& options);
 
 std::vector<CameraModel> calibrate_multiview(int image_count);
 

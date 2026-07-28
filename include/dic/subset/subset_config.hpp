@@ -37,8 +37,10 @@ struct SubsetConfig {
     bool use_second_order{false};
     int search_radius{20};
     int propagation_spacing{5};
-    int propagation_max_points{0};
     double propagation_max_znssd{0.5};
+    bool truncate_roi_subsets{false};
+    double min_valid_sample_ratio{0.5};
+    int min_valid_samples{12};
     BSplinePrecomputeConfig image_precompute{};
     SeedInitializationConfig seed_initialization{};
     SeedSelectionConfig seed_selection{};
