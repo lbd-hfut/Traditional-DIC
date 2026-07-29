@@ -237,6 +237,8 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
+.vscode/
+
 # Traditional-DIC local case outputs
 # Keep raw case inputs visible; ignore generated diagnostics, solver outputs,
 # temporary meshes, visualizations, and numerical scratch files under case/.

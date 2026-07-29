@@ -4,6 +4,7 @@
  */
 
 #include <dic/reconstruction/stereo_dic.hpp>
+#include <dic/reconstruction/displacement_3d.hpp>
 #include <dic/reconstruction/shape_reconstruction.hpp>
 
 namespace dic {
@@ -56,16 +57,19 @@ StereoDICResult StereoDIC::reconstruct(
             def_all.push_back(rp.point_def);
             valid_mask.push_back(rp.valid);
         }
-        Eigen::Matrix3d R_rbm = ShapeReconstruction::rigid_body_rotation(
+        const RigidBodyTransform transform = find_rigid_body_transform(
             def_all, ref_all, valid_mask);
 
-        for (auto& rp : rec_pts) {
-            if (rp.valid) {
-                rp.point_def = R_rbm * rp.point_def;
-                rp.point_def_world = rp.point_def * opts_.world_scale;
-                rp.displacement = rp.point_def - rp.point_ref;
-                rp.displacement_world = rp.point_def_world - rp.point_ref_world;
-                rp.displacement_norm_world = rp.displacement_world.norm();
+        if (transform.valid) {
+            for (auto& rp : rec_pts) {
+                if (rp.valid) {
+                    rp.point_def = transform.rotation * rp.point_def + transform.translation;
+                    rp.point_ref_world = rp.point_ref * opts_.world_scale;
+                    rp.point_def_world = rp.point_def * opts_.world_scale;
+                    rp.displacement = rp.point_def - rp.point_ref;
+                    rp.displacement_world = rp.point_def_world - rp.point_ref_world;
+                    rp.displacement_norm_world = rp.displacement_world.norm();
+                }
             }
         }
     }

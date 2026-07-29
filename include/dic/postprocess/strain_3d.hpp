@@ -31,6 +31,7 @@
 
 #include <dic/postprocess/strain.hpp>
 #include <Eigen/Dense>
+#include <array>
 #include <vector>
 #include <cstdint>
 

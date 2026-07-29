@@ -28,6 +28,8 @@
 #include <dic/calibration/camera_model.hpp>
 #include <dic/calibration/mono_calibration.hpp>
 
+#include <string>
+
 namespace dic {
 
 struct StereoCalibrationOptions {
@@ -35,6 +37,11 @@ struct StereoCalibrationOptions {
     bool fix_intrinsics = false;
     bool estimate_tangential_distortion = true;
     bool estimate_k3 = true;
+    bool reject_outlier_pairs = false;
+    double outlier_mad_factor = 3.5;
+    double left_right_error_ratio_threshold = 3.0;
+    double left_right_error_abs_threshold = 0.25;
+    int min_pairs_after_rejection = 6;
     int max_iterations = 100;
     double epsilon = 1e-9;
 };
@@ -47,9 +54,19 @@ struct StereoCalibrationResult {
     Eigen::Matrix3d essential = Eigen::Matrix3d::Zero();
     Eigen::Matrix3d fundamental = Eigen::Matrix3d::Zero();
     std::vector<double> per_pair_errors;
+    std::vector<double> per_pair_left_errors;
+    std::vector<double> per_pair_right_errors;
+    std::vector<double> initial_per_pair_errors;
+    std::vector<double> initial_per_pair_left_errors;
+    std::vector<double> initial_per_pair_right_errors;
+    std::vector<int> kept_pair_indices;
+    std::vector<int> rejected_pair_indices;
+    std::vector<std::string> rejection_reasons;
     std::vector<CalibrationDetection> left_detections;
     std::vector<CalibrationDetection> right_detections;
     double rms_error = 0.0;
+    double initial_rms_error = 0.0;
+    bool outlier_rejection_applied = false;
 };
 
 StereoCalibrationResult calibrate_stereo_zhang(const std::vector<std::string>& left_image_paths,

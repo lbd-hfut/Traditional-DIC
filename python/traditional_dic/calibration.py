@@ -141,9 +141,19 @@ def stereo_result_to_dict(result) -> dict[str, Any]:
         "essential": _tolist(result.essential),
         "fundamental": _tolist(result.fundamental),
         "per_pair_errors": [float(v) for v in result.per_pair_errors],
+        "per_pair_left_errors": [float(v) for v in result.per_pair_left_errors],
+        "per_pair_right_errors": [float(v) for v in result.per_pair_right_errors],
+        "initial_per_pair_errors": [float(v) for v in result.initial_per_pair_errors],
+        "initial_per_pair_left_errors": [float(v) for v in result.initial_per_pair_left_errors],
+        "initial_per_pair_right_errors": [float(v) for v in result.initial_per_pair_right_errors],
+        "kept_pair_indices": [int(v) for v in result.kept_pair_indices],
+        "rejected_pair_indices": [int(v) for v in result.rejected_pair_indices],
+        "rejection_reasons": [str(v) for v in result.rejection_reasons],
         "left_detections": [detection_to_dict(d) for d in result.left_detections],
         "right_detections": [detection_to_dict(d) for d in result.right_detections],
         "rms_error": float(result.rms_error),
+        "initial_rms_error": float(result.initial_rms_error),
+        "outlier_rejection_applied": bool(result.outlier_rejection_applied),
     }
 
 
@@ -237,6 +247,15 @@ def make_stereo_options(config: Optional[str | Path | dict[str, Any]] = None):
         cfg.get("estimate_tangential_distortion", options.estimate_tangential_distortion)
     )
     options.estimate_k3 = bool(cfg.get("estimate_k3", options.estimate_k3))
+    options.reject_outlier_pairs = bool(cfg.get("reject_outlier_pairs", options.reject_outlier_pairs))
+    options.outlier_mad_factor = float(cfg.get("outlier_mad_factor", options.outlier_mad_factor))
+    options.left_right_error_ratio_threshold = float(
+        cfg.get("left_right_error_ratio_threshold", options.left_right_error_ratio_threshold)
+    )
+    options.left_right_error_abs_threshold = float(
+        cfg.get("left_right_error_abs_threshold", options.left_right_error_abs_threshold)
+    )
+    options.min_pairs_after_rejection = int(cfg.get("min_pairs_after_rejection", options.min_pairs_after_rejection))
     options.max_iterations = int(cfg.get("max_iterations", options.max_iterations))
     options.epsilon = float(cfg.get("epsilon", options.epsilon))
     return options

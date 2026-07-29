@@ -1,10 +1,34 @@
-mode: stereo
+case:
+  root: case/stereo_DIC/plate_center_load
+  left_reference: cam1/00_L.bmp
+  right_reference: cam2/00_R.bmp
+  left_deformed: cam1/04_L.bmp
+  right_deformed: cam2/04_R.bmp
+  roi: ROI.bmp
 
-dic_solver: subset
+workflow:
+  calibrate: true
+  compute_fields: false
+  reconstruct: true
+  visualize_calibration: true
 
-calibration:
-  file: stereo_calibration.yaml
+solver:
+  method: subset  # options: subset, mesh
+  element_types: [T3, Q4, Q8]
 
-triangulation:
-  method: linear
-  nonlinear_refinement: true
+configs:
+  subset: config/subset_2d.yaml
+  mesh: config/mesh_2d.yaml
+  calibration: config/calibration.yaml
+
+output:
+  root: result
+  calibration: calibration
+  disp: disp
+  reconstruct: reconstruct
+  deformation: deformation
+
+reconstruction:
+  min_correlation: 0.0
+  max_reprojection_error_px: 5.0
+  remove_rigid_body_motion: false

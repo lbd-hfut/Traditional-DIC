@@ -4,7 +4,9 @@
  */
 
 #include <dic/reconstruction/shape_reconstruction.hpp>
+#include <dic/geometry/triangulation.hpp>
 #include <dic/geometry/projection.hpp>
+#include <dic/reconstruction/displacement_3d.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -237,25 +239,20 @@ bool ShapeReconstruction::reconstruct_pair(
     Eigen::Vector2d def_b(obs_b.uv_ref.x() + obs_b.u_displacement,
                            obs_b.uv_ref.y() + obs_b.v_displacement);
 
-    auto P_a = build_projection(cam_a);
-    auto P_b = build_projection(cam_b);
-
-    std::vector<Eigen::Vector2d> rays_ref = {
-        pixel_to_normalized(ref_a, cam_a),
-        pixel_to_normalized(ref_b, cam_b)};
-    std::vector<Eigen::Vector2d> rays_def = {
-        pixel_to_normalized(def_a, cam_a),
-        pixel_to_normalized(def_b, cam_b)};
-    std::vector<Eigen::Matrix<double, 3, 4>> projs = {P_a, P_b};
-
-    Eigen::Vector3d Xr, Xd;
-    if (!triangulate(rays_ref, projs, Xr) || !triangulate(rays_def, projs, Xd))
+    TriangulationOptions tri_opts;
+    tri_opts.max_reprojection_error = opts_.max_reprojection_error_px;
+    const std::vector<CameraModel> cameras = {cam_a, cam_b};
+    const TriangulationResult ref_result =
+        triangulate_points_checked({ref_a, ref_b}, cameras, tri_opts);
+    const TriangulationResult def_result =
+        triangulate_points_checked({def_a, def_b}, cameras, tri_opts);
+    if (!ref_result.valid || !def_result.valid)
         return false;
 
-    double err_ref = 0.5 * (reprojection_error(Xr, ref_a, cam_a) +
-                            reprojection_error(Xr, ref_b, cam_b));
-    double err_def = 0.5 * (reprojection_error(Xd, def_a, cam_a) +
-                            reprojection_error(Xd, def_b, cam_b));
+    const Eigen::Vector3d Xr = ref_result.point;
+    const Eigen::Vector3d Xd = def_result.point;
+    double err_ref = ref_result.mean_reprojection_error;
+    double err_def = def_result.mean_reprojection_error;
 
     double corr_comb = std::min(obs_a.correlation, obs_b.correlation);
 
@@ -288,11 +285,6 @@ ShapeReconstructionResult ShapeReconstruction::reconstruct(
     result.world_scale = opts_.world_scale;
     result.total_tracks = static_cast<int>(tracks.size());
 
-    // Precompute projection matrices
-    std::vector<Eigen::Matrix<double, 3, 4>> proj_mats(cameras.size());
-    for (std::size_t i = 0; i < cameras.size(); ++i)
-        proj_mats[i] = build_projection(cameras[i]);
-
     // Temporary storage for RBM removal
     std::vector<Eigen::Vector3d> points_def_raw;
     std::vector<bool> rbm_valid;
@@ -304,8 +296,8 @@ ShapeReconstructionResult ShapeReconstruction::reconstruct(
         ReconstructedPoint pt;
         pt.track_id = static_cast<std::int64_t>(t);
 
-        std::vector<Eigen::Vector2d> rays_ref, rays_def;
-        std::vector<Eigen::Matrix<double, 3, 4>> projs;
+        std::vector<Eigen::Vector2d> uv_ref_used, uv_def_used;
+        std::vector<CameraModel> cameras_used;
         std::vector<const PointObservation*> selected_obs;
         double corr_sum = 0.0;
 
@@ -321,34 +313,29 @@ ShapeReconstructionResult ShapeReconstruction::reconstruct(
                 obs.uv_ref.x() + obs.u_displacement,
                 obs.uv_ref.y() + obs.v_displacement);
 
-            const auto& cam = cameras[static_cast<std::size_t>(obs.camera_index)];
-            rays_ref.push_back(pixel_to_normalized(uv_ref, cam));
-            rays_def.push_back(pixel_to_normalized(uv_def, cam));
-            projs.push_back(proj_mats[static_cast<std::size_t>(obs.camera_index)]);
+            uv_ref_used.push_back(uv_ref);
+            uv_def_used.push_back(uv_def);
+            cameras_used.push_back(cameras[static_cast<std::size_t>(obs.camera_index)]);
             selected_obs.push_back(&obs);
             corr_sum += obs.correlation;
         }
 
         if (static_cast<int>(selected_obs.size()) < opts_.min_views) continue;
 
-        Eigen::Vector3d Xr, Xd;
-        if (!triangulate(rays_ref, projs, Xr) || !triangulate(rays_def, projs, Xd))
+        TriangulationOptions tri_opts;
+        tri_opts.max_reprojection_error = opts_.max_reprojection_error_px;
+        const TriangulationResult ref_result =
+            triangulate_points_checked(uv_ref_used, cameras_used, tri_opts);
+        const TriangulationResult def_result =
+            triangulate_points_checked(uv_def_used, cameras_used, tri_opts);
+        if (!ref_result.valid || !def_result.valid)
             continue;
 
-        // Compute mean reprojection error
-        double err_ref = 0.0, err_def = 0.0;
-        for (std::size_t i = 0; i < selected_obs.size(); ++i) {
-            Eigen::Vector2d uvr(selected_obs[i]->uv_ref.x(), selected_obs[i]->uv_ref.y());
-            Eigen::Vector2d uvd(
-                selected_obs[i]->uv_ref.x() + selected_obs[i]->u_displacement,
-                selected_obs[i]->uv_ref.y() + selected_obs[i]->v_displacement);
-            const auto& cam = cameras[static_cast<std::size_t>(selected_obs[i]->camera_index)];
-            err_ref += reprojection_error(Xr, uvr, cam);
-            err_def += reprojection_error(Xd, uvd, cam);
-        }
+        const Eigen::Vector3d Xr = ref_result.point;
+        const Eigen::Vector3d Xd = def_result.point;
         ptrdiff_t n_views = static_cast<ptrdiff_t>(selected_obs.size());
-        err_ref /= static_cast<double>(n_views);
-        err_def /= static_cast<double>(n_views);
+        double err_ref = ref_result.mean_reprojection_error;
+        double err_def = def_result.mean_reprojection_error;
 
         pt.point_ref   = Xr;
         pt.point_def   = Xd;
@@ -356,8 +343,7 @@ ShapeReconstructionResult ShapeReconstruction::reconstruct(
         pt.mean_correlation = corr_sum / static_cast<double>(n_views);
         pt.reprojection_error_ref = err_ref;
         pt.reprojection_error_def = err_def;
-        pt.valid = (err_ref <= opts_.max_reprojection_error_px) &&
-                   (err_def <= opts_.max_reprojection_error_px);
+        pt.valid = true;
 
         points_def_raw.push_back(Xd);
         rbm_valid.push_back(pt.valid);
@@ -371,12 +357,14 @@ ShapeReconstructionResult ShapeReconstruction::reconstruct(
         for (const auto& pt : result.points)
             ref_vec.push_back(pt.point_ref);
 
-        Eigen::Matrix3d R_rbm = rigid_body_rotation(points_def_raw, ref_vec, rbm_valid);
+        const RigidBodyTransform transform = find_rigid_body_transform(points_def_raw, ref_vec, rbm_valid);
         // Recompute displacements with RBM removed
-        for (std::size_t i = 0; i < result.points.size(); ++i) {
-            Eigen::Vector3d def_arbm = R_rbm * result.points[i].point_def;
-            result.points[i].point_def = def_arbm;
-            result.points[i].displacement = def_arbm - result.points[i].point_ref;
+        if (transform.valid) {
+            for (std::size_t i = 0; i < result.points.size(); ++i) {
+                Eigen::Vector3d def_arbm = transform.rotation * result.points[i].point_def + transform.translation;
+                result.points[i].point_def = def_arbm;
+                result.points[i].displacement = def_arbm - result.points[i].point_ref;
+            }
         }
     }
 

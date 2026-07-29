@@ -1,6 +1,6 @@
 /**
  * @file triangulation.hpp
- * @brief Abstract triangulation interface.
+ * @brief Camera-agnostic point triangulation.
  *
  * Responsibilities:
  * - Define the public interface and data structures for this module.
@@ -31,7 +31,32 @@
 
 namespace dic {
 
-class Triangulator { public: virtual ~Triangulator() = default; virtual Eigen::Vector3d triangulate(const std::vector<Eigen::Vector2d>& observations, const std::vector<CameraModel>& cameras) const = 0; };
+struct TriangulationOptions {
+    double max_reprojection_error = 2.0;
+    bool require_positive_depth = true;
+};
+
+struct TriangulationResult {
+    Eigen::Vector3d point = Eigen::Vector3d::Zero();
+    double mean_reprojection_error = 0.0;
+    double max_reprojection_error = 0.0;
+    int observations_used = 0;
+    bool valid = false;
+};
+
+class Triangulator {
+public:
+    virtual ~Triangulator() = default;
+    virtual Eigen::Vector3d triangulate(const std::vector<Eigen::Vector2d>& observations,
+                                        const std::vector<CameraModel>& cameras) const = 0;
+};
+
+Eigen::Vector3d triangulate_points(const std::vector<Eigen::Vector2d>& observations,
+                                   const std::vector<CameraModel>& cameras);
+
+TriangulationResult triangulate_points_checked(const std::vector<Eigen::Vector2d>& observations,
+                                               const std::vector<CameraModel>& cameras,
+                                               const TriangulationOptions& options = {});
 
 } // namespace dic
 

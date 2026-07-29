@@ -28,6 +28,7 @@ void bind_core(pybind11::module_& m);
 void bind_io(pybind11::module_& m);
 void bind_calibration(pybind11::module_& m);
 void bind_geometry(pybind11::module_& m);
+void bind_reconstruction(pybind11::module_& m);
 void bind_postprocess(pybind11::module_& m);
 
 PYBIND11_MODULE(_traditional_dic, m) {
@@ -38,5 +39,6 @@ PYBIND11_MODULE(_traditional_dic, m) {
     bind_mesh(m);
     bind_calibration(m);
     bind_geometry(m);
+    bind_reconstruction(m);
     bind_postprocess(m);
 }

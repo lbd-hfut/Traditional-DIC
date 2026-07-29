@@ -1,7 +1,9 @@
-"""Create visual diagnostics for synthetic mono and stereo calibration cases."""
+"""Create visual diagnostics for calibration cases and saved calibration results."""
 
 from __future__ import annotations
 
+import argparse
+import csv
 import json
 from pathlib import Path
 
@@ -522,6 +524,297 @@ def plot_stereo_errors(left_errors: list[float], right_errors: list[float], out_
     plt.close(fig)
 
 
+def result_object_points(board: dict) -> np.ndarray:
+    rows = int(board["rows"])
+    cols = int(board["cols"])
+    spacing = float(board["spacing"])
+    points = []
+    for r in range(rows):
+        for c in range(cols):
+            points.append((c * spacing, r * spacing, 0.0))
+    return np.asarray(points, dtype=np.float32)
+
+
+def result_project_errors(
+    obj: np.ndarray,
+    img: np.ndarray,
+    rvec: np.ndarray,
+    tvec: np.ndarray,
+    K: np.ndarray,
+    distortion: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    projected, _ = cv2.projectPoints(obj, rvec, tvec, K, distortion)
+    projected = projected.reshape(-1, 2)
+    residual = projected - img
+    return projected, np.linalg.norm(residual, axis=1)
+
+
+def result_solve_pose(obj: np.ndarray, img: np.ndarray, K: np.ndarray, distortion: np.ndarray):
+    ok, rvec, tvec = cv2.solvePnP(obj, img, K, distortion, flags=cv2.SOLVEPNP_ITERATIVE)
+    if not ok:
+        raise RuntimeError("solvePnP failed")
+    R, _ = cv2.Rodrigues(rvec)
+    return R, rvec, tvec.reshape(3)
+
+
+def plot_result_errors(rows: list[dict], left_errors, right_errors, combined_errors, out_dir: Path) -> None:
+    pair_ids = np.asarray([r["pair"] for r in rows], dtype=int)
+    fig, ax = plt.subplots(figsize=(9, 4.5), dpi=150)
+    ax.plot(pair_ids, left_errors, "o-", label="left")
+    ax.plot(pair_ids, right_errors, "o-", label="right")
+    ax.plot(pair_ids, combined_errors, "o-", label="combined")
+    ax.set_xlabel("Calibration pair")
+    ax.set_ylabel("RMS reprojection error (px)")
+    ax.grid(True, alpha=0.25)
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig(out_dir / "reprojection_error_by_pair.png")
+    plt.close(fig)
+
+    fig, ax = plt.subplots(figsize=(6, 4.5), dpi=150)
+    ax.boxplot([left_errors, right_errors, combined_errors], tick_labels=["left", "right", "combined"], showmeans=True)
+    ax.set_ylabel("RMS reprojection error (px)")
+    ax.grid(True, axis="y", alpha=0.25)
+    fig.tight_layout()
+    fig.savefig(out_dir / "reprojection_error_boxplot.png")
+    plt.close(fig)
+
+
+def draw_result_error_heatmap(points, errors, width: int, height: int, title: str, path: Path) -> None:
+    pts = np.asarray(points, dtype=np.float64)
+    err = np.asarray(errors, dtype=np.float64)
+    fig, ax = plt.subplots(figsize=(8, 6), dpi=150)
+    scatter = ax.scatter(pts[:, 0], pts[:, 1], c=err, s=8, cmap="turbo")
+    ax.set_title(title)
+    ax.set_xlim(0, width)
+    ax.set_ylim(height, 0)
+    ax.set_xlabel("u (px)")
+    ax.set_ylabel("v (px)")
+    ax.set_aspect("equal", adjustable="box")
+    fig.colorbar(scatter, ax=ax, label="error (px)")
+    fig.tight_layout()
+    fig.savefig(path)
+    plt.close(fig)
+
+
+def draw_result_camera_board_distribution(board_centers, board_axes, right_center, out_dir: Path) -> None:
+    centers = np.asarray(board_centers, dtype=np.float64)
+    right_center = np.asarray(right_center, dtype=np.float64).reshape(3)
+    axis_len = 25.0
+    all_pts = np.vstack([centers, np.zeros((1, 3)), np.asarray(right_center).reshape(1, 3)])
+    span = np.max(np.ptp(all_pts, axis=0))
+    mid = np.mean([np.min(all_pts, axis=0), np.max(all_pts, axis=0)], axis=0)
+    half = max(span * 0.55, 1.0)
+    limits = [(mid[i] - half, mid[i] + half) for i in range(3)]
+
+    fig = plt.figure(figsize=(12, 10), dpi=150)
+    ax3d = fig.add_subplot(221, projection="3d")
+    ax3d.scatter([0.0], [0.0], [0.0], c="tab:blue", s=60, label="left camera")
+    ax3d.scatter([right_center[0]], [right_center[1]], [right_center[2]], c="tab:red", s=60, label="right camera")
+    ax3d.scatter(centers[:, 0], centers[:, 1], centers[:, 2], c=np.arange(len(centers)), cmap="viridis", s=22, label="board centers")
+    for center, R in zip(board_centers, board_axes):
+        center = np.asarray(center)
+        for axis, color in zip(range(3), ["r", "g", "b"]):
+            direction = R[:, axis] * axis_len
+            ax3d.plot(
+                [center[0], center[0] + direction[0]],
+                [center[1], center[1] + direction[1]],
+                [center[2], center[2] + direction[2]],
+                color=color,
+                alpha=0.35,
+                linewidth=0.8,
+            )
+    ax3d.set_title("Perspective")
+    ax3d.set_xlim(limits[0])
+    ax3d.set_ylim(limits[1])
+    ax3d.set_zlim(limits[2])
+    ax3d.set_xlabel("X")
+    ax3d.set_ylabel("Y")
+    ax3d.set_zlabel("Z")
+    ax3d.view_init(elev=22, azim=-62)
+    ax3d.legend(loc="upper left", fontsize=8)
+
+    def draw_projection(ax, dims: tuple[int, int], title: str, xlabel: str, ylabel: str) -> None:
+        i, j = dims
+        ax.scatter([0.0], [0.0], c="tab:blue", s=55, label="left camera")
+        ax.scatter([right_center[i]], [right_center[j]], c="tab:red", s=55, label="right camera")
+        ax.scatter(centers[:, i], centers[:, j], c=np.arange(len(centers)), cmap="viridis", s=20, label="board centers")
+        for center, R in zip(board_centers, board_axes):
+            center = np.asarray(center)
+            for axis, color in zip(range(3), ["r", "g", "b"]):
+                direction = R[:, axis] * axis_len
+                ax.plot(
+                    [center[i], center[i] + direction[i]],
+                    [center[j], center[j] + direction[j]],
+                    color=color,
+                    alpha=0.35,
+                    linewidth=0.8,
+                )
+        ax.set_title(title)
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        ax.set_xlim(limits[i])
+        ax.set_ylim(limits[j])
+        ax.set_aspect("equal", adjustable="box")
+        ax.grid(True, alpha=0.25)
+
+    draw_projection(fig.add_subplot(222), (0, 1), "XY view", "X", "Y")
+    draw_projection(fig.add_subplot(223), (0, 2), "XZ view", "X", "Z")
+    draw_projection(fig.add_subplot(224), (1, 2), "YZ view", "Y", "Z")
+    fig.tight_layout()
+    fig.savefig(out_dir / "camera_board_distribution.png")
+    plt.close(fig)
+
+
+def visualize_saved_stereo_calibration_result(calibration_json: Path, out_dir: Path) -> dict:
+    out_dir.mkdir(parents=True, exist_ok=True)
+    data = json.loads(calibration_json.read_text(encoding="utf-8"))
+    obj = result_object_points(data["board"])
+    K_l = np.asarray(data["left"]["K"], dtype=np.float64)
+    K_r = np.asarray(data["right"]["K"], dtype=np.float64)
+    dist_l = np.asarray(data["left"].get("distortion", []), dtype=np.float64)
+    dist_r = np.asarray(data["right"].get("distortion", []), dtype=np.float64)
+    R_lr = np.asarray(data["R_lr"], dtype=np.float64)
+    t_lr = np.asarray(data["t_lr"], dtype=np.float64).reshape(3)
+    width = int(data["left"]["image_width"])
+    height = int(data["left"]["image_height"])
+
+    left_detections = data["left_detections"]
+    right_detections = data["right_detections"]
+    kept_indices = data.get("kept_pair_indices", [])
+    if data.get("outlier_rejection_applied") and kept_indices:
+        selected_pairs = [
+            (int(index) + 1, left_detections[int(index)], right_detections[int(index)])
+            for index in kept_indices
+        ]
+    else:
+        selected_pairs = [
+            (pair_id, left_det, right_det)
+            for pair_id, (left_det, right_det) in enumerate(zip(left_detections, right_detections), start=1)
+        ]
+
+    rows = []
+    board_centers = []
+    board_axes = []
+    left_heat_pts = []
+    left_heat_err = []
+    right_heat_pts = []
+    right_heat_err = []
+    stereo_right_heat_pts = []
+    stereo_right_heat_err = []
+
+    for pair_id, left_det, right_det in selected_pairs:
+        left_img = np.asarray(left_det["image_points"], dtype=np.float64)
+        right_img = np.asarray(right_det["image_points"], dtype=np.float64)
+        R_l, rvec_l, tvec_l = result_solve_pose(obj, left_img, K_l, dist_l)
+        _, rvec_r, tvec_r = result_solve_pose(obj, right_img, K_r, dist_r)
+        _, err_l = result_project_errors(obj, left_img, rvec_l, tvec_l, K_l, dist_l)
+        _, err_r = result_project_errors(obj, right_img, rvec_r, tvec_r, K_r, dist_r)
+
+        R_stereo = R_lr @ R_l
+        t_stereo = R_lr @ tvec_l + t_lr
+        rvec_stereo, _ = cv2.Rodrigues(R_stereo)
+        _, err_stereo_r = result_project_errors(obj, right_img, rvec_stereo, t_stereo, K_r, dist_r)
+
+        center_obj = np.mean(obj.astype(np.float64), axis=0)
+        board_centers.append(R_l @ center_obj + tvec_l)
+        board_axes.append(R_l)
+
+        left_heat_pts.append(left_img)
+        left_heat_err.append(err_l)
+        right_heat_pts.append(right_img)
+        right_heat_err.append(err_r)
+        stereo_right_heat_pts.append(right_img)
+        stereo_right_heat_err.append(err_stereo_r)
+
+        rows.append(
+            {
+                "pair": pair_id,
+                "left_image": left_det["image_path"],
+                "right_image": right_det["image_path"],
+                "left_pnp_rms_px": float(np.sqrt(np.mean(err_l**2))),
+                "right_pnp_rms_px": float(np.sqrt(np.mean(err_r**2))),
+                "stereo_right_rms_px": float(np.sqrt(np.mean(err_stereo_r**2))),
+                "left_pnp_max_px": float(np.max(err_l)),
+                "right_pnp_max_px": float(np.max(err_r)),
+                "stereo_right_max_px": float(np.max(err_stereo_r)),
+                "board_center_x": float(board_centers[-1][0]),
+                "board_center_y": float(board_centers[-1][1]),
+                "board_center_z": float(board_centers[-1][2]),
+            }
+        )
+
+    csv_path = out_dir / "reprojection_errors.csv"
+    with csv_path.open("w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
+        writer.writeheader()
+        writer.writerows(rows)
+
+    if data.get("per_pair_left_errors") and len(data["per_pair_left_errors"]) == len(rows):
+        left_rms = np.asarray(data["per_pair_left_errors"], dtype=np.float64)
+        right_rms = np.asarray(data["per_pair_right_errors"], dtype=np.float64)
+        combined_rms = np.asarray(data["per_pair_errors"], dtype=np.float64)
+    else:
+        left_rms = np.asarray([r["left_pnp_rms_px"] for r in rows])
+        right_rms = np.asarray([r["right_pnp_rms_px"] for r in rows])
+        combined_rms = np.sqrt(0.5 * (left_rms * left_rms + right_rms * right_rms))
+
+    plot_result_errors(rows, left_rms, right_rms, combined_rms, out_dir)
+    draw_result_error_heatmap(
+        np.vstack(left_heat_pts),
+        np.concatenate(left_heat_err),
+        width,
+        height,
+        "Left mono-PnP reprojection error",
+        out_dir / "reprojection_error_heatmap_left.png",
+    )
+    draw_result_error_heatmap(
+        np.vstack(right_heat_pts),
+        np.concatenate(right_heat_err),
+        width,
+        height,
+        "Right mono-PnP reprojection error",
+        out_dir / "reprojection_error_heatmap_right.png",
+    )
+    draw_result_error_heatmap(
+        np.vstack(stereo_right_heat_pts),
+        np.concatenate(stereo_right_heat_err),
+        width,
+        height,
+        "Right reprojection error from left pose and stereo extrinsic",
+        out_dir / "reprojection_error_heatmap_stereo_right.png",
+    )
+
+    right_center = -R_lr.T @ t_lr
+    draw_result_camera_board_distribution(board_centers, board_axes, right_center, out_dir)
+    summary = {
+        "pairs": len(rows),
+        "total_detected_pairs": len(left_detections),
+        "outlier_rejection_applied": bool(data.get("outlier_rejection_applied", False)),
+        "kept_pair_indices": [int(v) for v in data.get("kept_pair_indices", [])],
+        "rejected_pair_indices": [int(v) for v in data.get("rejected_pair_indices", [])],
+        "rejection_reasons": [str(v) for v in data.get("rejection_reasons", [])],
+        "initial_opencv_stereo_rms_px": float(data.get("initial_rms_error", 0.0)),
+        "opencv_stereo_rms_px": float(data["rms_error"]),
+        "left_stereo_per_view_rms_mean_px": float(np.mean(left_rms)),
+        "left_stereo_per_view_rms_max_px": float(np.max(left_rms)),
+        "right_stereo_per_view_rms_mean_px": float(np.mean(right_rms)),
+        "right_stereo_per_view_rms_max_px": float(np.max(right_rms)),
+        "combined_stereo_per_view_rms_mean_px": float(np.mean(combined_rms)),
+        "combined_stereo_per_view_rms_max_px": float(np.max(combined_rms)),
+        "right_camera_center_in_left_frame": right_center.tolist(),
+        "baseline": float(np.linalg.norm(right_center)),
+        "left_K": K_l.tolist(),
+        "right_K": K_r.tolist(),
+        "left_distortion": dist_l.tolist(),
+        "right_distortion": dist_r.tolist(),
+    }
+    (out_dir / "calibration_visualization_summary.json").write_text(
+        json.dumps(summary, indent=2), encoding="utf-8"
+    )
+    return summary
+
+
 def visualize_stereo() -> None:
     case_dir = ROOT / "stereo_calibartion"
     out_dir = case_dir / "visualization"
@@ -585,7 +878,26 @@ def visualize_stereo() -> None:
 
 
 if __name__ == "__main__":
-    visualize_mono()
-    visualize_stereo()
-    print("wrote", ROOT / "mono_calibration" / "visualization")
-    print("wrote", ROOT / "stereo_calibartion" / "visualization")
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--calibration-json",
+        type=Path,
+        default=ROOT / "stereo_DIC" / "plate_center_load" / "result" / "calibration" / "stereo_calibration.json",
+    )
+    parser.add_argument(
+        "--out-dir",
+        type=Path,
+        default=ROOT / "stereo_DIC" / "plate_center_load" / "result" / "calibration",
+    )
+    parser.add_argument("--legacy-synthetic", action="store_true", help="also regenerate old synthetic calibration visuals")
+    args = parser.parse_args()
+
+    if args.legacy_synthetic:
+        visualize_mono()
+        visualize_stereo()
+        print("wrote", ROOT / "mono_calibration" / "visualization")
+        print("wrote", ROOT / "stereo_calibartion" / "visualization")
+
+    summary = visualize_saved_stereo_calibration_result(args.calibration_json, args.out_dir)
+    print(json.dumps(summary, indent=2))
+    print("wrote", args.out_dir)

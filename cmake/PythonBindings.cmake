@@ -7,6 +7,7 @@ if(pybind11_FOUND)
         bindings/python/bind_mesh.cpp
         bindings/python/bind_calibration.cpp
         bindings/python/bind_geometry.cpp
+        bindings/python/bind_reconstruction.cpp
         bindings/python/bind_postprocess.cpp)
     target_link_libraries(_traditional_dic PRIVATE traditional_dic_core)
     add_custom_command(TARGET _traditional_dic POST_BUILD

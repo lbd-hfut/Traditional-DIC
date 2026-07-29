@@ -1,16 +1,16 @@
 calibration:
-  mode: mono  # options: mono, stereo, self_calibration, multiview_scale
+  mode: stereo  # options: mono, stereo, self_calibration, multiview_scale
 
 board:
   type: chessboard  # options: chessboard, symmetric_circles, asymmetric_circles
 
   # Number of detected inner corners or circle centers, not physical squares.
-  rows: 9
-  cols: 12
+  rows: 8
+  cols: 11
 
   # Physical spacing between adjacent board points. Keep the unit consistent
   # with the world coordinates you want, e.g. mm.
-  spacing: 10.0
+  spacing: 5.0
 
 detection:
   refine_corners: true
@@ -32,6 +32,11 @@ stereo_calibration:
   estimate_k3: true
   max_iterations: 100
   epsilon: 1.0e-9
+  reject_outlier_pairs: true
+  outlier_mad_factor: 3.5
+  left_right_error_ratio_threshold: 3.0
+  left_right_error_abs_threshold: 0.25
+  min_pairs_after_rejection: 6
 
 self_calibration:
   method: colmap_like
