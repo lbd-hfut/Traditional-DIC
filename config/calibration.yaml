@@ -1,0 +1,53 @@
+calibration:
+  mode: mono  # options: mono, stereo, self_calibration, multiview_scale
+
+board:
+  type: chessboard  # options: chessboard, symmetric_circles, asymmetric_circles
+
+  # Number of detected inner corners or circle centers, not physical squares.
+  rows: 9
+  cols: 12
+
+  # Physical spacing between adjacent board points. Keep the unit consistent
+  # with the world coordinates you want, e.g. mm.
+  spacing: 10.0
+
+detection:
+  refine_corners: true
+  normalize_image: true
+  max_iterations: 30
+  epsilon: 1.0e-3
+
+mono_calibration:
+  model: zhang
+  estimate_tangential_distortion: true
+  estimate_k3: true
+  max_iterations: 100
+  epsilon: 1.0e-9
+
+stereo_calibration:
+  model: zhang
+  fix_intrinsics: false
+  estimate_tangential_distortion: true
+  estimate_k3: true
+  max_iterations: 100
+  epsilon: 1.0e-9
+
+self_calibration:
+  method: colmap_like
+  max_features: 8000
+  match_ratio: 0.75
+  ransac_reprojection_threshold: 2.0
+  min_triangulation_angle_degrees: 1.0
+  min_inlier_matches: 80
+  refine_bundle: false
+
+scale:
+  # Used after self-calibration when a visible chessboard is used to recover
+  # the metric scale of the SfM reconstruction.
+  board_rows: 9
+  board_cols: 12
+  square_size: 10.0
+  max_reprojection_error: 3.0
+  trim_fraction: 0.20
+  min_common_corners: 12

@@ -240,26 +240,9 @@ __marimo__/
 # Traditional-DIC local case outputs
 # Keep raw case inputs visible; ignore generated diagnostics, solver outputs,
 # temporary meshes, visualizations, and numerical scratch files under case/.
-/case/**/auto_mesh_quality*/
-/case/**/mesh_boundary_diagnostic/
-/case/**/mesh_dic_result/
-/case/**/mesh_forward_gn*/
-/case/**/mesh_sift_pipeline*/
-/case/**/seed_matching_quality*/
-/case/**/subset_dic_result/
-/case/**/synthetic_shift/
-/case/**/test_interpolation/
-/case/**/user_mesh_*/
-/case/**/g2l_diagnostic/
-/case/**/input_diagnostic/
-/case/**/node_initialization/
-/case/**/sift_node_initialization*/
-/case/**/field_visualization/
-/case/**/ring/padding_roi_truncation_test/
-/case/**/displacements.csv
-/case/**/stats.json
-/case/**/overview.png
-/case/**/subset_field_*.png
+/case/**/*.txt
+/case/**/*.csv
+/case/**/*.json
 
 # Local visualization artifacts
 /visualizations/

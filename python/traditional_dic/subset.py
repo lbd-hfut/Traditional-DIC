@@ -7,6 +7,7 @@ import numpy as np
 
 try:
     from . import _traditional_dic as _backend
+    from .config import load_config, normalize_subset_config
     _has_backend = True
 except ImportError:
     _has_backend = False
@@ -106,11 +107,9 @@ def subset(
     # Build config dict from explicit kwargs, or from YAML/dict config
     if config is not None:
         if isinstance(config, (str, Path)):
-            import yaml
-            with open(str(config), "r", encoding="utf-8") as f:
-                config_dict = yaml.safe_load(f)
+            config_dict = normalize_subset_config(load_config(config))
         elif isinstance(config, dict):
-            config_dict = config
+            config_dict = normalize_subset_config(config)
         else:
             raise TypeError(f"config must be str, Path, dict, or None, got {type(config)}")
     else:

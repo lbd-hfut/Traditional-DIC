@@ -24,12 +24,16 @@
 
 void bind_subset(pybind11::module_& m);
 void bind_mesh(pybind11::module_& m);
+void bind_core(pybind11::module_& m);
+void bind_io(pybind11::module_& m);
 void bind_calibration(pybind11::module_& m);
 void bind_geometry(pybind11::module_& m);
 void bind_postprocess(pybind11::module_& m);
 
 PYBIND11_MODULE(_traditional_dic, m) {
     m.doc() = "Traditional-DIC C++ backend skeleton";
+    bind_core(m);
+    bind_io(m);
     bind_subset(m);
     bind_mesh(m);
     bind_calibration(m);

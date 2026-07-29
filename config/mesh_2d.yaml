@@ -12,10 +12,6 @@ mesh_generation:
 
   element_type: q4  # options: t3, q4, q8
 
-  # Required when method: manual. Ignored by auto/structured/unstructured.
-  nodes_file: case/2D/ring/user_mesh_q4_annulus_r4_c12/nodes_Q4.txt
-  elements_file: case/2D/ring/user_mesh_q4_annulus_r4_c12/elements_Q4.txt
-
   target_element_size: 35.0  # positive pixels; target characteristic element size
 
   min_element_size: 18.0  # 0 or positive pixels; lower accepted element size
@@ -44,7 +40,7 @@ optimization:
   mirror_image_padding: true  # options: true, false; true mirror-pads images for interpolation/search near image boundaries
 
 correlation:
-  criterion: znssd  # options: znssd, ssd
+  criterion: ssd  # options: ssd; znssd mesh global solver is reserved for later
 
 interpolation:
   method: bspline  # options: bspline

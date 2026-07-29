@@ -43,7 +43,8 @@ void validate_degree(BSplineDegree degree)
 {
     const int d = degree_value(degree);
     if (d != 1 && d != 3 && d != 5) {
-        throw std::invalid_argument("Only B-spline degree 1, 3, and 5 are supported.");
+        throw std::invalid_argument(
+            "Only B-spline degree 1, 3, and 5 are supported; got " + std::to_string(d) + ".");
     }
 }
 
