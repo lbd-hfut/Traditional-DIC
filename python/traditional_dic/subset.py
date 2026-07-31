@@ -28,6 +28,8 @@ def subset(
     # ---- Seed initialization ----
     search_radius: int = 20,
     seed_subset_radius: int = 10,
+    sift_enabled: bool = False,
+    pyramid_enabled: bool = True,
     subpixel_refinement: bool = True,
     # ---- Seed selection ----
     seed_count: int = 64,
@@ -36,6 +38,7 @@ def subset(
     min_texture_std: float = 0.02,
     # ---- Reliability propagation ----
     propagation_spacing: int = 5,
+    propagation_max_znssd: float = 0.5,
 ):
     """
     Run 2D Subset-DIC with reliability-guided propagation.
@@ -67,6 +70,10 @@ def subset(
             Integer pixel search radius.
         seed_subset_radius : int = 10
             Subset radius for integer search.
+        sift_enabled : bool = False
+            Use SIFT matches as a displacement prior before local integer NCC.
+        pyramid_enabled : bool = True
+            Use pyramid/full-image NCC when SIFT prior is disabled.
         subpixel_refinement : bool = True
             Enable subpixel ICGN refinement for seeds.
         seed_count : int = 64
@@ -81,6 +88,8 @@ def subset(
     Propagation parameters (used when config=None):
         propagation_spacing : int = 5
             Grid spacing in pixels for reliability propagation.
+        propagation_max_znssd : float = 0.5
+            Maximum ZNSSD accepted during reliability propagation.
 
     Returns
     -------
@@ -122,9 +131,12 @@ def subset(
             },
             "interpolation": {"degree": bspline_degree},
             "initialization": {
+                "method": "integer_search",
                 "integer_search": {
                     "subset_radius": seed_subset_radius,
                     "search_radius": search_radius,
+                    "sift_enabled": sift_enabled,
+                    "pyramid_enabled": pyramid_enabled,
                 },
                 "subpixel_refinement": {
                     "enabled": subpixel_refinement,
@@ -141,6 +153,7 @@ def subset(
             },
             "reliability_propagation": {
                 "spacing": propagation_spacing,
+                "max_znssd": propagation_max_znssd,
             },
         }
 

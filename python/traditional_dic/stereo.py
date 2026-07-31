@@ -131,11 +131,42 @@ def _field_value_finite(row: Mapping) -> bool:
     return bool(np.all(np.isfinite(values)))
 
 
+def _quality_metric_name(value: str) -> str:
+    metric = str(value or "correlation").strip().lower()
+    if metric in {"correlation", "zncc"}:
+        return "correlation"
+    if metric == "znssd":
+        return "znssd"
+    raise ValueError("quality_metric must be 'correlation' or 'znssd'")
+
+
+def _quality_valid(
+    ref_disp: Mapping,
+    left_temp: Mapping,
+    def_disp: Mapping,
+    *,
+    quality_metric: str,
+    min_correlation: float,
+    max_znssd: float,
+) -> bool:
+    ref_quality = float(ref_disp["correlation"])
+    left_quality = float(left_temp["correlation"])
+    def_quality = float(def_disp["correlation"])
+    if quality_metric == "znssd":
+        return max(ref_quality, left_quality, def_quality) <= max_znssd
+    return min(ref_quality, left_quality, def_quality) >= min_correlation
+
+
 def _matched_field_arrays(
     reference_disparity: Sequence[Mapping],
     left_temporal: Sequence[Mapping],
     deformed_disparity: Sequence[Mapping],
+    *,
+    quality_metric: str = "correlation",
+    min_correlation: float = 0.6,
+    max_znssd: float = 2.0,
 ) -> tuple[dict[str, np.ndarray], list[dict]]:
+    quality_metric = _quality_metric_name(quality_metric)
     matched = _match_fields(reference_disparity, left_temporal, deformed_disparity)
     xy = []
     ref = []
@@ -157,6 +188,14 @@ def _matched_field_arrays(
             and _field_value_finite(ref_disp)
             and _field_value_finite(left_temp)
             and _field_value_finite(def_disp)
+            and _quality_valid(
+                ref_disp,
+                left_temp,
+                def_disp,
+                quality_metric=quality_metric,
+                min_correlation=min_correlation,
+                max_znssd=max_znssd,
+            )
         )
         xy.append((x, y))
         ref.append((float(ref_disp["u"]), float(ref_disp["v"])))
@@ -200,8 +239,15 @@ def _matched_field_arrays(
     return arrays, meta
 
 
-def _make_observations(matched_rows: Sequence[tuple[Mapping, Mapping, Mapping]]) -> tuple[list, list, list[dict]]:
+def _make_observations(
+    matched_rows: Sequence[tuple[Mapping, Mapping, Mapping]],
+    *,
+    quality_metric: str = "correlation",
+    min_correlation: float = 0.6,
+    max_znssd: float = 2.0,
+) -> tuple[list, list, list[dict]]:
     _require_backend()
+    quality_metric = _quality_metric_name(quality_metric)
     left_obs = []
     right_obs = []
     meta = []
@@ -213,7 +259,20 @@ def _make_observations(matched_rows: Sequence[tuple[Mapping, Mapping, Mapping]])
         p_l1 = np.array([x + float(left_temp["u"]), y + float(left_temp["v"])], dtype=np.float64)
         p_r1 = np.array([x + float(def_disp["u"]), y + float(def_disp["v"])], dtype=np.float64)
 
-        valid = bool(ref_disp["valid"] and left_temp["valid"] and def_disp["valid"])
+        valid = (
+            bool(ref_disp["valid"] and left_temp["valid"] and def_disp["valid"])
+            and _field_value_finite(ref_disp)
+            and _field_value_finite(left_temp)
+            and _field_value_finite(def_disp)
+            and _quality_valid(
+                ref_disp,
+                left_temp,
+                def_disp,
+                quality_metric=quality_metric,
+                min_correlation=min_correlation,
+                max_znssd=max_znssd,
+            )
+        )
         corr_left = min(float(left_temp["correlation"]), float(ref_disp["correlation"]))
         corr_right = min(float(def_disp["correlation"]), float(ref_disp["correlation"]))
 
@@ -265,20 +324,30 @@ def reconstruct_from_fields(
     right_camera,
     *,
     min_correlation: float = 0.6,
+    quality_metric: str = "correlation",
+    max_znssd: float = 2.0,
     max_reprojection_error_px: float = 2.0,
     world_scale: float = 1.0,
     remove_rigid_body_motion: bool = False,
 ) -> tuple[object, list[dict]]:
     """Reconstruct stereo 3D-DIC points from already computed 2D fields."""
     _require_backend()
+    quality_metric = _quality_metric_name(quality_metric)
     opts = _backend.reconstruction.StereoDICOptions()
-    opts.min_correlation = float(min_correlation)
+    opts.min_correlation = float(min_correlation) if quality_metric == "correlation" else -float("inf")
     opts.max_reprojection_error_px = float(max_reprojection_error_px)
     opts.world_scale = float(world_scale)
     opts.remove_rigid_body_motion = bool(remove_rigid_body_motion)
 
     if hasattr(_backend.reconstruction, "reconstruct_stereo_fields"):
-        arrays, meta = _matched_field_arrays(reference_disparity, left_temporal, deformed_disparity)
+        arrays, meta = _matched_field_arrays(
+            reference_disparity,
+            left_temporal,
+            deformed_disparity,
+            quality_metric=quality_metric,
+            min_correlation=float(min_correlation),
+            max_znssd=float(max_znssd),
+        )
         result = _backend.reconstruction.reconstruct_stereo_fields(
             arrays["xy"],
             arrays["reference_disparity"],
@@ -295,7 +364,12 @@ def reconstruct_from_fields(
         return result, meta
 
     matched = _match_fields(reference_disparity, left_temporal, deformed_disparity)
-    left_obs, right_obs, meta = _make_observations(matched)
+    left_obs, right_obs, meta = _make_observations(
+        matched,
+        quality_metric=quality_metric,
+        min_correlation=float(min_correlation),
+        max_znssd=float(max_znssd),
+    )
 
     result = _backend.reconstruction.StereoDIC(opts).reconstruct(left_obs, right_obs, left_camera, right_camera)
     return result, meta
@@ -314,6 +388,8 @@ def reconstruct_from_field_files(
     write_deformation_maps: bool = True,
     write_surface_strain: bool = True,
     min_correlation: float = 0.6,
+    quality_metric: str = "correlation",
+    max_znssd: float = 2.0,
     max_reprojection_error_px: float = 2.0,
     world_scale: float = 1.0,
     remove_rigid_body_motion: bool = False,
@@ -331,6 +407,8 @@ def reconstruct_from_field_files(
         left_camera,
         right_camera,
         min_correlation=min_correlation,
+        quality_metric=quality_metric,
+        max_znssd=max_znssd,
         max_reprojection_error_px=max_reprojection_error_px,
         world_scale=world_scale,
         remove_rigid_body_motion=remove_rigid_body_motion,

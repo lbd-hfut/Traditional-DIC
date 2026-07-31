@@ -17,6 +17,7 @@
 
 #include <cstdio>
 #include <fstream>
+#include <stdexcept>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -173,9 +174,20 @@ static dic::SubsetConfig config_from_dict(py::dict d) {
     }
     if (d.contains("initialization")) {
         py::dict o = d["initialization"];
+        if (o.contains("method")) {
+            const std::string method = py::cast<std::string>(o["method"]);
+            if (method != "integer_search") {
+                throw std::runtime_error("subset initialization.method must be integer_search");
+            }
+            cfg.seed_initialization.method = dic::SeedInitializationMethod::IntegerSearch;
+        }
         if (o.contains("integer_search")) { py::dict is_ = o["integer_search"];
             cfg.seed_initialization.integer_search.subset_radius = gi(is_,"subset_radius",cfg.seed_initialization.integer_search.subset_radius);
-            cfg.seed_initialization.integer_search.search_radius = gi(is_,"search_radius",cfg.seed_initialization.integer_search.search_radius); }
+            cfg.seed_initialization.integer_search.search_radius = gi(is_,"search_radius",cfg.seed_initialization.integer_search.search_radius);
+            if (is_.contains("sift_enabled")) cfg.seed_initialization.integer_search.sift_enabled = py::cast<bool>(is_["sift_enabled"]);
+            if (is_.contains("pyramid_enabled")) cfg.seed_initialization.integer_search.pyramid_enabled = py::cast<bool>(is_["pyramid_enabled"]);
+            cfg.seed_initialization.integer_search.pyramid_scale = gi(is_,"pyramid_scale",cfg.seed_initialization.integer_search.pyramid_scale);
+            cfg.seed_initialization.integer_search.pyramid_refinement_radius = gi(is_,"pyramid_refinement_radius",cfg.seed_initialization.integer_search.pyramid_refinement_radius); }
         if (o.contains("subpixel_refinement")) { py::dict sr = o["subpixel_refinement"];
             if (sr.contains("enabled")) cfg.seed_initialization.subpixel.enabled = py::cast<bool>(sr["enabled"]);
             cfg.seed_initialization.subpixel.subset_radius = gi(sr,"subset_radius",cfg.seed_initialization.subpixel.subset_radius);
@@ -190,7 +202,8 @@ static dic::SubsetConfig config_from_dict(py::dict d) {
         cfg.seed_selection.kmeans_iterations = gi(o,"kmeans_iterations",cfg.seed_selection.kmeans_iterations);
         cfg.seed_selection.kmeans_sample_limit = gi(o,"kmeans_sample_limit",cfg.seed_selection.kmeans_sample_limit); }
     if (d.contains("reliability_propagation")) { py::dict o = d["reliability_propagation"];
-        cfg.propagation_spacing = gi(o,"spacing",cfg.propagation_spacing); }
+        cfg.propagation_spacing = gi(o,"spacing",cfg.propagation_spacing);
+        cfg.propagation_max_znssd = gd(o,"max_znssd",cfg.propagation_max_znssd); }
     return cfg;
 }
 

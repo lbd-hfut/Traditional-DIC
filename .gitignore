@@ -254,3 +254,5 @@ __marimo__/
 
 # .agents of claude chatgpt deepcode opencode
 /.agents/
+
+reference_code_lib/

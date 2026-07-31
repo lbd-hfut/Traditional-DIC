@@ -287,6 +287,9 @@ std::vector<Displacement2D> MeshDIC::compute(
     if (seed_cfg.integer_search.search_radius <= 0) {
         seed_cfg.integer_search.search_radius = config_.search_radius;
     }
+    if (seed_cfg.integer_search.sift_enabled) {
+        seed_cfg.integer_search.pyramid_enabled = false;
+    }
     std::vector<unsigned char> init_valid(static_cast<std::size_t>(n_nodes), 0);
     if (seed_cfg.method == SeedInitializationMethod::SIFT) {
         initialize_nodes_with_sift_route(
@@ -298,6 +301,34 @@ std::vector<Displacement2D> MeshDIC::compute(
             init_valid);
     }
 
+    std::vector<unsigned char> prior_valid(static_cast<std::size_t>(n_nodes), 0);
+    Eigen::VectorXd prior_U = Eigen::VectorXd::Zero(2 * n_nodes);
+    if (seed_cfg.method != SeedInitializationMethod::SIFT &&
+        seed_cfg.integer_search.sift_enabled) {
+        FeatureMatcherConfig matcher_config;
+        matcher_config.max_features = config_.sift_node_initialization.max_features;
+        matcher_config.ratio_threshold = config_.sift_node_initialization.ratio_threshold;
+        matcher_config.robust_mad_factor = config_.sift_node_initialization.robust_mad_factor;
+        const FeatureMatcher matcher(matcher_config);
+        const auto matches = matcher.match(reference, deformed);
+
+        SIFTInitializerConfig initializer_config;
+        initializer_config.matcher = matcher_config;
+        initializer_config.interpolation_neighbors = config_.sift_node_initialization.interpolation_neighbors;
+        initializer_config.interpolation_radius = config_.sift_node_initialization.interpolation_radius;
+        const SIFTInitializer initializer(initializer_config);
+        for (int i = 0; i < n_nodes; ++i) {
+            const Eigen::Vector2d point(nodes_coord[2 * i], nodes_coord[2 * i + 1]);
+            const auto prior = initializer.estimate_from_matches(matches, point);
+            if (!prior.valid) {
+                continue;
+            }
+            prior_U(2 * i) = prior.u;
+            prior_U(2 * i + 1) = prior.v;
+            prior_valid[static_cast<std::size_t>(i)] = 1;
+        }
+    }
+
     IntegerSearchInitializer int_search(seed_cfg, config_.image_precompute);
     for (int i = 0; i < n_nodes; ++i) {
         if (init_valid[static_cast<std::size_t>(i)]) {
@@ -305,8 +336,18 @@ std::vector<Displacement2D> MeshDIC::compute(
         }
         Eigen::Vector2d pt(solver_nodes_coord[2 * i], solver_nodes_coord[2 * i + 1]);
         if (pt.x() < 0 || pt.x() >= img_w || pt.y() < 0 || pt.y() >= img_h) continue;
-        auto init = int_search.estimate_with_interpolators(
-            solver_reference, solver_deformed, pt, ref_interp, def_interp);
+        InitialDisplacement init;
+        if (prior_valid[static_cast<std::size_t>(i)]) {
+            init = int_search.estimate_around_displacement(
+                solver_reference,
+                solver_deformed,
+                pt,
+                prior_U(2 * i),
+                prior_U(2 * i + 1));
+        } else {
+            init = int_search.estimate_with_interpolators(
+                solver_reference, solver_deformed, pt, ref_interp, def_interp);
+        }
         if (init.valid) {
             U(2 * i) = init.u;
             U(2 * i + 1) = init.v;

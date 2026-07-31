@@ -1,5 +1,5 @@
 if(pybind11_FOUND)
-    pybind11_add_module(_traditional_dic
+    pybind11_add_module(_traditional_dic NO_EXTRAS
         bindings/python/module.cpp
         bindings/python/bind_core.cpp
         bindings/python/bind_io.cpp
@@ -8,7 +8,8 @@ if(pybind11_FOUND)
         bindings/python/bind_calibration.cpp
         bindings/python/bind_geometry.cpp
         bindings/python/bind_reconstruction.cpp
-        bindings/python/bind_postprocess.cpp)
+        bindings/python/bind_postprocess.cpp
+        bindings/python/bind_surface_outlier_cleaning.cpp)
     target_link_libraries(_traditional_dic PRIVATE traditional_dic_core)
     add_custom_command(TARGET _traditional_dic POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different

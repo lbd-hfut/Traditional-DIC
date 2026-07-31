@@ -28,6 +28,18 @@ endif()
 
 find_package(OpenCV QUIET)
 
+find_package(Ceres QUIET)
+if(NOT Ceres_FOUND AND DEFINED CONDA_PREFIX)
+    find_path(CERES_INCLUDE_DIR ceres/ceres.h PATHS "$ENV{CONDA_PREFIX}/Library/include" NO_DEFAULT_PATH)
+    find_library(CERES_LIBRARY NAMES ceres PATHS "$ENV{CONDA_PREFIX}/Library/lib" NO_DEFAULT_PATH)
+    if(CERES_INCLUDE_DIR AND CERES_LIBRARY)
+        set(Ceres_FOUND TRUE)
+        set(CERES_LIBRARIES "${CERES_LIBRARY}")
+        set(CERES_INCLUDE_DIRS "${CERES_INCLUDE_DIR}")
+        message(STATUS "Using manual Ceres from $ENV{CONDA_PREFIX}/Library")
+    endif()
+endif()
+
 # pybind11 from conda site-packages
 list(APPEND CMAKE_PREFIX_PATH "$ENV{CONDA_PREFIX}/Lib/site-packages/pybind11/share/cmake/pybind11")
 find_package(pybind11 QUIET)

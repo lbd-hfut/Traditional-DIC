@@ -54,6 +54,17 @@ public:
                                                         const Eigen::Vector2d& point,
                                                         const BSplineInterpolator& reference_interpolator,
                                                         const BSplineInterpolator& deformed_interpolator) const;
+    InitialDisplacement estimate_around_displacement(const Image& reference,
+                                                     const Image& deformed,
+                                                     const Eigen::Vector2d& point,
+                                                     double initial_u,
+                                                     double initial_v) const;
+    InitialDisplacement estimate_with_mask_around_displacement(const Image& reference,
+                                                              const Image& deformed,
+                                                              const Mask& roi,
+                                                              const Eigen::Vector2d& point,
+                                                              double initial_u,
+                                                              double initial_v) const;
 private:
     SeedInitializationConfig config_{};
     BSplinePrecomputeConfig image_precompute_{};

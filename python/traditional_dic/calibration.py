@@ -276,7 +276,24 @@ def make_self_calibration_options(config: Optional[str | Path | dict[str, Any]] 
         cfg.get("min_triangulation_angle_degrees", options.min_triangulation_angle_degrees)
     )
     options.min_inlier_matches = int(cfg.get("min_inlier_matches", options.min_inlier_matches))
+    options.matching_window = int(cfg.get("matching_window", options.matching_window))
+    options.wrap_matching = bool(cfg.get("wrap_matching", options.wrap_matching))
+    options.initial_image1 = int(cfg.get("initial_image1", options.initial_image1))
+    options.initial_image2 = int(cfg.get("initial_image2", options.initial_image2))
+    options.initial_focal_length_factor = float(
+        cfg.get("initial_focal_length_factor", options.initial_focal_length_factor)
+    )
+    options.abs_pose_max_error = float(cfg.get("abs_pose_max_error", options.abs_pose_max_error))
+    options.abs_pose_min_num_inliers = int(cfg.get("abs_pose_min_num_inliers", options.abs_pose_min_num_inliers))
+    options.abs_pose_min_inlier_ratio = float(cfg.get("abs_pose_min_inlier_ratio", options.abs_pose_min_inlier_ratio))
+    options.filter_max_reproj_error = float(cfg.get("filter_max_reproj_error", options.filter_max_reproj_error))
+    options.ba_local_num_images = int(cfg.get("ba_local_num_images", options.ba_local_num_images))
+    options.ignore_two_view_tracks = bool(cfg.get("ignore_two_view_tracks", options.ignore_two_view_tracks))
     options.refine_bundle = bool(cfg.get("refine_bundle", options.refine_bundle))
+    options.refine_focal_length = bool(cfg.get("refine_focal_length", options.refine_focal_length))
+    options.refine_principal_point = bool(cfg.get("refine_principal_point", options.refine_principal_point))
+    options.refine_extra_params = bool(cfg.get("refine_extra_params", options.refine_extra_params))
+    options.share_intrinsics = bool(cfg.get("share_intrinsics", options.share_intrinsics))
     return options
 
 

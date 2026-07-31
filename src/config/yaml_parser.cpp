@@ -51,8 +51,7 @@ CorrelationCriterionKind parse_correlation_criterion(const std::string& value)
 SeedInitializationMethod parse_init_method(const std::string& value)
 {
     if (value == "integer_search") return SeedInitializationMethod::IntegerSearch;
-    if (value == "sift") return SeedInitializationMethod::SIFT;
-    throw std::runtime_error("Unknown initialization method: " + value);
+    throw std::runtime_error("initialization.method for subset must be integer_search: " + value);
 }
 
 SeedQualityMetric parse_quality_metric(const std::string& value)
@@ -126,6 +125,9 @@ void parse_integer_search(const YAML::Node& node, SeedIntegerSearchConfig& cfg)
     }
     if (node["search_radius"]) {
         cfg.search_radius = node["search_radius"].as<int>();
+    }
+    if (node["sift_enabled"]) {
+        cfg.sift_enabled = node["sift_enabled"].as<bool>();
     }
     if (node["pyramid_enabled"]) {
         cfg.pyramid_enabled = node["pyramid_enabled"].as<bool>();

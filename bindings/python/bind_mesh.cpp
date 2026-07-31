@@ -282,6 +282,14 @@ dic::MeshConfig mesh_config_from_dict(py::dict d)
                 get_int(is, "subset_radius", cfg.seed_initialization.integer_search.subset_radius);
             cfg.seed_initialization.integer_search.search_radius =
                 get_int(is, "search_radius", cfg.seed_initialization.integer_search.search_radius);
+            cfg.seed_initialization.integer_search.sift_enabled =
+                get_bool(is, "sift_enabled", cfg.seed_initialization.integer_search.sift_enabled);
+            cfg.seed_initialization.integer_search.pyramid_enabled =
+                get_bool(is, "pyramid_enabled", cfg.seed_initialization.integer_search.pyramid_enabled);
+            cfg.seed_initialization.integer_search.pyramid_scale =
+                get_int(is, "pyramid_scale", cfg.seed_initialization.integer_search.pyramid_scale);
+            cfg.seed_initialization.integer_search.pyramid_refinement_radius =
+                get_int(is, "pyramid_refinement_radius", cfg.seed_initialization.integer_search.pyramid_refinement_radius);
         }
     }
 

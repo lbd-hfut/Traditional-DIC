@@ -8,6 +8,17 @@
 #include <optional>
 
 namespace dic {
+namespace {
+
+double zncc_from_znssd(double znssd)
+{
+    if (!std::isfinite(znssd)) {
+        return -1.0;
+    }
+    return std::max(-1.0, std::min(1.0, 1.0 - 0.5 * znssd));
+}
+
+} // namespace
 
 SubsetInitializer::SubsetInitializer(int search_radius)
 {
@@ -73,47 +84,8 @@ InitialDisplacement SubsetInitializer::estimate_with_interpolators(
 {
     IntegerSearchInitializer integer_search(config_.seed_initialization);
     const auto integer_initial = integer_search.estimate(reference, deformed, point);
-    if (!integer_initial.valid || !config_.seed_initialization.subpixel.enabled) {
-        return integer_initial;
-    }
-
-    const auto& integer_config = config_.seed_initialization.integer_search;
-    const auto& subpixel_config = config_.seed_initialization.subpixel;
-
-    SubsetConfig solver_config = config_;
-    solver_config.subset_radius = subpixel_config.subset_radius;
-    solver_config.search_radius = integer_config.search_radius;
-    solver_config.convergence_threshold = subpixel_config.convergence_threshold;
-    solver_config.max_iterations = subpixel_config.max_iterations;
-    solver_config.shape_function = subpixel_config.shape_function;
-    solver_config.optimizer = subpixel_config.optimizer;
-    solver_config.objective = subpixel_config.objective;
-    solver_config.use_second_order =
-        subpixel_config.shape_function == SubsetShapeFunctionMethod::SecondOrder;
-
-    Displacement2D refined;
-    if (subpixel_config.optimizer == SubsetOptimizationMethod::ICGN) {
-        const ICGNSolver solver(solver_config);
-        refined = solver.solve_with_interpolators(
-            reference,
-            deformed,
-            point,
-            integer_initial,
-            reference_interpolator,
-            deformed_interpolator
-        );
-    } else {
-        const ForwardGaussNewtonSolver solver(solver_config);
-        refined = solver.solve(reference, deformed, point, integer_initial);
-    }
-
-    if (refined.valid && refined.status == SolverStatus::Success) {
-        return {refined.u, refined.v,
-                refined.du_dx, refined.du_dy,
-                refined.dv_dx, refined.dv_dy,
-                refined.correlation, true};
-    }
-    return integer_initial;
+    return refine_initial_with_interpolators(
+        reference, deformed, point, integer_initial, reference_interpolator, deformed_interpolator);
 }
 
 InitialDisplacement SubsetInitializer::estimate_with_mask(
@@ -173,6 +145,78 @@ InitialDisplacement SubsetInitializer::estimate_with_mask_interpolators(
     IntegerSearchInitializer integer_search(config_.seed_initialization);
     const auto integer_initial = integer_search.estimate_with_mask_interpolators(
         reference, deformed, roi, point, reference_interpolator, deformed_interpolator);
+    return refine_initial_with_mask_interpolators(
+        reference, deformed, roi, point, integer_initial, reference_interpolator, deformed_interpolator);
+}
+
+InitialDisplacement SubsetInitializer::refine_initial_with_interpolators(
+    const Image& reference,
+    const Image& deformed,
+    const Eigen::Vector2d& point,
+    const InitialDisplacement& integer_initial,
+    const BSplineInterpolator& reference_interpolator,
+    const BSplineInterpolator& deformed_interpolator
+) const
+{
+    if (!integer_initial.valid || !config_.seed_initialization.subpixel.enabled) {
+        return integer_initial;
+    }
+
+    const auto& integer_config = config_.seed_initialization.integer_search;
+    const auto& subpixel_config = config_.seed_initialization.subpixel;
+
+    SubsetConfig solver_config = config_;
+    solver_config.subset_radius = subpixel_config.subset_radius;
+    solver_config.search_radius = integer_config.search_radius;
+    solver_config.convergence_threshold = subpixel_config.convergence_threshold;
+    solver_config.max_iterations = subpixel_config.max_iterations;
+    solver_config.shape_function = subpixel_config.shape_function;
+    solver_config.optimizer = subpixel_config.optimizer;
+    solver_config.objective = subpixel_config.objective;
+    solver_config.use_second_order =
+        subpixel_config.shape_function == SubsetShapeFunctionMethod::SecondOrder;
+
+    Displacement2D refined;
+    if (subpixel_config.optimizer == SubsetOptimizationMethod::ICGN) {
+        const ICGNSolver solver(solver_config);
+        refined = solver.solve_with_interpolators(
+            reference,
+            deformed,
+            point,
+            integer_initial,
+            reference_interpolator,
+            deformed_interpolator
+        );
+    } else {
+        const ForwardGaussNewtonSolver solver(solver_config);
+        refined = solver.solve(reference, deformed, point, integer_initial);
+    }
+
+    if (refined.valid && refined.status == SolverStatus::Success) {
+        return {refined.u, refined.v,
+                refined.du_dx, refined.du_dy,
+                refined.dv_dx, refined.dv_dy,
+                refined.correlation, true,
+                zncc_from_znssd(refined.correlation),
+                refined.correlation};
+    }
+    return integer_initial;
+}
+
+InitialDisplacement SubsetInitializer::refine_initial_with_mask_interpolators(
+    const Image& reference,
+    const Image& deformed,
+    const Mask& roi,
+    const Eigen::Vector2d& point,
+    const InitialDisplacement& integer_initial,
+    const BSplineInterpolator& reference_interpolator,
+    const BSplineInterpolator& deformed_interpolator
+) const
+{
+    if (!config_.truncate_roi_subsets) {
+        return refine_initial_with_interpolators(
+            reference, deformed, point, integer_initial, reference_interpolator, deformed_interpolator);
+    }
     if (!integer_initial.valid || !config_.seed_initialization.subpixel.enabled) {
         return integer_initial;
     }
@@ -212,7 +256,9 @@ InitialDisplacement SubsetInitializer::estimate_with_mask_interpolators(
         return {refined.u, refined.v,
                 refined.du_dx, refined.du_dy,
                 refined.dv_dx, refined.dv_dy,
-                refined.correlation, true};
+                refined.correlation, true,
+                zncc_from_znssd(refined.correlation),
+                refined.correlation};
     }
     return integer_initial;
 }

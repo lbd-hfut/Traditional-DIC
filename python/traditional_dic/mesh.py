@@ -37,6 +37,11 @@ def mesh(
     max_iterations: int = 30,
     convergence_threshold: float = 1e-3,
     search_radius: int = 20,
+    seed_subset_radius: int = 10,
+    sift_enabled: bool = False,
+    pyramid_enabled: bool = True,
+    pyramid_scale: int = 4,
+    pyramid_refinement_radius: int = 4,
     regularization_alpha: float = 0.0,
     one_based: bool = False,
 ):
@@ -76,7 +81,12 @@ def mesh(
             "initialization": {
                 "method": initialization,
                 "integer_search": {
+                    "subset_radius": seed_subset_radius,
                     "search_radius": search_radius,
+                    "sift_enabled": sift_enabled,
+                    "pyramid_enabled": pyramid_enabled,
+                    "pyramid_scale": pyramid_scale,
+                    "pyramid_refinement_radius": pyramid_refinement_radius,
                 },
             },
         }

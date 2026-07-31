@@ -9,6 +9,7 @@
 #include <dic/core/image.hpp>
 #include <dic/core/mask.hpp>
 #include <dic/core/result.hpp>
+#include <dic/initialization/feature_matcher.hpp>
 #include <dic/subset/subset_config.hpp>
 
 #include <Eigen/Dense>
@@ -55,7 +56,8 @@ private:
                                       const Mask& roi,
                                       const SubsetInitializer& initializer,
                                       const BSplineInterpolator& reference_interpolator,
-                                      const BSplineInterpolator& deformed_interpolator) const;
+                                      const BSplineInterpolator& deformed_interpolator,
+                                      const std::vector<FeatureMatch>* feature_matches) const;
 
     SubsetConfig config_;
 };

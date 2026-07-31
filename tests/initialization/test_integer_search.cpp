@@ -105,6 +105,50 @@ TEST(IntegerSearch, PyramidSearchFindsLargeIntegerShift)
     EXPECT_DOUBLE_EQ(initial.v, -14.0);
 }
 
+TEST(IntegerSearch, NcorrStyleFullImageCoarseSearchFindsShiftOutsideLocalRadius)
+{
+    const auto reference = make_search_image(160, 128, 0.0, 0.0);
+    const auto deformed = make_search_image(160, 128, 54.0, -11.0);
+
+    dic::SeedInitializationConfig config;
+    config.integer_search.subset_radius = 10;
+    config.integer_search.search_radius = 8;
+    config.integer_search.pyramid_enabled = true;
+    config.integer_search.pyramid_scale = 4;
+    config.integer_search.pyramid_refinement_radius = 4;
+    config.subpixel.enabled = false;
+
+    const dic::IntegerSearchInitializer initializer(config);
+    const auto initial = initializer.estimate(reference, deformed, Eigen::Vector2d(72.0, 64.0));
+
+    EXPECT_TRUE(initial.valid);
+    EXPECT_DOUBLE_EQ(initial.u, 54.0);
+    EXPECT_DOUBLE_EQ(initial.v, -11.0);
+    EXPECT_GT(initial.zncc, 0.9);
+    EXPECT_LT(initial.znssd, 0.2);
+}
+
+TEST(IntegerSearch, RefinesAroundExternalDisplacementPrior)
+{
+    const auto reference = make_search_image(160, 128, 0.0, 0.0);
+    const auto deformed = make_search_image(160, 128, 54.0, -11.0);
+
+    dic::SeedInitializationConfig config;
+    config.integer_search.subset_radius = 10;
+    config.integer_search.search_radius = 6;
+    config.integer_search.pyramid_enabled = false;
+    config.subpixel.enabled = false;
+
+    const dic::IntegerSearchInitializer initializer(config);
+    const auto initial = initializer.estimate_around_displacement(
+        reference, deformed, Eigen::Vector2d(72.0, 64.0), 51.0, -9.0);
+
+    EXPECT_TRUE(initial.valid);
+    EXPECT_DOUBLE_EQ(initial.u, 54.0);
+    EXPECT_DOUBLE_EQ(initial.v, -11.0);
+    EXPECT_GT(initial.zncc, 0.9);
+}
+
 TEST(IntegerSearch, UsesRoiTruncatedSamplesNearPaddedImageBoundary)
 {
     const auto reference = make_search_image(48, 48, 0.0, 0.0);

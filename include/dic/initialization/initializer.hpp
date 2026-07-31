@@ -30,7 +30,18 @@
 
 namespace dic {
 
-struct InitialDisplacement { double u{0.0}; double v{0.0}; double du_dx{0.0}; double du_dy{0.0}; double dv_dx{0.0}; double dv_dy{0.0}; double confidence{0.0}; bool valid{false}; };
+struct InitialDisplacement {
+    double u{0.0};
+    double v{0.0};
+    double du_dx{0.0};
+    double du_dy{0.0};
+    double dv_dx{0.0};
+    double dv_dy{0.0};
+    double confidence{0.0};
+    bool valid{false};
+    double zncc{0.0};
+    double znssd{0.0};
+};
 class Initializer {
 public:
     virtual ~Initializer() = default;

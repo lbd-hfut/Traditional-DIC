@@ -44,12 +44,33 @@ struct SparsePoint3D {
 };
 
 struct MultiviewCalibrationOptions {
-    int max_features = 8000;
-    double match_ratio = 0.75;
-    double ransac_reprojection_threshold = 2.0;
-    double min_triangulation_angle_degrees = 1.0;
-    int min_inlier_matches = 80;
-    bool refine_bundle = false;
+    // CPU SIFT / matching defaults aligned with COLMAP.
+    int max_features = 8192;
+    double match_ratio = 0.8;
+    double ransac_reprojection_threshold = 4.0;
+    // COLMAP Mapper.filter_min_tri_angle.
+    double min_triangulation_angle_degrees = 1.5;
+    // COLMAP Mapper.init_min_num_inliers.
+    int min_inlier_matches = 100;
+    int matching_window = 2;
+    bool wrap_matching = true;
+    // -1/-1 selects the strongest valid pair automatically.
+    int initial_image1 = -1;
+    int initial_image2 = -1;
+    double initial_focal_length_factor = 1.2;
+    double abs_pose_max_error = 12.0;
+    int abs_pose_min_num_inliers = 30;
+    double abs_pose_min_inlier_ratio = 0.25;
+    double filter_max_reproj_error = 4.0;
+    int ba_local_num_images = 6;
+    // COLMAP defaults to true, but the current windowed graph needs these
+    // tracks until full global retriangulation is migrated.
+    bool ignore_two_view_tracks = false;
+    bool refine_bundle = true;
+    bool refine_focal_length = false;
+    bool refine_principal_point = false;
+    bool refine_extra_params = false;
+    bool share_intrinsics = false;
     std::vector<CameraModel> initial_cameras;
 };
 

@@ -102,7 +102,7 @@ TEST(SeedSelector, GeneratesKmeansCandidatesAcrossHollowRoi)
     }
 }
 
-TEST(SeedSelector, SelectsQualityPassingCandidateWithLargestDisplacement)
+TEST(SeedSelector, SelectsBestQualityPassingCandidate)
 {
     const auto reference = make_seed_image(80, 80, 0.0, 0.0);
     const auto deformed = make_seed_image(80, 80, 2.35, -1.45);
@@ -120,7 +120,10 @@ TEST(SeedSelector, SelectsQualityPassingCandidateWithLargestDisplacement)
 
     for (const auto& candidate : result.candidates) {
         if (candidate.valid && candidate.quality_passed) {
-            EXPECT_LE(candidate.displacement_norm, result.best_seed.displacement_norm + 1e-12);
+            EXPECT_GE(candidate.quality, result.best_seed.quality - 1e-12);
+            if (std::abs(candidate.quality - result.best_seed.quality) <= 1e-12) {
+                EXPECT_LE(candidate.displacement_norm, result.best_seed.displacement_norm + 1e-12);
+            }
         }
     }
 }

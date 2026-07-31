@@ -55,6 +55,10 @@ initialization:
   integer_search:
     subset_radius: 10  # positive integer pixels
     search_radius: 30  # non-negative integer pixels
+    sift_enabled: false  # if true, SIFT prior + local NCC is used before pyramid NCC
+    pyramid_enabled: true  # options: true, false
+    pyramid_scale: 4  # positive integer downsample factor
+    pyramid_refinement_radius: 4  # non-negative integer pixels
 
   subpixel_refinement:
     enabled: true  # options: true, false

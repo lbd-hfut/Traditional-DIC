@@ -32,6 +32,7 @@ enum class SeedQualityMetric {
 struct SeedIntegerSearchConfig {
     int subset_radius{10};
     int search_radius{30};
+    bool sift_enabled{false};
     bool pyramid_enabled{true};
     int pyramid_scale{4};
     int pyramid_refinement_radius{4};

@@ -40,12 +40,30 @@ stereo_calibration:
 
 self_calibration:
   method: colmap_like
-  max_features: 8000
-  match_ratio: 0.75
-  ransac_reprojection_threshold: 2.0
-  min_triangulation_angle_degrees: 1.0
-  min_inlier_matches: 80
-  refine_bundle: false
+  # Values mirror COLMAP's CPU SIFT + IncrementalMapper defaults.
+  max_features: 8192
+  match_ratio: 0.8
+  ransac_reprojection_threshold: 4.0
+  min_triangulation_angle_degrees: 1.5
+  min_inlier_matches: 100
+  # This case supplies a focal prior equivalent to f=2304 px.
+  initial_focal_length_factor: 1.6
+  initial_image1: -1
+  initial_image2: -1
+  abs_pose_max_error: 12.0
+  abs_pose_min_num_inliers: 30
+  abs_pose_min_inlier_ratio: 0.25
+  filter_max_reproj_error: 4.0
+  ba_local_num_images: 6
+  # Compatibility override: full COLMAP global retriangulation is pending.
+  ignore_two_view_tracks: false
+  refine_bundle: true
+  # Fixed until the SIMPLE_RADIAL prior is fully equivalent to COLMAP's
+  # camera model and intrinsic parameter blocks.
+  share_intrinsics: false
+  refine_focal_length: false
+  refine_principal_point: false
+  refine_extra_params: false
 
 scale:
   # Used after self-calibration when a visible chessboard is used to recover

@@ -8,6 +8,7 @@ namespace dic {
 namespace {
 
 constexpr double kEpsilon = 1e-12;
+constexpr double kLocalPreferenceZnccMargin = 0.02;
 
 struct CandidateScore {
     int u{0};
@@ -20,6 +21,14 @@ struct SubsetSample {
     int dy{0};
     double reference_value{0.0};
 };
+
+double znssd_from_zncc(double zncc)
+{
+    if (!std::isfinite(zncc)) {
+        return std::numeric_limits<double>::infinity();
+    }
+    return std::max(0.0, 2.0 * (1.0 - std::max(-1.0, std::min(1.0, zncc))));
+}
 
 int full_circle_sample_count(int radius, int sample_step = 1)
 {
@@ -196,6 +205,80 @@ CandidateScore search_displacements(
     return best;
 }
 
+CandidateScore search_ncorr_multigrid(
+    const Image& deformed,
+    const std::vector<SubsetSample>& samples,
+    double ref_mean,
+    double ref_norm,
+    const std::vector<SubsetSample>& coarse_samples,
+    double coarse_ref_mean,
+    double coarse_ref_norm,
+    int center_x,
+    int center_y,
+    int subset_radius,
+    int coarse_step,
+    int refinement_radius
+)
+{
+    const int min_u = subset_radius - center_x;
+    const int max_u = deformed.width() - 1 - subset_radius - center_x;
+    const int min_v = subset_radius - center_y;
+    const int max_v = deformed.height() - 1 - subset_radius - center_y;
+    if (min_u > max_u || min_v > max_v) {
+        return {};
+    }
+
+    coarse_step = std::max(1, coarse_step);
+    CandidateScore coarse = search_displacements(
+        deformed,
+        coarse_samples,
+        coarse_ref_mean,
+        coarse_ref_norm,
+        center_x,
+        center_y,
+        subset_radius,
+        min_u,
+        max_u,
+        min_v,
+        max_v,
+        coarse_step
+    );
+    if (!std::isfinite(coarse.zncc)) {
+        return coarse;
+    }
+
+    refinement_radius = std::max(refinement_radius, coarse_step);
+    return search_displacements(
+        deformed,
+        samples,
+        ref_mean,
+        ref_norm,
+        center_x,
+        center_y,
+        subset_radius,
+        std::max(min_u, coarse.u - refinement_radius),
+        std::min(max_u, coarse.u + refinement_radius),
+        std::max(min_v, coarse.v - refinement_radius),
+        std::min(max_v, coarse.v + refinement_radius),
+        1
+    );
+}
+
+CandidateScore prefer_local_when_ambiguous(const CandidateScore& global_best,
+                                           const CandidateScore& local_best)
+{
+    if (!std::isfinite(local_best.zncc)) {
+        return global_best;
+    }
+    if (!std::isfinite(global_best.zncc)) {
+        return local_best;
+    }
+    if (local_best.zncc + kLocalPreferenceZnccMargin >= global_best.zncc) {
+        return local_best;
+    }
+    return global_best;
+}
+
 } // namespace
 
 IntegerSearchInitializer::IntegerSearchInitializer(int search_radius)
@@ -281,41 +364,40 @@ InitialDisplacement IntegerSearchInitializer::estimate_with_interpolators(
         return invalid;
     }
 
-    CandidateScore best;
     const int search_radius = integer_config.search_radius;
-    const int pyramid_scale = integer_config.pyramid_enabled && search_radius >= integer_config.pyramid_scale * 2
-                                  ? std::max(1, integer_config.pyramid_scale)
-                                  : 1;
-    if (pyramid_scale > 1) {
-        const auto coarse_samples = collect_circular_reference_samples(
-            reference,
+    const int coarse_step = integer_config.pyramid_enabled
+                                ? std::max(1, integer_config.pyramid_scale)
+                                : 1;
+    const auto coarse_samples = collect_circular_reference_samples(
+        reference,
+        center_x,
+        center_y,
+        integer_config.subset_radius,
+        coarse_step
+    );
+    const double coarse_ref_mean = sample_mean(coarse_samples);
+    const double coarse_ref_norm = sample_norm(coarse_samples, coarse_ref_mean);
+    CandidateScore best;
+    if (!coarse_samples.empty() && coarse_ref_norm > kEpsilon) {
+        best = search_ncorr_multigrid(
+            deformed,
+            samples,
+            ref_mean,
+            ref_norm,
+            coarse_samples,
+            coarse_ref_mean,
+            coarse_ref_norm,
             center_x,
             center_y,
             integer_config.subset_radius,
-            pyramid_scale
+            coarse_step,
+            std::max(integer_config.pyramid_refinement_radius,
+                     static_cast<int>(std::ceil(1.5 * static_cast<double>(integer_config.subset_radius))))
         );
-        const double coarse_ref_mean = sample_mean(coarse_samples);
-        const double coarse_ref_norm = sample_norm(coarse_samples, coarse_ref_mean);
-        if (!coarse_samples.empty() && coarse_ref_norm > kEpsilon) {
-            best = search_displacements(
-                deformed,
-                coarse_samples,
-                coarse_ref_mean,
-                coarse_ref_norm,
-                center_x,
-                center_y,
-                integer_config.subset_radius,
-                -search_radius,
-                search_radius,
-                -search_radius,
-                search_radius,
-                pyramid_scale
-            );
-        }
     }
 
-    if (pyramid_scale == 1 || !std::isfinite(best.zncc)) {
-        best = search_displacements(
+    if (search_radius > 0) {
+        const auto local_best = search_displacements(
             deformed,
             samples,
             ref_mean,
@@ -329,22 +411,7 @@ InitialDisplacement IntegerSearchInitializer::estimate_with_interpolators(
             search_radius,
             1
         );
-    } else {
-        const int refinement_radius = std::max(integer_config.pyramid_refinement_radius, pyramid_scale);
-        best = search_displacements(
-            deformed,
-            samples,
-            ref_mean,
-            ref_norm,
-            center_x,
-            center_y,
-            integer_config.subset_radius,
-            std::max(-search_radius, best.u - refinement_radius),
-            std::min(search_radius, best.u + refinement_radius),
-            std::max(-search_radius, best.v - refinement_radius),
-            std::min(search_radius, best.v + refinement_radius),
-            1
-        );
+        best = prefer_local_when_ambiguous(best, local_best);
     }
 
     if (!std::isfinite(best.zncc)) {
@@ -354,8 +421,10 @@ InitialDisplacement IntegerSearchInitializer::estimate_with_interpolators(
     InitialDisplacement integer_initial;
     integer_initial.u = static_cast<double>(best.u);
     integer_initial.v = static_cast<double>(best.v);
-    integer_initial.confidence = best.zncc;
+    integer_initial.confidence = znssd_from_zncc(best.zncc);
     integer_initial.valid = true;
+    integer_initial.zncc = best.zncc;
+    integer_initial.znssd = integer_initial.confidence;
 
     (void)reference_interpolator;
     (void)deformed_interpolator;
@@ -415,37 +484,36 @@ InitialDisplacement IntegerSearchInitializer::estimate_with_mask_interpolators(
         return invalid;
     }
 
-    CandidateScore best;
     const int search_radius = integer_config.search_radius;
-    const int pyramid_scale = integer_config.pyramid_enabled && search_radius >= integer_config.pyramid_scale * 2
-                                  ? std::max(1, integer_config.pyramid_scale)
-                                  : 1;
-    if (pyramid_scale > 1) {
-        const auto coarse_samples = collect_masked_reference_samples(
-            reference, roi, center_x, center_y, integer_config.subset_radius, pyramid_scale);
-        const double coarse_ref_mean = sample_mean(coarse_samples);
-        const double coarse_ref_norm = sample_norm(coarse_samples, coarse_ref_mean);
-        if (static_cast<int>(coarse_samples.size()) >= min_required_samples(integer_config.subset_radius, pyramid_scale) &&
-            coarse_ref_norm > kEpsilon) {
-            best = search_displacements(
-                deformed,
-                coarse_samples,
-                coarse_ref_mean,
-                coarse_ref_norm,
-                center_x,
-                center_y,
-                integer_config.subset_radius,
-                -search_radius,
-                search_radius,
-                -search_radius,
-                search_radius,
-                pyramid_scale
-            );
-        }
+    const int coarse_step = integer_config.pyramid_enabled
+                                ? std::max(1, integer_config.pyramid_scale)
+                                : 1;
+    const auto coarse_samples = collect_masked_reference_samples(
+        reference, roi, center_x, center_y, integer_config.subset_radius, coarse_step);
+    const double coarse_ref_mean = sample_mean(coarse_samples);
+    const double coarse_ref_norm = sample_norm(coarse_samples, coarse_ref_mean);
+    CandidateScore best;
+    if (static_cast<int>(coarse_samples.size()) >= min_required_samples(integer_config.subset_radius, coarse_step) &&
+        coarse_ref_norm > kEpsilon) {
+        best = search_ncorr_multigrid(
+            deformed,
+            samples,
+            ref_mean,
+            ref_norm,
+            coarse_samples,
+            coarse_ref_mean,
+            coarse_ref_norm,
+            center_x,
+            center_y,
+            integer_config.subset_radius,
+            coarse_step,
+            std::max(integer_config.pyramid_refinement_radius,
+                     static_cast<int>(std::ceil(1.5 * static_cast<double>(integer_config.subset_radius))))
+        );
     }
 
-    if (pyramid_scale == 1 || !std::isfinite(best.zncc)) {
-        best = search_displacements(
+    if (search_radius > 0) {
+        const auto local_best = search_displacements(
             deformed,
             samples,
             ref_mean,
@@ -459,22 +527,7 @@ InitialDisplacement IntegerSearchInitializer::estimate_with_mask_interpolators(
             search_radius,
             1
         );
-    } else {
-        const int refinement_radius = std::max(integer_config.pyramid_refinement_radius, pyramid_scale);
-        best = search_displacements(
-            deformed,
-            samples,
-            ref_mean,
-            ref_norm,
-            center_x,
-            center_y,
-            integer_config.subset_radius,
-            std::max(-search_radius, best.u - refinement_radius),
-            std::min(search_radius, best.u + refinement_radius),
-            std::max(-search_radius, best.v - refinement_radius),
-            std::min(search_radius, best.v + refinement_radius),
-            1
-        );
+        best = prefer_local_when_ambiguous(best, local_best);
     }
 
     if (!std::isfinite(best.zncc)) {
@@ -484,9 +537,145 @@ InitialDisplacement IntegerSearchInitializer::estimate_with_mask_interpolators(
     InitialDisplacement integer_initial;
     integer_initial.u = static_cast<double>(best.u);
     integer_initial.v = static_cast<double>(best.v);
-    integer_initial.confidence = best.zncc;
+    integer_initial.confidence = znssd_from_zncc(best.zncc);
     integer_initial.valid = true;
+    integer_initial.zncc = best.zncc;
+    integer_initial.znssd = integer_initial.confidence;
     return integer_initial;
+}
+
+InitialDisplacement IntegerSearchInitializer::estimate_around_displacement(
+    const Image& reference,
+    const Image& deformed,
+    const Eigen::Vector2d& point,
+    double initial_u,
+    double initial_v) const
+{
+    InitialDisplacement invalid;
+    if (reference.empty() || deformed.empty() ||
+        reference.width() != deformed.width() ||
+        reference.height() != deformed.height() ||
+        !std::isfinite(initial_u) || !std::isfinite(initial_v)) {
+        return invalid;
+    }
+
+    const auto& integer_config = config_.integer_search;
+    const int center_x = static_cast<int>(std::llround(point.x()));
+    const int center_y = static_cast<int>(std::llround(point.y()));
+    const auto samples = collect_circular_reference_samples(
+        reference, center_x, center_y, integer_config.subset_radius, 1);
+    if (static_cast<int>(samples.size()) < min_required_samples(integer_config.subset_radius, 1)) {
+        return invalid;
+    }
+    const double ref_mean = sample_mean(samples);
+    const double ref_norm = sample_norm(samples, ref_mean);
+    if (ref_norm <= kEpsilon) {
+        return invalid;
+    }
+
+    const int search_radius = std::max(0, integer_config.search_radius);
+    const int prior_u = static_cast<int>(std::llround(initial_u));
+    const int prior_v = static_cast<int>(std::llround(initial_v));
+    const int min_u = integer_config.subset_radius - center_x;
+    const int max_u = deformed.width() - 1 - integer_config.subset_radius - center_x;
+    const int min_v = integer_config.subset_radius - center_y;
+    const int max_v = deformed.height() - 1 - integer_config.subset_radius - center_y;
+    const auto best = search_displacements(
+        deformed,
+        samples,
+        ref_mean,
+        ref_norm,
+        center_x,
+        center_y,
+        integer_config.subset_radius,
+        std::max(min_u, prior_u - search_radius),
+        std::min(max_u, prior_u + search_radius),
+        std::max(min_v, prior_v - search_radius),
+        std::min(max_v, prior_v + search_radius),
+        1
+    );
+    if (!std::isfinite(best.zncc)) {
+        return invalid;
+    }
+
+    InitialDisplacement result;
+    result.u = static_cast<double>(best.u);
+    result.v = static_cast<double>(best.v);
+    result.confidence = znssd_from_zncc(best.zncc);
+    result.valid = true;
+    result.zncc = best.zncc;
+    result.znssd = result.confidence;
+    return result;
+}
+
+InitialDisplacement IntegerSearchInitializer::estimate_with_mask_around_displacement(
+    const Image& reference,
+    const Image& deformed,
+    const Mask& roi,
+    const Eigen::Vector2d& point,
+    double initial_u,
+    double initial_v) const
+{
+    if (roi.empty()) {
+        return estimate_around_displacement(reference, deformed, point, initial_u, initial_v);
+    }
+    InitialDisplacement invalid;
+    if (reference.empty() || deformed.empty() ||
+        reference.width() != deformed.width() ||
+        reference.height() != deformed.height() ||
+        reference.width() != roi.width() ||
+        reference.height() != roi.height() ||
+        !std::isfinite(initial_u) || !std::isfinite(initial_v)) {
+        return invalid;
+    }
+
+    const auto& integer_config = config_.integer_search;
+    const int center_x = static_cast<int>(std::llround(point.x()));
+    const int center_y = static_cast<int>(std::llround(point.y()));
+    const auto samples = collect_masked_reference_samples(
+        reference, roi, center_x, center_y, integer_config.subset_radius, 1);
+    if (static_cast<int>(samples.size()) < min_required_samples(integer_config.subset_radius, 1)) {
+        return invalid;
+    }
+    const double ref_mean = sample_mean(samples);
+    const double ref_norm = sample_norm(samples, ref_mean);
+    if (ref_norm <= kEpsilon) {
+        return invalid;
+    }
+
+    const int search_radius = std::max(0, integer_config.search_radius);
+    const int prior_u = static_cast<int>(std::llround(initial_u));
+    const int prior_v = static_cast<int>(std::llround(initial_v));
+    const int min_u = integer_config.subset_radius - center_x;
+    const int max_u = deformed.width() - 1 - integer_config.subset_radius - center_x;
+    const int min_v = integer_config.subset_radius - center_y;
+    const int max_v = deformed.height() - 1 - integer_config.subset_radius - center_y;
+    const auto best = search_displacements(
+        deformed,
+        samples,
+        ref_mean,
+        ref_norm,
+        center_x,
+        center_y,
+        integer_config.subset_radius,
+        std::max(min_u, prior_u - search_radius),
+        std::min(max_u, prior_u + search_radius),
+        std::max(min_v, prior_v - search_radius),
+        std::min(max_v, prior_v + search_radius),
+        1
+    );
+    if (!std::isfinite(best.zncc)) {
+        return invalid;
+    }
+
+    InitialDisplacement result;
+    result.u = static_cast<double>(best.u);
+    result.v = static_cast<double>(best.v);
+    result.confidence = znssd_from_zncc(best.zncc);
+    result.valid = true;
+    result.zncc = best.zncc;
+    result.znssd = result.confidence;
+    return result;
 }
 
 } // namespace dic

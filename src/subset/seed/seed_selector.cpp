@@ -1,3 +1,6 @@
+#include <dic/initialization/feature_matcher.hpp>
+#include <dic/initialization/integer_search.hpp>
+#include <dic/initialization/sift_initializer.hpp>
 #include <dic/initialization/subset_initializer.hpp>
 #include <dic/subset/seed/seed_selector.hpp>
 
@@ -104,6 +107,31 @@ void run_kmeans(const std::vector<RoiPoint>& points,
     }
 }
 
+bool seed_is_better(const SeedEvaluation& candidate,
+                    const SeedEvaluation& current,
+                    SeedQualityMetric metric)
+{
+    const double eps = 1.0e-9;
+    if (!current.valid) {
+        return true;
+    }
+
+    switch (metric) {
+    case SeedQualityMetric::ZNCC:
+        if (candidate.quality > current.quality + eps) return true;
+        if (candidate.quality < current.quality - eps) return false;
+        break;
+    case SeedQualityMetric::SSD:
+    case SeedQualityMetric::ZNSSD:
+    default:
+        if (candidate.quality < current.quality - eps) return true;
+        if (candidate.quality > current.quality + eps) return false;
+        break;
+    }
+
+    return candidate.displacement_norm > current.displacement_norm;
+}
+
 } // namespace
 
 SeedSelector::SeedSelector(SubsetConfig config)
@@ -144,6 +172,13 @@ SeedSelectionResult SeedSelector::select_best_seed(const Image& reference,
         deformed_interpolator = BSplineInterpolator(&(*deformed_precomputed));
     }
 
+    std::optional<std::vector<FeatureMatch>> feature_matches;
+    if (config_.seed_initialization.integer_search.sift_enabled) {
+        FeatureMatcherConfig matcher_config;
+        const FeatureMatcher matcher(matcher_config);
+        feature_matches = matcher.match(reference, deformed);
+    }
+
     for (const auto& point : points) {
         auto evaluation = evaluate_candidate(
             reference,
@@ -152,12 +187,13 @@ SeedSelectionResult SeedSelector::select_best_seed(const Image& reference,
             roi,
             initializer,
             reference_interpolator,
-            deformed_interpolator
+            deformed_interpolator,
+            feature_matches ? &(*feature_matches) : nullptr
         );
         if (evaluation.valid && evaluation.quality_passed &&
             evaluation.displacement_norm >= config_.seed_selection.min_displacement_norm) {
             if (!result.found ||
-                evaluation.displacement_norm > result.best_seed.displacement_norm) {
+                seed_is_better(evaluation, result.best_seed, config_.seed_selection.quality_metric)) {
                 result.best_seed = evaluation;
                 result.found = true;
             }
@@ -354,12 +390,16 @@ bool SeedSelector::is_candidate_margin_valid(const Mask& roi, int x, int y) cons
     const auto& integer_config = config_.seed_initialization.integer_search;
     const auto& subpixel_config = config_.seed_initialization.subpixel;
     const int radius = std::max(integer_config.subset_radius, subpixel_config.subset_radius);
-    const int search_radius = integer_config.search_radius;
+    const int search_radius = config_.truncate_roi_subsets ? integer_config.search_radius : 0;
     const int margin = radius + search_radius;
 
     if (x - margin < 0 || y - margin < 0 ||
         x + margin >= roi.width() || y + margin >= roi.height()) {
         return false;
+    }
+
+    if (!config_.truncate_roi_subsets) {
+        return true;
     }
 
     int valid_samples = 0;
@@ -372,14 +412,9 @@ bool SeedSelector::is_candidate_margin_valid(const Mask& roi, int x, int y) cons
                 ++full_samples;
                 if (roi.valid(xx, yy)) {
                     ++valid_samples;
-                } else if (!config_.truncate_roi_subsets) {
-                    return false;
                 }
             }
         }
-    }
-    if (!config_.truncate_roi_subsets) {
-        return valid_samples == full_samples;
     }
     const int min_samples = std::max(config_.min_valid_samples,
         static_cast<int>(std::ceil(config_.min_valid_sample_ratio * static_cast<double>(full_samples))));
@@ -435,19 +470,40 @@ SeedEvaluation SeedSelector::evaluate_candidate(const Image& reference,
                                                 const Mask& roi,
                                                 const SubsetInitializer& initializer,
                                                 const BSplineInterpolator& reference_interpolator,
-                                                const BSplineInterpolator& deformed_interpolator) const
+                                                const BSplineInterpolator& deformed_interpolator,
+                                                const std::vector<FeatureMatch>* feature_matches) const
 {
     SeedEvaluation evaluation;
     evaluation.point = point;
 
-    const auto initial = initializer.estimate_with_mask_interpolators(
-        reference,
-        deformed,
-        roi,
-        point,
-        reference_interpolator,
-        deformed_interpolator
-    );
+    InitialDisplacement initial;
+    if (feature_matches != nullptr) {
+        SIFTInitializerConfig sift_config;
+        const SIFTInitializer sift_initializer(sift_config);
+        const auto sift_initial = sift_initializer.estimate_from_matches(*feature_matches, point);
+        if (sift_initial.valid) {
+            const IntegerSearchInitializer integer_search(config_.seed_initialization);
+            const auto integer_initial = config_.truncate_roi_subsets
+                ? integer_search.estimate_with_mask_around_displacement(
+                    reference, deformed, roi, point, sift_initial.u, sift_initial.v)
+                : integer_search.estimate_around_displacement(
+                    reference, deformed, point, sift_initial.u, sift_initial.v);
+            initial = config_.truncate_roi_subsets
+                ? initializer.refine_initial_with_mask_interpolators(
+                    reference, deformed, roi, point, integer_initial, reference_interpolator, deformed_interpolator)
+                : initializer.refine_initial_with_interpolators(
+                    reference, deformed, point, integer_initial, reference_interpolator, deformed_interpolator);
+        }
+    } else {
+        initial = initializer.estimate_with_mask_interpolators(
+            reference,
+            deformed,
+            roi,
+            point,
+            reference_interpolator,
+            deformed_interpolator
+        );
+    }
     if (!initial.valid ||
         !std::isfinite(initial.u) ||
         !std::isfinite(initial.v) ||
@@ -466,7 +522,16 @@ SeedEvaluation SeedSelector::evaluate_candidate(const Image& reference,
     evaluation.displacement.correlation = initial.confidence;
     evaluation.displacement.status = SolverStatus::Success;
     evaluation.displacement.valid = true;
-    evaluation.quality = initial.confidence;
+    switch (config_.seed_selection.quality_metric) {
+    case SeedQualityMetric::ZNCC:
+        evaluation.quality = initial.zncc;
+        break;
+    case SeedQualityMetric::SSD:
+    case SeedQualityMetric::ZNSSD:
+    default:
+        evaluation.quality = initial.znssd;
+        break;
+    }
     evaluation.displacement_norm = std::hypot(initial.u, initial.v);
     evaluation.quality_passed = quality_passes(evaluation.quality);
     evaluation.valid = true;

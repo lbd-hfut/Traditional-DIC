@@ -1,6 +1,110 @@
-mode: multiview
+mode: multiview_3d
 
-dic_solver: subset
+output:
+  mask_dir: result/mask
+  roi_dir: result/mask
+  calibration_dir: result/calibration
+  disp_dir: result/disp
+
+self_calibration:
+  backend: cpp_colmap_like
+  # COLMAP CPU SIFT/matching defaults.
+  matching_window: 2
+  wrap_matching: true
+  max_features: 8192
+  match_ratio: 0.8
+  ransac_reprojection_threshold: 4.0
+  min_triangulation_angle_degrees: 1.5
+  min_inlier_matches: 100
+  # CylinderDIC has a known focal prior: 2304 / max(1440,1080) = 1.6.
+  # COLMAP uses 1.2 only when ImageReader has no prior focal length.
+  initial_focal_length_factor: 1.6
+  # COLMAP automatically chooses the strongest valid initial pair.
+  initial_image1: -1
+  initial_image2: -1
+  abs_pose_min_num_inliers: 30
+  abs_pose_min_inlier_ratio: 0.25
+  abs_pose_max_error: 12.0
+  filter_max_reproj_error: 4.0
+  ba_local_num_images: 6
+  # Compatibility override: full COLMAP global retriangulation is pending.
+  ignore_two_view_tracks: false
+  refine_bundle: true
+  # Keep intrinsics fixed for this project's known SIMPLE_RADIAL prior.
+  # COLMAP enables focal/extra refinement only when its camera prior is opened.
+  share_intrinsics: false
+  refine_focal_length: false
+  refine_principal_point: false
+  refine_extra_params: false
+
+camera_pair_selection:
+  mode: auto_natural
+  wrap: true
+
+maskGen:
+  pair_roi_source: pair_sift
+  feature_method: sift
+  max_features: 12000
+  match_ratio: 0.75
+  mutual_check: true
+  ransac_reprojection_threshold: 3.0
+  min_matches: 20
+  roi_support: convex_hull
+  robust_outlier: false
+  outlier_mad_scale: 4.5
+  alpha_radius_scale: 8.0
+
+pairwise_2d_dic:
+  run_subset: true
+  run_mesh: true
+  mesh_types: [T3, Q4, Q8]
+  image_dir: images
+  reference_frame: 001.bmp
+  deformed_frame: 002.bmp
+  subset_config: config/subset_2d.yaml
+  mesh_config: config/mesh_2d.yaml
+  mesh_target_element_size: 35.0
+  pair_roi_mode: sparse_overlap
+  pair_roi_disparity_quantile: 0.0
+  pair_roi_erode_pixels: 0
+  subset_solve_roi_mode: roi
+
+pairwise_3d_dic:
+  solver: subset
+  field_dir: result/disp
+  output_dir: result/reconstruct/pairwise
+  quality_metric: znssd
+  max_znssd: 2.0
+  min_correlation: 0.0
+  max_reprojection_error_px: 5.0
+  remove_rigid_body_motion: false
+
+scale:
+  calibration_dir: result/calibration
+  chessboard_dir: calibrate_images
+  output_file: calibration_scale.json
+  use_meta_observations: true
+  board_rows: 7
+  board_cols: 9
+  square_size: 10.0
+  max_reprojection_error: 5.0
+  trim_fraction: 0.20
+  min_common_corners: 12
+  allow_meta_camera_model_fallback: true
+
+surface_stitch:
+  mode: multidic
+  solver: subset
+  pairwise_3d_dir: result/reconstruct/pairwise
+  output_dir: result/reconstruct/stitched
+  max_reprojection_error_px: 5.0
+  max_quality: 2.0
+  triangle_edge_scale: 3.0
+  min_gap_factor: 0.2
+  outlier_neighbor_count: 8
+  outlier_distance_sigma: 6.0
+  outlier_displacement_sigma: 6.0
+  outlier_face_edge_scale: 4.0
 
 triangulation:
   minimum_views: 2

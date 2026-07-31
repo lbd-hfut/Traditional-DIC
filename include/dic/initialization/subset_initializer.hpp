@@ -52,6 +52,19 @@ public:
                                                         const Eigen::Vector2d& point,
                                                         const BSplineInterpolator& reference_interpolator,
                                                         const BSplineInterpolator& deformed_interpolator) const;
+    InitialDisplacement refine_initial_with_interpolators(const Image& reference,
+                                                         const Image& deformed,
+                                                         const Eigen::Vector2d& point,
+                                                         const InitialDisplacement& integer_initial,
+                                                         const BSplineInterpolator& reference_interpolator,
+                                                         const BSplineInterpolator& deformed_interpolator) const;
+    InitialDisplacement refine_initial_with_mask_interpolators(const Image& reference,
+                                                              const Image& deformed,
+                                                              const Mask& roi,
+                                                              const Eigen::Vector2d& point,
+                                                              const InitialDisplacement& integer_initial,
+                                                              const BSplineInterpolator& reference_interpolator,
+                                                              const BSplineInterpolator& deformed_interpolator) const;
 private:
     SubsetConfig config_{};
 };
