@@ -27,6 +27,15 @@ dic::Image make_img(int w, int h, double cx, double cy) {
     return dic::Image(w, h, std::move(d));
 }
 
+dic::Image apply_affine_photometric(const dic::Image& image, double gain, double offset) {
+    std::vector<float> d(static_cast<size_t>(image.width() * image.height()));
+    for (int y = 0; y < image.height(); ++y)
+        for (int x = 0; x < image.width(); ++x)
+            d[static_cast<size_t>(y * image.width() + x)] =
+                static_cast<float>(gain * image.at(x, y) + offset);
+    return dic::Image(image.width(), image.height(), std::move(d));
+}
+
 dic::Mesh make_q4_mesh(int w, int h, int nx, int ny) {
     dic::Mesh m;
     for (int j = 0; j <= ny; ++j)
@@ -146,6 +155,32 @@ TEST(MeshFGN, Q4_SubpixelTranslation) {
     ASSERT_GT(cnt, 0);
     EXPECT_NEAR(su/cnt, du, 0.7);
     EXPECT_NEAR(sv/cnt, dv, 0.7);
+}
+
+TEST(MeshPhotometricZNSSD, Q4_AffinePhotometricTranslationWithICGNAndFGN) {
+    const int w=60, h=60, nx=2, ny=2;
+    const double du=1.5, dv=-1.0;
+    const auto ref = make_img(w, h, w/2.0, h/2.0);
+    const auto def = apply_affine_photometric(
+        make_img(w, h, w/2.0+du, h/2.0+dv), 1.6, 0.25);
+
+    for (const auto method : {dic::MeshOptimizationMethod::FEDICElementICGN,
+                              dic::MeshOptimizationMethod::FEDICElementFGN}) {
+        dic::MeshConfig cfg;
+        cfg.max_iterations = 15; cfg.convergence_threshold = 1e-5;
+        cfg.regularization_alpha = 1e-6; cfg.search_radius = 8;
+        cfg.fedic_fft_initialization.window_size = 21;
+        cfg.fedic_fft_initialization.search_radius = 8;
+        cfg.optimization_method = method;
+        cfg.photometric_objective = dic::MeshPhotometricObjective::ElementAffineZNSSD;
+
+        dic::MeshDIC solver(cfg);
+        const auto result = solver.compute(ref, def, make_q4_mesh(w, h, nx, ny));
+        const int center = (ny / 2) * (nx + 1) + nx / 2;
+        ASSERT_LT(center, static_cast<int>(result.size()));
+        EXPECT_NEAR(result[center].u, du, 0.7);
+        EXPECT_NEAR(result[center].v, dv, 0.7);
+    }
 }
 
 TEST(MeshICGN, Q8_ZeroDisplacement) {

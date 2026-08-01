@@ -2,6 +2,7 @@
 
 #include "../coordinate/g2l_internal.hpp"
 #include "../element/shape_func_internal.hpp"
+#include <dic/mesh/mesh_config.hpp>
 #include <dic/mesh/mesh_generation_config.hpp>
 
 #include <Eigen/Dense>
@@ -25,6 +26,7 @@ struct StiffnessCache {
     int fem_size = 0;                       // total DOFs = 2 * n_nodes
 
     mesh::MeshElementType element_type;
+    MeshPhotometricObjective photometric_objective{MeshPhotometricObjective::SSD};
     bool fedic_compatible{false};
     bool element_owned_samples{false};
     std::vector<int> fedic_free_dofs;
@@ -48,7 +50,8 @@ StiffnessCache assemble_stiffness(
     mesh::MeshElementType element_type,
     double alpha, double beta = 0.0,
     bool fedic_compatible = false,
-    bool element_owned_samples = false);
+    bool element_owned_samples = false,
+    MeshPhotometricObjective photometric_objective = MeshPhotometricObjective::SSD);
 
 // ============================================================
 // Assemble residual vector (RHS) given current displacement U

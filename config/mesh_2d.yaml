@@ -41,6 +41,10 @@ optimization:
   # fedic_element_icgn: reference-gradient, constant Hessian; default and lower cost.
   # fedic_element_fgn: deformed-gradient, reassembled Hessian each iteration; more expensive but useful for comparison.
   method: fedic_element_icgn  # options: fedic_element_icgn, fedic_element_fgn
+  # ssd: f - g(x+u). znssd: per-element affine photometric SSD, f - (a*g(x+u)+b).
+  # The znssd name is compatibility-oriented: a and b are re-estimated per element at every iteration.
+  # Both ICGN and FGN support it; they differ only in their reference/deformed image gradient linearization.
+  objective: ssd  # options: ssd, znssd
   max_iterations: 30  # positive integer; cap for the selected global solver
   convergence_threshold: 1.0e-3  # normalized global nodal-update tolerance in pixels
   regularization_alpha: 0.0  # non-negative displacement-gradient energy weight; 0 leaves the data term unregularized

@@ -486,7 +486,8 @@ std::vector<Displacement2D> MeshDIC::compute(
     double alpha = config_.regularization_alpha;
     auto cache = assemble_stiffness(g2l, img_h, img_w,
         fx_flat.data(), fy_flat.data(), n_nodes, elements_flat.data(), n_elements, elem_type,
-        alpha, 0.0, fedic_compatible_numerics, true);
+        alpha, 0.0, fedic_compatible_numerics, true,
+        config_.photometric_objective);
 
     // ---- 7. Displacement init ----
     Eigen::VectorXd U = Eigen::VectorXd::Zero(2 * n_nodes);

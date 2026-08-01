@@ -98,6 +98,49 @@ static void interpolate_deformed_batch(
     }
 }
 
+struct ElementAffinePhotometricFit {
+    double a{1.0};
+    double b{0.0};
+};
+
+static ElementAffinePhotometricFit fit_element_affine_photometric_model(
+    const std::vector<G2LElementSample>& samples,
+    const std::vector<double>& deformed_values,
+    const double* reference_image)
+{
+    const int n = static_cast<int>(samples.size());
+    if (n == 0) return {};
+
+    double sum_f = 0.0, sum_g = 0.0, sum_gg = 0.0, sum_fg = 0.0;
+    for (int i = 0; i < n; ++i) {
+        const double f = reference_image[samples[i].pixel_index];
+        const double g = deformed_values[i];
+        sum_f += f;
+        sum_g += g;
+        sum_gg += g * g;
+        sum_fg += f * g;
+    }
+    const double denom = n * sum_gg - sum_g * sum_g;
+    ElementAffinePhotometricFit fit;
+    if (std::isfinite(denom) && std::abs(denom) > 1e-12) {
+        fit.a = (n * sum_fg - sum_f * sum_g) / denom;
+        if (!std::isfinite(fit.a)) fit.a = 1.0;
+    }
+    fit.b = (sum_f - fit.a * sum_g) / n;
+    if (!std::isfinite(fit.b)) fit.b = 0.0;
+    return fit;
+}
+
+static int global_dynamic_gn(
+    const StiffnessCache& cache,
+    const G2LOutput& g2l,
+    const double* ref_img, int img_h, int img_w,
+    const int* elements, int n_elements,
+    Eigen::VectorXd& U,
+    const BSplineInterpolator* def_interp,
+    double alpha, double tol, int max_iter, double beta,
+    bool use_deformed_gradient);
+
 // ============================================================
 // assemble_stiffness
 // ============================================================
@@ -111,7 +154,8 @@ StiffnessCache assemble_stiffness(
     mesh::MeshElementType element_type,
     double alpha, double beta,
     bool fedic_compatible,
-    bool element_owned_samples)
+    bool element_owned_samples,
+    MeshPhotometricObjective photometric_objective)
 {
     StiffnessCache cache;
     int nn = nodes_per_element(element_type);
@@ -122,6 +166,7 @@ StiffnessCache assemble_stiffness(
 
     cache.fem_size = fem_size;
     cache.element_type = element_type;
+    cache.photometric_objective = photometric_objective;
     cache.fedic_compatible = fedic_compatible;
     cache.element_owned_samples = element_owned_samples;
     cache.elem_pixels.resize(n_elements);
@@ -399,11 +444,15 @@ double compute_objective(
         std::vector<double> g_vals(n_pix);
         interpolate_deformed_batch(def_interp, warp_x.data(), warp_y.data(),
                                    n_pix, g_vals.data());
+        const ElementAffinePhotometricFit fit =
+            cache.photometric_objective == MeshPhotometricObjective::ElementAffineZNSSD
+            ? fit_element_affine_photometric_model(cache.elem_samples[e], g_vals, ref_img)
+            : ElementAffinePhotometricFit{};
 
         for (int pi = 0; pi < n_pix; ++pi) {
             int idx = cache.elem_samples[e][pi].pixel_index;
             int py = idx / img_w, px = idx % img_w;
-            double r = ref_img[py * img_w + px] - g_vals[pi];
+            double r = ref_img[py * img_w + px] - (fit.a * g_vals[pi] + fit.b);
             energy += 0.5 * r * r;
 
             Eigen::Map<const Eigen::Matrix<double, 4, Eigen::Dynamic, Eigen::RowMajor>>
@@ -432,6 +481,11 @@ int global_icgn(
     const BSplineInterpolator* def_interp,
     double alpha, double tol, int max_iter, double beta)
 {
+    if (cache.photometric_objective == MeshPhotometricObjective::ElementAffineZNSSD) {
+        return global_dynamic_gn(cache, g2l, ref_img, img_h, img_w,
+                                 elements, n_elements, U, def_interp,
+                                 alpha, tol, max_iter, beta, false);
+    }
     const std::vector<int>& free_nodes = cache.fedic_free_dofs;
     int n_free = static_cast<int>(free_nodes.size());
     if (n_free == 0) return -1;
@@ -521,14 +575,15 @@ int global_icgn(
     return max_iter;
 }
 
-int global_fgn(
+static int global_dynamic_gn(
     const StiffnessCache& cache,
     const G2LOutput& g2l,
     const double* ref_img, int img_h, int img_w,
     const int* elements, int n_elements,
     Eigen::VectorXd& U,
     const BSplineInterpolator* def_interp,
-    double alpha, double tol, int max_iter, double beta)
+    double alpha, double tol, int max_iter, double beta,
+    bool use_deformed_gradient)
 {
     (void)g2l;
     const std::vector<int>& free_dofs = cache.fedic_free_dofs;
@@ -556,8 +611,7 @@ int global_fgn(
                 U_e(2 * k + 1) = U(dofs[2 * k + 1]);
             }
 
-            Eigen::MatrixXd A_e = Eigen::MatrixXd::Zero(dof, dof);
-            Eigen::VectorXd b_e = Eigen::VectorXd::Zero(dof);
+            std::vector<double> warp_x(n_pix), warp_y(n_pix);
             std::vector<double> N_loc;
             for (int pi = 0; pi < n_pix; ++pi) {
                 const auto& sample = cache.elem_samples[e][pi];
@@ -572,19 +626,38 @@ int global_fgn(
                     u_ip += N_loc[k] * U_e(2 * k);
                     v_ip += N_loc[k] * U_e(2 * k + 1);
                 }
-                const double wx = cache.fedic_compatible ? px + u_ip
+                warp_x[pi] = cache.fedic_compatible ? px + u_ip
                     : std::max(0.0, std::min(static_cast<double>(img_w - 1), px + u_ip));
-                const double wy = cache.fedic_compatible ? py + v_ip
+                warp_y[pi] = cache.fedic_compatible ? py + v_ip
                     : std::max(0.0, std::min(static_cast<double>(img_h - 1), py + v_ip));
+            }
 
-                const double r = ref_img[idx] - def_interp->value(wx, wy);
-                const Eigen::Vector2d grad = def_interp->gradient(wx, wy);
-                if (!std::isfinite(r) || !grad.allFinite()) continue;
+            std::vector<double> g_vals(n_pix);
+            interpolate_deformed_batch(def_interp, warp_x.data(), warp_y.data(), n_pix, g_vals.data());
+            const ElementAffinePhotometricFit fit =
+                cache.photometric_objective == MeshPhotometricObjective::ElementAffineZNSSD
+                ? fit_element_affine_photometric_model(cache.elem_samples[e], g_vals, ref_img)
+                : ElementAffinePhotometricFit{};
+
+            Eigen::MatrixXd A_e = Eigen::MatrixXd::Zero(dof, dof);
+            Eigen::VectorXd b_e = Eigen::VectorXd::Zero(dof);
+            for (int pi = 0; pi < n_pix; ++pi) {
+                const auto& sample = cache.elem_samples[e][pi];
+                const int idx = sample.pixel_index;
+                const double r = ref_img[idx] - (fit.a * g_vals[pi] + fit.b);
+                if (!std::isfinite(r)) continue;
 
                 Eigen::VectorXd jac(dof);
-                for (int k = 0; k < nn; ++k) {
-                    jac(2 * k) = N_loc[k] * grad.x();
-                    jac(2 * k + 1) = N_loc[k] * grad.y();
+                if (use_deformed_gradient) {
+                    const Eigen::Vector2d grad = def_interp->gradient(warp_x[pi], warp_y[pi]);
+                    if (!grad.allFinite()) continue;
+                    shape_values_only(type, sample.xi, sample.eta, N_loc);
+                    for (int k = 0; k < nn; ++k) {
+                        jac(2 * k) = fit.a * N_loc[k] * grad.x();
+                        jac(2 * k + 1) = fit.a * N_loc[k] * grad.y();
+                    }
+                } else {
+                    jac = fit.a * cache.elem_N_cache[e].row(pi).transpose();
                 }
                 A_e.noalias() += jac * jac.transpose();
                 b_e.noalias() += r * jac;
@@ -665,6 +738,20 @@ int global_fgn(
         if (step * raw_normW < tol) return iter + 1;
     }
     return max_iter;
+}
+
+int global_fgn(
+    const StiffnessCache& cache,
+    const G2LOutput& g2l,
+    const double* ref_img, int img_h, int img_w,
+    const int* elements, int n_elements,
+    Eigen::VectorXd& U,
+    const BSplineInterpolator* def_interp,
+    double alpha, double tol, int max_iter, double beta)
+{
+    return global_dynamic_gn(cache, g2l, ref_img, img_h, img_w,
+                             elements, n_elements, U, def_interp,
+                             alpha, tol, max_iter, beta, true);
 }
 
 } // namespace dic::mesh::internal

@@ -41,6 +41,11 @@ enum class MeshOptimizationMethod {
     FEDICElementFGN
 };
 
+enum class MeshPhotometricObjective {
+    SSD,
+    ElementAffineZNSSD
+};
+
 struct MeshConfig {
     int max_iterations{30};
     double convergence_threshold{1e-3};
@@ -49,6 +54,7 @@ struct MeshConfig {
     bool mirror_image_padding{false};
     BSplinePrecomputeConfig image_precompute{};
     MeshOptimizationMethod optimization_method{MeshOptimizationMethod::FEDICElementICGN};
+    MeshPhotometricObjective photometric_objective{MeshPhotometricObjective::SSD};
     MeshNodalInitializationMethod nodal_initialization_method{
         MeshNodalInitializationMethod::FEDICFFT};
 

@@ -360,6 +360,11 @@ def main() -> None:
         choices=["fedic_element_icgn", "fedic_element_fgn"],
         help="Override the Mesh-DIC global optimization route from the YAML configuration.",
     )
+    parser.add_argument(
+        "--objective",
+        choices=["ssd", "znssd"],
+        help="Override the Mesh-DIC photometric objective from the YAML configuration.",
+    )
     parser.add_argument("--bspline-degree", type=int, default=5)
     parser.add_argument("--max-iterations", type=int, default=5)
     parser.add_argument("--tolerance", type=float, default=1e-3)
@@ -385,6 +390,8 @@ def main() -> None:
         api_config.setdefault("initialization", {})["method"] = args.initialization
     if args.optimization is not None:
         api_config.setdefault("mesh", {})["optimization_method"] = args.optimization
+    if args.objective is not None:
+        api_config.setdefault("mesh", {})["photometric_objective"] = args.objective
     if args.regularization_alpha is not None:
         api_config.setdefault("mesh", {})["regularization_alpha"] = float(args.regularization_alpha)
     if args.init_quality_control:

@@ -40,6 +40,9 @@ def normalize_mesh_config(config: dict[str, Any] | None) -> dict[str, Any]:
         raise ValueError(
             "Mesh optimization.method must be 'fedic_element_icgn' or 'fedic_element_fgn'."
         )
+    objective = str(optimization.get("objective", "ssd")).strip().lower()
+    if objective not in {"ssd", "znssd"}:
+        raise ValueError("Mesh optimization.objective must be 'ssd' or 'znssd'.")
 
     out["mesh"] = {
         "max_iterations": optimization.get("max_iterations", mesh.get("max_iterations", 30)),
@@ -49,6 +52,7 @@ def normalize_mesh_config(config: dict[str, Any] | None) -> dict[str, Any]:
         "regularization_alpha": optimization.get("regularization_alpha", mesh.get("regularization_alpha", 0.0)),
         "mirror_image_padding": optimization.get("mirror_image_padding", mesh.get("mirror_image_padding", False)),
         "optimization_method": method,
+        "photometric_objective": objective,
         "search_radius": initialization.get("fedic_fft", {}).get("search_radius", mesh.get("search_radius", 30)),
     }
     out["interpolation"] = interpolation

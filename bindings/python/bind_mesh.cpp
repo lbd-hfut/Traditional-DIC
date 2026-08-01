@@ -247,6 +247,17 @@ dic::MeshConfig mesh_config_from_dict(py::dict d)
                     "Mesh optimization_method must be 'fedic_element_icgn' or 'fedic_element_fgn'.");
             }
         }
+        if (m.contains("photometric_objective")) {
+            const std::string objective = py::cast<std::string>(m["photometric_objective"]);
+            if (objective == "ssd") {
+                cfg.photometric_objective = dic::MeshPhotometricObjective::SSD;
+            } else if (objective == "znssd") {
+                cfg.photometric_objective = dic::MeshPhotometricObjective::ElementAffineZNSSD;
+            } else {
+                throw std::runtime_error(
+                    "Mesh photometric_objective must be 'ssd' or 'znssd'.");
+            }
+        }
     }
 
     if (d.contains("interpolation")) {
