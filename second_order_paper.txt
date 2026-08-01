@@ -1,0 +1,3109 @@
+--- Page 1 ---
+Contents lists available at ScienceDirect
+Optics and Lasers in Engineering
+journal homepage: www.elsevier.com/locate/optlaseng
+A novel 2nd-order shape function based digital image correlation method
+for large deformation measurements
+Ruixiang Bai, Hao Jiang, Zhenkun Lei⁎, Weikang Li
+State Key Laboratory of Structural Analysis for Industrial Equipment, Dalian University of Technology, Dalian 116024, China
+A R T I C L E I N F O
+Keywords:
+Digital image correlation
+Inverse compositional matching algorithm
+Invertible second-order shape operator
+Large deformation measurement
+A B S T R A C T
+Compared with the traditional forward compositional matching strategy, the inverse compositional matching
+strategy has almost the same accuracy, but has an obviously higher eﬃciency than the former in digital image
+correlation (DIC) algorithms. Based on the inverse compositional matching strategy and the auxiliary
+displacement functions, a more accurate inverse compositional Gauss-Newton (IC-GN2) algorithm with a
+new second-order shape operator is proposed for nonuniform and large deformation measurements. A
+theoretical deduction showed that the new proposed second-order shape operator is invertible and can steadily
+attain second-order precision. The result of the numerical simulation showed that the matching accuracy of the
+new IC-GN2 algorithm is the same as that of the forward compositional Gauss-Newton (FC-GN2) algorithm and
+is relatively better than in IC-GN2 algorithm. Finally, a rubber tension experiment with a large deformation of
+27% was performed to validate the feasibility of the proposed algorithm.
+1. Introduction
+A highly eﬃcient and accurate measurement of strain and deforma-
+tion is very important for studying the mechanical properties and
+inherent deformation law of diﬀerent materials and has been a hot
+topic in the ﬁeld of mechanics and materials science research. In recent
+years, as a mature and eﬀective strain measurement technique, two-
+dimensional digital image correlation (2D-DIC) has many measure-
+ment advantages such as high accuracy, noncontact, full-ﬁeld, three-
+dimensional, dynamic measurement, low demands on experiment
+environment,
+and
+simple
+specimen
+surface
+treatment
+[1,2].
+Moreover, 3D-DIC was developed by Sutton et al. [3] for out-of-plane
+deformation measurements. Shao et al. [4] applied 3D-DIC to real-time
+human pulse monitoring in medical measurements. As a core in DIC
+techniques, the local matching algorithm between images before and
+after deformation is always the focus of attention.
+At present, the image local matching algorithm mainly includes the
+feature matching algorithm [1], the phase matching algorithm [5], and
+the region matching algorithm [6]. These matching algorithms all
+depend on the interpolation precision. Schreier et al. [7] proved that
+the use of higher order image interpolation function can signiﬁcantly
+improve the searching precision of DIC. Su et al. [8–10] and Gao et al.
+[11] explored the inﬂuences depending on diﬀerent interpolation
+methods and diﬀerent degrees of noise, and they used mean bias error
+and standard deviation error to represent the systematic error and the
+random error. In the matching eﬀect, the feature matching algorithm
+can only match the speciﬁcally required image features, and the
+matching
+result
+is
+sparse
+rather
+than
+wholly
+continuous
+[1].
+However, the phase matching algorithm easily falls into the phase
+singularity and is not suitable for whole matching [5]. By calculating
+the correlation coeﬃcients of the subset gray levels between the
+reference image and the target image, the region matching algorithm
+can obtain dense matching results [6]. In 2D-DIC and 3D-DIC, the
+region matching algorithm has been widely accepted and developed
+rapidly.
+The region matching algorithm uses a preset correlation function as
+the optimization objective to ﬁnd the best matching position. In the
+matching process, the appropriate subset shape function is selected
+according to the deformation characteristics of the region of interest
+(ROI), and the parameters of the subset shape function are used to
+describe the deformation characteristics of the local coordinate system
+[1]. Similar to the shape function in the ﬁnite element method (FEM),
+the higher order shape function can be used to describe more
+complicated mechanical deformation, but it will also require more
+computations. Usually, the ﬁrst-order shape function is suitable for
+small deformation measurements, and can eﬀectively characterize the
+translation, rotation, and uniform deformation. The second-order
+shape function can eﬀectively reﬂect the complex deformation, thus
+making the nonuniform and large deformation measurement feasible
+[12]. Lu et al. [13] proved that the second-order shape function has
+http://dx.doi.org/10.1016/j.optlaseng.2016.09.010
+Received 3 June 2016; Received in revised form 29 August 2016; Accepted 22 September 2016
+⁎ Corresponding author.
+E-mail address: leizk@163.com (Z. Lei).
+Optics and Lasers in Engineering 90 (2017) 48–58
+0143-8166/ © 2016 Elsevier Ltd. All rights reserved.
+Available online 07 October 2016
+crossmark
+
+--- Page 2 ---
+better precision than the ﬁrst-order one and has been successfully
+applied to the large deformation measurement of materials. Wang et al.
+[14] and Wang et al. [15] have investigated the inﬂuence of data noise
+on the matching accuracy, which can be reduced by the more accurate
+image interpolation and the selection of the appropriate correlation
+function. Schreier et al. [16] and Xu et al. [17] have respectively
+researched the systematic errors arised from the shape functions and
+subset sizes, and they found a larger subset size would probobally cause
+a more signiﬁcant errors.
+The region matching algorithm is a complicated nonlinear optimi-
+zation problem and is generally optimally solved by the Newton-
+Raphson iteration method or trust-domain iteration method. The
+commonly used iterative updating methods are the forward additive
+Gauss-Newton (FA-GN) algorithm and the forward compositional
+Gauss-Newton (FC-GN) algorithm, both of which have been proved
+to be equivalent to each other by Shum and Szeliski [18]. The
+traditional FC-GN algorithm is described as follows. The deformation
+of the target subset is realized by the shape function and is searched by
+the maximum correlation with the reference subset in the iteration. The
+subpixel interpolation of the target image for each iteration is
+completed to obtain the partial derivatives, the Jacobian matrix and
+its inverse matrix calculation, which consumes most of the computa-
+tional time in the subpixel matching process.
+Baker and Matthews [19] found that the inverse compositional
+Gauss-Newton (IC-GN) algorithm can eﬀectively reduce the calculation
+time because in each matching process the image partial derivative, the
+Jacobian matrix and its inverse matrix are calculated only once until
+the matching is accomplished. The Jacobian determinant is closed to 1
+when the FC-GN form is transformed to its inverse form, the IC-GN
+algorithm; therefore the two algorithms are equivalent. On the basis of
+the IC-GN algorithm, Pan et al. [20,21] added the zero-normalized sum
+of squared diﬀerences (ZNSSD) correlation function and a seed parallel
+searching strategy. Shao et al. [22] proposed an anti-noised IC-GN
+algorithm using the SSD correlation function. Gao et al. [23] suggested
+that a second-order inverse compositional Gauss-Newton (IC-GN2)
+algorithm be applied to 3D-DIC matching and validated using simu-
+lated speckle images. In addition, the second-order shape function was
+applied to the IC-GN2 algorithm for out-of-plane deformation [24], 3D
+deformation of satellite antenna surface [25], and civil engineering
+materials [26,27].
+However, Gao's IC-GN2 algorithm has an imperfect second-order
+shape operator. After a brief introduction of the FA-GN, FC-GN, and
+IC-GN algorithms, the IC-GN2 algorithm with a new second-order
+shape operator is proposed in this paper. Theoretical error analysis
+showed that the new IC-GN2 algorithm can achieve a stable second-
+order accuracy. The simulated speckle numerical comparison and the
+rubber tension experiment for large deformation measurement veriﬁed
+the validity of the IC-GN2 algorithm with the proposed second-order
+shape operator.
+2. Fundamental principles
+2.1. FA-GN algorithm
+The displacement shape function plays an important role in the
+traditional FA-GN algorithm, since it describes the displacement mode
+of a point. Therefore, the deformation relationship between the target
+subset and the reference subset can be established. The ﬁrst-order
+displacement shape operator can be written as
+⎡
+⎣
+⎢
+⎢
+⎢
+⎤
+⎦
+⎥
+⎥
+⎥
+⎡
+⎣
+⎢
+⎢
+⎤
+⎦
+⎥
+⎥
+W
+p
+u u
+u
+v
+v
+v
+x
+y
+p
+x
+A
+x
+( ,
+) =
+1
+0
+0
++ 1
++ 1
+1
+=
+( ) ,
+x
+y
+x
+y
+(1)
+where x =[1 x y]T is the polar coordinate of the reference image under
+the local coordinate system. p=[u ux uy v vx vy]T is the vector
+concluding ﬁrst-order deformation parameters of the target image
+and the subscripts denote the partial derivatives at the subset center.
+A(p) is a linear transformation matrix with size of 3×3 for the ﬁrst-
+order deformation vector p. In the DIC process, the ﬁrst-order
+deformation vector p is obtained through minimizing the image
+correlation function as
+∑
+C p
+f
+g W
+p
+x
+x
+( ) =
+[ ( ) −
+(
+( ,
+))] ,
+x
+2
+(2)
+where f(x) and g(W(x, p)) denote the gray matrices in the reference
+subset and the target subset, respectively. Every iteration in the FA-GN
+algorithm aims to minimize the following deviation function as
+⎡
+⎣⎢
+⎤
+⎦⎥
+f
+g W
+p
+p
+g W
+p
+g W
+p
+p
+f
+x
+x
+x
+x
+x
+∑[ ( ) −
+(
+( ,
++ Δ ))]
+≈∑
+(
+( ,
+)) + ∇(
+( ,
+))
+Δ
+−
+( )
+.
+x
+x
+W
+p
+p
+x
+2
+∂
+( , )
+∂
+2
+(3)
+After the deformation increment Δp is obtained, the deformation
+parameter is updated by p←p+Δp.
+2.2. FC-GN algorithm
+The FC-GN was ﬁrst proposed by Shum and Szeliski [18]. The
+deformation parameter p is indirectly updated by the compositional
+form W(W(·, Δp), p) of the shape operator W(·, p) in the matching
+process, instead of being directly updated by the deformation para-
+meter p. The increment Δp for each iteration aims to minimize the
+following deviation function as
+⎡
+⎣⎢
+⎤
+⎦⎥
+⎡
+⎣⎢
+⎤
+⎦⎥
+∑
+∑
+∑
+f
+g W W
+p
+p
+g W W
+p
+g W W
+p
+W W
+p
+W
+W
+p
+p
+f
+g W
+p
+g W
+p
+W
+p
+W
+p
+p
+f
+x
+x
+x
+x
+x
+x
+x
+x
+x
+x
+x
+x
+x
+x
+[ ( ) −
+(
+(
+( , Δ ),
+))]
+≈
+(
+(
+( , 0),
+)) + ∇(
+(
+( , 0),
+)) ∂
+(
+( , 0),
+))
+∂
+( , 0)
+∂
+( , 0)
+∂
+Δ
+−
+( )
+=
+(
+( ,
+)) + ∇(
+( ,
+)) ∂
+( ,
+)
+∂
+∂
+( , 0)
+∂
+Δ
+−
+( )
+.
+x
+x
+x
+2
+2
+2
+(4)
+Instead of directly updating the parameter p, this strategy updates
+the shape operator as
+W
+p
+W W
+p
+p
+x
+x
+( ,
+) ←
+(
+( , Δ ),
+)
+(5)
+Comparing Eq. (5) with Eq. (3), we can see that the FC-GN
+algorithm needs to compute the partial derivatives of
+W x
+x
+∂
+( , 0)
+∂
+and
+W
+p
+x
+∂
+( , 0)
+∂
+, while the FA-GN algorithm only computes the partial derivative
+of
+W
+p
+x
+∂
+( , 0)
+∂
+. The above two iterations are equivalent to the following
+updating process as
+W
+p
+p
+W
+p
+W
+p
+p
+x
+x
+FA −GN updating:
+( ,
++ Δ ) ≈
+( ,
+) + ∂
+∂
+Δ
+(6-1)
+W W
+p
+p
+W
+W
+p
+p p
+W
+p
+W W
+p
+p
+x
+x
+x
+x
+FC −GN updating:
+(
+( , Δ ),
+) ≈
+(
++ ∂
+∂
+Δ ,
+) ≈
+( ,
+) + ∂
+∂
+∂
+∂
+Δ
+(6-2)
+2.3. IC-GN algorithm
+The IC-GN algorithm was ﬁrst proposed by Baker et al. [19], which
+is a modiﬁed version of the FC-GN algorithm. It minimizes the
+following deviation function as
+R. Bai et al.
+Optics and Lasers in Engineering 90 (2017) 48–58
+49
+
+--- Page 3 ---
+⎡
+⎣⎢
+⎤
+⎦⎥
+⎡
+⎣⎢
+⎤
+⎦⎥
+∑
+∑
+∑
+f W
+p
+g W
+p
+f W
+f W
+W
+p
+p
+g W
+p
+f
+f
+W
+p
+p
+g W
+p
+x
+x
+x
+x
+x
+x
+x
+x
+[ (
+( ,
+)) −
+(
+( ,
+))]
+≈
+(
+( , 0)) + ∇(
+( , 0)) ∂
+∂
+Δ
+−
+(
+( ,
+))
+=
+( ) + ∇( )) ∂
+∂
+Δ
+−
+(
+( ,
+))
+.
+x
+x
+x
+2
+2
+2
+(7)
+The IC-GN algorithm directly applies the small shape operator W(x,
+p) to the reference subset so as to obtain a higher correlation
+coeﬃcient, and then this operator is reversely applied to the target
+subset to update the shape operator W(x, p) as
+W
+p
+W W
+p
+p
+x
+x
+( ,
+) ←
+(
+( , Δ ),
+).
+−1
+(8)
+In Eq. (1), if the linear transformation matrix A(p) is nonsingular, it
+is easily known that the operator W(·, p) is an invertible in the polar
+coordinates x. Thus, the operator W(W−1(x, Δp), p) can be written as
+W W
+p
+p
+p
+p
+x
+A
+A
+x
+(
+( , Δ ),
+) =
+( )
+(Δ )
+−1
+−1
+(9)
+where
+⎡
+⎣
+⎢
+⎢
+⎢
+⎤
+⎦
+⎥
+⎥
+⎥
+p
+u
+u
+u
+v
+v
+v
+A(Δ ) =
+1
+0
+0
+Δ
+Δ
++ 1
+Δ
+Δ
+Δ
+Δ
++ 1
+x
+y
+x
+y
+(10)
+The FC-GN and the IC-GN algorithms have an equivalent eﬀect, but
+the latter is more eﬃcient. In the IC-GN algorithm, the partial
+derivative ▽f(x) of the reference subset in Eq. (7) remains unchanged
+during the iterative process. When the partial derivative ▽f(x) in the
+ﬁrst iteration is calculated to construct the Jacobian matrix J, the
+matrix (JTJ)−1JT is constant and can save computation in the
+Newton-Raphson iteration process. In the FC-GN algorithm, however,
+the partial derivative ▽g(W(x, p)) in Eq. (4) needs to be repeatedly
+calculated by image interpolation operation in each iteration, and it will
+waste a large amount of computation. Sutton et al. [12] through a large
+number of experiments proved that the IC-GN algorithm has better
+speed and accuracy than the FC-GN algorithm.
+2.4. The new IC-GN algorithm
+Similar to the FEM, the higher order displacement shape function
+can, with better accuracy, estimate the more complicated deformation
+mode of the deformed subset. In the FA-GN2 algorithm, the second-
+order Taylor expansion is used to construct the second-order shape
+operator as
+⎡
+⎣
+⎢
+⎢
+⎢
+⎢
+⎤
+⎦
+⎥
+⎥
+⎥
+⎥
+⎡
+⎣
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎤
+⎦
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+W
+p
+u u
+u
+u
+u
+u
+v
+v
+v
+v
+v
+v
+x
+y
+x
+xy
+y
+p
+x
+E
+x
+( ,
+) =
+1
+0
+0
+0
+0
+0
++ 1
++ 1
+1
+=
+( ) ,
+x
+y
+xx
+xy
+yy
+x
+y
+xx
+xy
+yy
+1
+2
+1
+2
+1
+2
+1
+2
+2
+2
+(11)
+where x=[1 x y x2 xy y2]T is second-order form of the polar coordinate
+in the reference image and the corresponding deformation parameter is
+p=[u ux uy uxx uxy uyy v vx vy vxx vxy vyy]T. The second-order linear
+transformation matrix E(p) is a 3×6 matrix, which is composed of two
+3×3 matrices of A(p) and B(p), namely
+p
+p
+p
+E
+A
+B
+( )
+= [
+( )
+( )
+]
+3×6
+3×3
+3×3
+(12)
+and
+⎡
+⎣
+⎢
+⎢
+⎢
+⎢
+⎤
+⎦
+⎥
+⎥
+⎥
+⎥
+p
+u
+u
+u
+v
+v
+v
+B( ) =
+0
+0
+0
+.
+xx
+xy
+yy
+xx
+xy
+yy
+1
+2
+1
+2
+1
+2
+1
+2
+(13)
+In the Newton-Raphson iteration, the second-order shape operator
+can make the target subset present more abundant nonuniform
+deformation with curve shape edges. As shown in Fig. 1, the square
+subset of 41 × 41 pixels presents diﬀerent deformation shapes under
+the ﬁrst-order and second-order shape operators after three Newton-
+Raphson iterations, respectively.
+It should be noted that the second-order shape operator (Eq. (11))
+is suitable for the FA-GN2 algorithm and the FC-GN2 algorithm, but it
+cannot be used in the IC-GN2 algorithm. This is because the second-
+order shape operator W
+p
+(⋅, ) is not invertible. Therefore, the matrix
+E(p) in Eq. (11) is not a square matrix and can not be directly applied
+to the IC-GN2 algorithm.
+To solve this problem, it is necessary that W(·, p) must be an
+invertible linear operator and that its corresponding linear transforma-
+tion matrix E(p) must be a square matrix. Enlarging E(p) in Eq. (11)
+from a 6×3 matrix to a 6×6 matrix is a direct way to achieve this aim
+and Gao et al. [23] proposed a second-order shape operator for the IC-
+GN2 algorithm as
+W
+p
+p
+x
+G
+x
+( ,
+) =
+( )
+(14)
+and
+⎡
+⎣⎢
+⎤
+⎦⎥
+⎡
+⎣⎢
+⎤
+⎦⎥
+p
+p
+p
+p
+p
+p
+p
+G
+E
+F
+A
+B
+C
+D
+( )
+=
+( )
+( )
+=
+( )
+( )
+( )
+( )
+,
+6×6
+3×6
+3×6
+3×3
+3×3
+3×3
+3×3
+(15)
+where a 3×6 linear transformation matrix F(p) is composed of two 3×3
+matrices as
+p
+p
+p
+F
+C
+D
+( )
+= [
+( )
+( )
+]
+3×6
+3×3
+3×3
+(16)
+and
+⎡
+⎣
+⎢
+⎢
+⎢
+⎤
+⎦
+⎥
+⎥
+⎥
+p
+u
+uu
+u
+uu
+uv u v
+uv
+v u v
+uv
+v
+v
+vv
+vv
+v
+C( ) =
+2
++ 2
+2
++
++
++
++
+2
+2
++ 2
+,
+x
+y
+x
+x
+y
+y
+x
+x
+2
+2
+(17)
+⎡
+⎣
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎤
+⎦
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+p
+u
+uu
+u
+uu
+u u
+u
+u
+uu
+u v
+u v
+uv
+v
+u v
+uv
+u v
+u v
+u
+v
+u v
+u v
+uv
+u
+v
+vv
+vv
+v v
+v
+v
+vv
+v
+D( ) =
+2
++
++ 2
++ 1
+2
++ 2
++ 2
++
++
++
++
++
++
++
++
++
++ 1
++
++
++
++
+2
++ 2
++ 2
+2
++
++ 2
++ 1
+.
+x
+x
+x
+xy
+x
+y
+y
+y
+yy
+xx
+x x
+xx
+x
+xy
+xy
+x y
+y x
+x
+y
+yy
+y y
+yy
+y
+x
+xx
+xy
+x y
+x
+y
+y
+y
+2
+2
+1
+2
+1
+2
+1
+2
+1
+2
+2
+2
+(18)
+The enlarged square matrix G(p)6×6 is invertible and can be used
+for the IC-GN2 algorithm. In this paper, a more rigorous second-order
+shape operator, the reversible linear operator W(·, p) can be expressed
+as
+W
+p
+p
+x
+y
+x
+G
+x
+o
+( ,
+) =
+′( )
++
+(
++
+)
+2
+2
+(19)
+Compared with Gao's shape operator (Eq. (14)), the newly con-
+structed operator has a more stable accuracy reaching o(x2+y2).
+According to the derivation in the Appendix, the new 6×6 square
+linear transformation matrix can be rewritten as
+⎡
+⎣⎢
+⎤
+⎦⎥
+⎡
+⎣⎢
+⎤
+⎦⎥
+p
+p
+p
+p
+p
+p
+p
+G
+E
+F
+A
+B
+C
+D
+′( )
+=
+( )
+′( )
+=
+( )
+( )
+′( )
+′( )
+.
+6×6
+3×6
+3×6
+3×3
+3×3
+3×3
+3×3
+(20)
+Compared with the Gao's square linear transformation matrix (Eq.
+(15)), two 3×3 second-order transformation matrices in Eq. (20) are
+diﬀerent, which lead to a higher precision, as shown in the following
+equations:
+⎡
+⎣
+⎢
+⎢
+⎤
+⎦
+⎥
+⎥
+p
+p
+u
+v
+u
+v
+C
+C
+′( ) =
+( ) +
+0 2
+0
+0
+0
+0
+2
+(21)
+and
+R. Bai et al.
+Optics and Lasers in Engineering 90 (2017) 48–58
+50
+
+--- Page 4 ---
+⎡
+⎣
+⎢
+⎢
+⎢
+⎤
+⎦
+⎥
+⎥
+⎥
+p
+p
+u
+u
+v
+u
+v
+u
+v
+v
+D
+D
+′( ) =
+( ) +
+2
+2
+0
++
+0
+2
+2
+.
+x
+y
+x
+x
+y
+y
+x
+y
+(22)
+The newly constructed invertible second-order shape operator W(x,
+p) can be updated in the IC-GN2 algorithm as
+W
+p
+W W
+p
+p
+B p B
+p
+x
+x
+x
+( ,
+) ←
+(
+( , Δ ),
+) =
+( )
+(Δ )
+−1
+−1
+(23)
+If U(x, y) and V(x, y) meet the second-order displacement mode
+between the reference subset and the target subset, namely
+⎧
+⎨
+⎩
+x
+x
+U x y
+o x
+y
+y
+y
+V x y
+o x
+y
+′−=
+( , ) +
+(
++
+)
+′−=
+( , ) +
+(
++
+),
+2
+2
+2
+2
+(24)
+knowing that x
+y
+x
+y
++
+≤
+2 (
++
+)
+2
+2 1
+2, there is
+x y
+x
+U
+y
+V
+U
+V
+x
+y o x
+y
+o
+x
+y
+x
+U
+y
+V
+U
+V o x
+y
+o
+x
+y
+′ ′ = ( +
+)(
++
+) + (
++
++
++ ) (
++
+) +
+((
++
+) )
+= ( +
+)(
++
+) + (
++
+) (
++
+) +
+((
++
+) )
+2
+2
+2
+2 2
+2
+2
+2
+2 3
+2
+(25)
+Expanding Eq. (11) of the FA-GN2 operator as
+⎧
+⎨⎪
+⎩⎪
+U x y
+u
+u x
+u y
+u x
+u xy
+u y
+V x y
+v
+v x
+v y
+v x
+v xy
+v y
+( , ) =
++
++
++
++
++
+( , ) =
++
++
++
++
++
+.
+x
+y
+xx
+xy
+yy
+x
+y
+xx
+xy
+yy
+1
+2
+2
+1
+2
+2
+1
+2
+2
+1
+2
+2
+(26)
+By ignoring high-order terms like x3, y3, x2y, xy2, x3y, x2y2, xy3, x4
+and y4, the x’y’ in Eq. (25) can be seen as the following form (same to
+Gao's shape operator in Eq. (14)):
+⎛
+⎝⎜
+⎞
+⎠⎟
+⎛
+⎝⎜
+⎞
+⎠⎟
+x y
+uv
+u v
+uv
+v x
+u v
+uv
+u y
+u v
+u v
+uv
+v x
+u v
+uv
+u v
+u v
+u
+v
+xy
+u v
+u v
+uv
+u
+y
+′ ′ =
++ (
++
++
+)
++ (
++
++
+)
++
+1
+2
++
++ 1
+2
++
++ (
++
++
++
++
++
++ 1)
++
+1
+2
++
++ 1
+2
++
+x
+x
+y
+y
+xx
+x x
+xx
+x
+xy
+xy
+x y
+y x
+x
+y
+yy
+y y
+yy
+y
+2
+2
+(27)
+The above Eq. (27) may lose second-order accuracy because of
+ignoring too many high-order terms. It is seen from Eq. (25) that U(x,
+y)+(x, y) can be regarded as a bounded function if the deformation is
+small enough, then there is x’y’=(x+U)(y+V)+o(x2+y2). It means that
+x’y’=(x+U)(y+V) has a second-order accuracy, which was actually used
+in Gao's shape operator, and it is reasonable to ignore these terms
+under the condition of bounded function. But if the deformation is
+relatively large or the local deformation is non-uniform, U+V may have
+the same order as (x2+y2)q in certain positions, where the precision of
+x’y’ =(x+U)(y+V) is lower than the second-order of o(x2+y2) when
+there is q < 0. Therefore, Gao’s shape operator (Eq. (15)) will probably
+lose the second-order precision in the case of local non-uniform
+deformation when there is q < 0. In contrast, the proposed shape
+operator (Eq. (20)) is capable of stably achieving the second-order
+precision in the case of large deformation or local non-uniform
+deformation.
+3. Numerical veriﬁcations
+Numerical simulation was used to evaluate the accuracy and error
+of the proposed IC-GN algorithm with the new second-order shape
+operator. The speckle simulation method proposed by Zhou et al. [26]
+has proved to be a convenient implementation and has high accuracy
+for theoretical speckle generation. There are K Gaussian light spots
+simulated and projected onto the plane for the theoretical speckle
+generation, and the light intensity I(x) at coordinate x is calculated by
+the superposition of all Gaussian light spots as
+∑
+I
+I e
+x
+( ) =
+,
+k
+K
+k
+r
+x
+x
+=1
+−
+−k 2
+2
+(28)
+where Ik is the light intensity of the kth Gaussian light spot, and r is the
+inﬂuence radius of the light-spot. xk is the coordinate of the kth
+Gaussian light spot, which is randomly generated by the computer.
+If the deformation x’=P(x) is added to the simulated speckle image,
+where P is the shape operator, then the light intensity of the deformed
+speckle image is written as
+∑
+I
+I P
+I e
+x
+x
+′( ) =
+(
+( ′)) =
+k
+K
+k
+P
+r
+x
+x
+−1
+=1
+−
+( ′)−k
+−1
+2
+2
+(29)
+A discrete sampling procedure is needed to generate a grayscale
+image with a size of M×N. To obtain the uniform illumination
+distribution, we used the Hamersley sampling method [27] with low-
+discrepancy sequence in the plane to select the coordinates xk (k=1, 2,
+…, K).
+In the ﬁrst simulation example, the new operater's performamce in
+large uniform deformation will be presented, in which the number of
+Gaussian light spot was K=20,000 and the spot radius was r=1.5 pixels.
+The simulated speckle image had a size of 400×400 pixels by sampling
+along the x-axis and y-axis with a step of 1 pixel, as shown in Fig. 2(a).
+A ﬁrst-order shape operator with the predesigned linear polynomial
+deformation is written as
+⎛
+⎝⎜
+⎞
+⎠⎟
+⎡
+⎣⎢
+⎤
+⎦⎥
+⎛
+⎝⎜
+⎞
+⎠⎟
+⎛
+⎝⎜
+⎞
+⎠⎟
+x
+y
+p
+p
+p
+p
+x
+y
+u
+v
+′
+′ =
++
+,
+11
+12
+21
+22
+(30)
+where the deformation parameters for the ﬁrst-order shape operator
+are selected as p11=−0.02, p12=0.05, p21=−0.01, and p22=−0.1 and the
+rigid body displacements are u=v=0. The deformed speckle image was
+Fig. 1. Deformation shapes under (a) the ﬁrst-order shape operator and (b) the second-order shape operator.
+R. Bai et al.
+Optics and Lasers in Engineering 90 (2017) 48–58
+51
+
+--- Page 5 ---
+simulated, as shown in Fig. 2(b).
+The selection of the correlation function, as the target function for
+optimization iterations, is very important for the DIC matching. The
+ZNSSD was chosen as the correlation function, which is insensitive to
+the data noises and the linear transform of the subset gray in the target
+image [12]. The ZNSSD correlation function is written as
+⎡
+⎣
+⎢
+⎢
+⎢
+⎤
+⎦
+⎥
+⎥
+⎥
+∑
+∑
+C
+p
+f x y
+f
+f x y
+f
+g x
+y
+g
+g x
+y
+g
+( ) =
+( , ) −
+∑
+∑
+[ ( , ) −
+]
+−
+( ′, ′) −
+∑
+∑
+[ ( ′, ′) −
+]
+,
+ZNSSD
+x
+M
+M
+y
+M
+M
+x
+M
+M
+y
+M
+M
+x
+M
+M
+y
+M
+M
+=−
+=−
+=−
+=−
+2
+=−
+=−
+2
+2
+(31)
+where the subset size is (2M+1)×(2M+1). f and g are the mean gray
+values for the reference subset and target subset, respectively. The
+cubic B-spline interpolation was used to calculate the gray value and
+partial derivatives at subpixel points.
+Correlation matching calculations of the simulated speckle images
+were performed after three iterations by diﬀerent second-order DIC
+algorithms: FC-GN2, Gao's IC-GN2 and the proposed IC-GN2. The
+average error increased with the subset size for diﬀerent algorithms, as
+shown in Fig. 3. When the subset size was large enough (larger than
+about 43 pixels), the proposed IC-GN2 algorithm showed more stable
+matching precision. It is recommended to select the subset size from 43
+pixels to 61 pixels in practical applications.
+In the second simulation example, a sinusoidal deformation was
+conducted to verify the capability of these second-order operators in
+the non-uniform deformation. The priori deformation was set as the
+following form
+⎛
+⎝⎜
+⎞
+⎠⎟
+⎛
+⎝
+⎜⎜
+⎞
+⎠
+⎟⎟
+x
+y
+P x y
+x
+sT
+x x
+y
+′
+′ =
+( , ) =
++
+sin(
+( −
+)) ,
+π
+T
+2
+0
+(32)
+where x0 is the x coordinate of center point in the simulated images, the
+deformation parameters of T=250 and s=0.001–0.01 with a step
+size=0.001.
+The
+simulated
+speckle
+images
+had
+a
+size
+of
+M×N=200×200 pixels, in which the number of Gaussian light spot
+was K=5000 and the spot radius was r=1 pixel. Because the x-strain is
+about εx= πs
+x x
+2
+cos(
+( −
+))
+π
+T
+2
+0
+, the priori deformation can be viewed as a
+non-uniform one, and it is ranged form 0–2πs. In deformation
+matching process, the subset size was set to 33 pixels. And here, the
+expectation of error of these second-order operators is deﬁned as
+∑∑
+e
+MN
+u x y
+u
+x y
+=
+1
+[ ( , ) −
+( , )],
+x
+M
+y
+N
+=1
+=1
+0
+(33)
+where u(x, y) is the measured x-displacement of the point (x, y) and
+u0(x, y) is the real x-displacement. As shown in Fig. 4(a), the
+expectation of error shows a waving trend responding to the parameter
+s, and the half-wave length of the ﬂuctuations seems to enlarge with
+increasing of s. The proposed IC-GN2 has a relatively better perfor-
+mance than Gao’s IC-GN2 in the sinusoidal deformation.
+In the third simulation example, a quadratic deformation was also
+investigated as the following form:
+⎛
+⎝⎜
+⎞
+⎠⎟
+⎛
+⎝⎜
+⎞
+⎠⎟
+x
+y
+P x y
+x
+sx
+y
+′
+′ =
+( , ) =
++
+,
+2
+(34)
+where the tested deformation parameter a was ranged form 0 to 0.0002
+with a stepsize 0.00001. Since the x-strain is εx=2sx, a=200×200 pixels
+image has a maximum strain of 400s. But under the quadratic
+deformation, there was no signiﬁcant diﬀerence between the two shape
+operators as shown in Fig. 4(b). The expectation of error shows the two
+IC-GN2 algorithms are better than the FC-GN2 and the proposed IC-
+GN2 has a relatively better performance than Gao’s IC-GN2.
+4. Large deformation experiment of rubber tension
+A large tension deformation experiment of rubber was performed to
+check the performance of three second-order DIC algorithms. The
+rubber specimen with a size of 25 mm×100 mm×3 mm was sprayed
+with random white and black speckles, as shown in Fig. 5. The speckle
+images after the rubber plane deformation were acquired by a CCD
+camera (Guppy F080b) with resolution of 1024×768 pixels. The frame
+Fig. 2. Simulated speckle images (a) before and (b) after the deformation.
+30
+40
+50
+60
+0.05
+0.10
+0.15
+0.20
+ FC-GN2
+ The proposed IC-GN2
+ Gao's IC-GN2
+Mean error (pixels)
+Subset size (pixels)
+Fig. 3. Average errors of the three second-order DIC algorithms after three iterations
+under diﬀerent subset sizes.
+R. Bai et al.
+Optics and Lasers in Engineering 90 (2017) 48–58
+52
+
+--- Page 6 ---
+acquisition rate was 1 fps and the tensile rate was 1 mm/min.
+Fig. 5(a) shows the surface speckle image of the rubber specimen
+before the deformation, and the tensile direction is along the negative
+y-axis. Fig. 5(b) is the ROI area with 190×190 pixels (dotted rectangle
+in Fig. 5(a)). The grid step for the correlation calculation was 10 pixels,
+so there was a total of 400 calculated points.
+The subset size was selected as 45×45 pixels, and the cubic B-spline
+interpolation was applied to calculate the gray value and partial
+derivatives at subpixel points. For the large deformation of about
+7.5%, the displacement ﬁelds of ROI were calculated by the proposed
+IC-GN2, as shown in Fig. 6. It can be seen that there is an obvious
+Poisson contraction eﬀect in the transverse x-direction (Fig. 6(a)) and
+that a large tensile displacement in the longitudinal y-direction has
+reached 40 pixels (Fig. 6).
+For the large deformation or geometric nonlinear properties, a
+quadratic polynomial ﬁtting was used to get a continuous displacement
+function for strain tensor calculation, as expressed in following
+equation:
+ε
+u
+u
+u
+u
+= 1
+2 (
++
++
+).
+ij
+i j
+j i
+k i
+k j
+,
+,
+,
+,
+(35)
+The strain ﬁelds of the rubber specimen under about 7.5% tension
+deformation are shown in Fig. 7.
+The correlation coeﬃcient ﬁeld generated by the matching results is
+usually an important index for judging the proposed algorithm. The
+correlation coeﬃcient distribution of the deformation from 7.5% to
+27% is given in Fig. 8, which shows that the correlation coeﬃcient
+decreased with the deformation. Even if the deformation increases to
+about 27% (Fig. 8(d)), the minimum correlation coeﬃcient of the
+proposed algorithm is still more than 0.88.
+Because the matrices C(p) and D(p) in the linear transformation
+matrix G(p) of the Gao's shape operator (Eq. (15)) make an adjustment
+to the matrices C’(p) and D’(p) in the proposed second-order shape
+operator (Eq. (20)), the calculation time for these two shape operators
+is the same as in the IC-GN algorithm. The distributions of the average
+correlation coeﬃcient with the subset size for three IC-GN2 algorithms
+are given in Fig. 9.
+It can be seen from Fig. 9(a) that the performance of the FC-GN2
+algorithm is better than those of the two IC-GN2 algorithms when the
+deformation was about 7.5%. When the deformation reached 27%
+(Fig. 9(d)), the performance of Gao's IC-GN2 algorithm was still lower
+than that of the FC-GN2 algorithm, but the mean correlation coeﬃcient
+of the proposed IC-GN2 algorithm was close to that of the FC-GN2
+algorithm with the increase in the subset size. Especially, the perfor-
+mance of the proposed IC-GN2 algorithm exceeded that of the FC-GN2
+algorithm when the subset size was larger than 43 pixels. It proves the
+proposed IC-GN2 algorithm is eﬀective in large deformation measure-
+ments.
+5. Conclusions
+By introducing auxiliary displacement functions to the second-
+order shape operator, we were able to propose a new reversible linear
+transformation matrix for constructing the IC-GN2 algorithm in the
+0.000
+0.002
+0.004
+0.006
+0.008
+0.010
+-0.20
+-0.15
+-0.10
+-0.05
+0.00
+0.05
+0.10
+0.15
+Expectation of error (pixels)
+(a) s (pixels)
+FC-GN2
+The proposed IC-GN2
+Gao's IC-GN2
+0.00000
+0.00005
+0.00010
+0.00015
+0.00020
+-0.1
+0.0
+0.1
+0.2
+0.3
+0.4
+0.5
+Expectation of error (pixels)
+(b) s (pixels)
+FC-GN2
+The proposed IC-GN2
+Gao's IC-GN2
+Fig. 4. Expectation of error of three second-order DIC algorithms after three iterations under (a) sinusoidal and (b) quadratic non-uniform deformations.
+(b) 
+(a)
+x 
+y 
+Fig. 5. (a) Undeformed speckle image and (b) rectangle ROI of the rubber specimen under tension.
+R. Bai et al.
+Optics and Lasers in Engineering 90 (2017) 48–58
+53
+
+--- Page 7 ---
+DIC
+matching
+process
+for
+large
+deformation
+measurements.
+Theoretical error analysis proved that the new proposed second-order
+shape operator has stable second-order accuracy. In uniform large
+deformation measurement, it found through the numerical comparison
+of simulated speckle images that the proposed IC-GN2 algorithm had a
+higher accuracy than the FC-GN2 algorithm when the subset size was
+larger than 43 pixels. In non-uniform deformation simulation, the
+proposed new operator seems to have a relatively better performance
+than the previous IC-GN2. The rubber tensile experiment revealed that
+the FC-GN2 algorithm has the best performance under a large
+deformation of about 7.5%. When the large deformation was about
+27%, the proposed IC-GN2 algorithm tended to match the precision of
+the FC-GN2 algorithm and especially exceeded to the latter in precision
+when the subset size was larger than 43 pixels.
+Acknowledgments
+This work was supported by support of National Basic Research
+Program of China (No. 2014CB046506), Natural Science Foundation of
+China (Nos. 11472070, 11572070), Research Subject of State Key
+Laboratory of Structural Analysis for Industrial Equipment (Nos.
+S14207, S15202), and Natural Science Foundation of Liaoning
+Province of China (No. 201502014).
+Appendix A
+In this section, a more rigorous form of the second-order shape operator is derived, which has a higher operator precision. To construct the
+reversible linear transformation matrix, we respectively introduce the displacement functions and their conjugate function as
+⎪
+⎪
+⎪
+⎪
+⎧
+⎨
+⎩
+⎧
+⎨
+⎩
+u
+x y
+x
+x y
+x
+v
+x y
+y
+x y
+y
+u
+x y
+x
+x y
+x
+v
+x y
+y
+x y
+y
+( , ) = ′ ( , ) −
+( , ) = ′ ( , ) −
+and
+( , ) = ′ ( , ) +
+( , ) = ′ ( , ) +
+,
+2
+2
+2
+2
+2
+2
+2
+2
+(A1)
+where (x, y) and (x’, y’) are the coordinates in the same point in the reference subset and target subset, respectively. Both x’ and y’ are functions of x
+and y, respectively. u and v are the displacements in the x-direction and y-direction, respectively. u and v are the conjugates of u and v, respectively.
+Obviously, x’ and y’ can be expressed in the following functions of x and y:
+Fig. 6. (a) X-displacement and (b) y-displacement calculated by the proposed method for the rubber specimen under about 7.5% tension deformation.
+R. Bai et al.
+Optics and Lasers in Engineering 90 (2017) 48–58
+54
+
+--- Page 8 ---
+⎧
+⎨
+⎪
+⎩
+⎪
+x
+x
+uu x y
+x y
+xy
+uv x y
+uv x y
+y
+y
+vv x y
+′ −
+=
+( , )
+′ ′ −
+=
+[
+( , ) +
+( , )]
+′ −
+=
+( , )
+2
+2
+1
+2
+2
+2
+(A2)
+and the partial derivative relations of u and v are
+⎧
+⎨⎪
+⎩⎪
+⎧
+⎨⎪
+⎩⎪
+=
++ 2
+=
+and
+=
+=
++ 2
+.
+u
+x
+u
+x
+u
+y
+u
+y
+v
+x
+v
+x
+v
+y
+v
+y
+∂
+∂
+∂
+∂
+∂
+∂
+∂
+∂
+∂
+∂
+∂
+∂
+∂
+∂
+∂
+∂
+(A3)
+Replacing with the partial derivatives of u and v instead of the partial derivations of u and v (Eq. (A3)), we can write the second-order Taylor
+expansion of the ﬁrst right item in Eq. (A2) as
+⎡
+⎣⎢
+⎤
+⎦⎥
+⎡
+⎣⎢
+⎤
+⎦⎥
+⎡
+⎣
+⎢
+⎢
+⎢
+⎤
+⎦
+⎥
+⎥
+⎥
+⎡
+⎣⎢
+⎤
+⎦⎥
+⎡
+⎣⎢
+⎤
+⎦⎥
+⎡
+⎣⎢
+⎤
+⎦⎥
+⎡
+⎣
+⎢
+⎢
+⎢
+⎤
+⎦
+⎥
+⎥
+⎥
+⎡
+⎣⎢
+⎤
+⎦⎥
+uu x y
+uu
+x
+y
+x
+y
+x
+y
+o x
+y
+uu
+u
+u
+u
+u
+x
+y
+x
+y
+u
+u
+u
+u
+u
+u
+u
+u
+x
+y
+o x
+y
+( , ) =
++
++
+[
+]
++
+(
++
+)
+=
++
++
++
++
+[
+]
++ 2
++
++
++
++
++
++
++
++ 2
++
++
+(
++
+).
+uu
+x
+uu
+y
+uu
+x
+uu
+x y
+uu
+x y
+uu
+y
+u
+x
+u
+x
+u
+y
+u
+y
+u
+x
+u
+x
+u
+x
+u
+x
+u
+x y
+u
+x
+u
+y
+u
+y
+u
+x
+u
+x y
+u
+x y
+u
+x
+u
+y
+u
+y
+u
+x
+u
+x y
+u
+y
+u
+y
+u
+y
+u
+y
+∂
+∂
+∂
+∂
+1
+2
+∂
+∂
+∂
+∂∂
+∂
+∂∂
+∂
+∂
+2
+2
+∂
+∂
+∂
+∂
+∂
+∂
+∂
+∂
+1
+2
+∂
+∂
+∂
+∂
+∂
+∂
+∂
+∂
+∂
+∂∂
+∂
+∂
+∂
+∂
+∂
+∂
+∂
+∂
+∂
+∂∂
+∂
+∂∂
+∂
+∂
+∂
+∂
+∂
+∂
+∂
+∂
+∂
+∂∂
+∂
+∂
+∂
+∂
+∂
+∂
+∂
+∂
+2
+2
+2
+2
+2
+2
+2
+2
+2
+2
+2
+2
+2
+2
+2
+2
+2
+2
+2
+2
+(A4)
+The above equation is further simpliﬁed as
+Fig. 7. (a) εxx (b) εyy and (c) εxy strains of the rubber specimen under about 7.5% tension deformation.
+R. Bai et al.
+Optics and Lasers in Engineering 90 (2017) 48–58
+55
+
+--- Page 9 ---
+uu x y
+u
+u
+uu x
+uu y
+u
+uu
+u x
+uu
+u u
+u
+xy
+u
+uu
+y
+o x
+y
+( , ) =
++ (4
++ 2
+)
++ 2
++ (
++
++ 4
+)
++ 2(
++
++ 2
+)
++ (
++
+)
++
+(
++
+),
+x
+x
+x
+x
+x
+xy
+x
+y
+y
+y
+yy
+2
+2
+2
+2
+2
+2
+2
+(A5)
+where the subscripts are denoted as the ﬁrst-order or second-order partial derivatives.
+In the same way, the following equations of vv, uv and vu are established as
+vv x y
+v
+vv x
+vv
+v y
+v
+vv x
+vv
+v v
+v xy
+v
+vv
+v y
+o x
+y
+( , ) =
++ 2
++ 2(
++ 2 )
++ (
++
+)
++ 2(
++
++ 2 )
++ (
++
++ 4 )
++
+(
++
+),
+x
+y
+x
+x
+xy
+x y
+x
+y
+yy
+y
+2
+2
+2
+2
+2
+2
+2
+(A6)
+uv x y
+uv
+u v
+uv x
+u v
+uv
+u y
+u v
+u v
+uv
+x
+u v
+uv
+u v
+u v
+u xy
+u v
+u v
+uv
+u
+y
+o x
+y
+( , ) =
++ (
++
+)
++ (
++
++ 4 )
++ (
++
++
+)
++ (
++
++
++
++ 4
+)
++ (
++
++
++ 4
+)
++
+(
++
+),
+x
+x
+y
+y
+xx
+x x
+xx
+xy
+xy
+x y
+y x
+x
+yy
+y y
+yy
+y
+1
+2
+1
+2
+2
+1
+2
+1
+2
+2
+2
+2
+(A7)
+uv x y
+uv
+u v
+uv
+v x
+u v
+uv y
+u v
+u v
+uv
+v x
+u v
+uv
+u v
+u v
+v xy
+u v
+u v
+uv
+y
+o x
+y
+( , ) =
++ (
++
++ 4 )
++ (
++
+)
++ (
++
++
++ 4 )
++ (
++
++
++
++ 4 )
++ (
++
++
+)
++
+(
++
+).
+x
+x
+y
+y
+xx
+x x
+xx
+x
+xy
+xy
+x y
+y x
+y
+yy
+y y
+yy
+1
+2
+1
+2
+2
+1
+2
+1
+2
+2
+2
+2
+(A8)
+The following approximations are easily obtained as
+x
+x
+uu x y
+u
+u
+uu x
+uu y
+u
+uu
+u x
+uu
+u u
+u
+xy
+u
+uu
+y
+′ −
+=
+( , )
+≈
++ (4
++ 2
+)
++ 2
++ (
++
++ 4
+)
++ 2(
++
++ 2
+)
++ (
++
+)
+,
+x
+x
+x
+x
+x
+xy
+x
+y
+y
+y
+yy
+2
+2
+2
+2
+2
+2
+2
+(A9)
+y
+y
+vv x y
+v
+vv x
+vv
+v y
+v
+vv x
+vv
+v v
+v xy
+v
+vv
+v y
+′ −
+=
+( , )
+≈
++ 2
++ 2(
++ 2 )
++ (
++
+)
++ 2(
++
++ 2 )
++ (
++
++ 4 )
+,
+x
+y
+x
+x
+xy
+x y
+x
+y
+yy
+y
+2
+2
+2
+2
+2
+2
+2
+(A10)
+Fig. 8. Correlation coeﬃcient distributions at diﬀerent tension strains from 7.5% to 27%.
+R. Bai et al.
+Optics and Lasers in Engineering 90 (2017) 48–58
+56
+
+--- Page 10 ---
+x y
+xy
+uv x y
+uv x y
+uv
+u v
+uv
+v x
+u v
+uv
+u y
+u v
+u v
+uv
+v x
+u v
+uv
+u v
+u v
+u
+v xy
+u v
+u v
+uv
+u
+y
+′ ′ −
+=
+[
+( , ) +
+( , )]
+≈
++ (
++
++ 2 )
++ (
++
++ 2 )
++ (
++
++
++ 2 )
++ (
++
++
++
++ 2
++ 2 )
++ (
++
++
++ 2
+)
+.
+x
+x
+y
+y
+xx
+x x
+xx
+x
+xy
+xy
+x y
+y x
+x
+y
+yy
+y y
+yy
+y
+1
+2
+1
+2
+1
+2
+2
+1
+2
+1
+2
+2
+(A11)
+Considering all of the above equations, we can construct a new complemented matrix in invertible linear transformation as
+p
+p
+p
+F
+C
+D
+′( )
+= [ ′( )
+′( )
+],
+3×6
+3×3
+3×3
+(A12)
+where p=[u ux uy uxx uxy uyy v vx vy vxx vxy vyy]T is the second-order deformation parameter and the submatrices C’(p) and D’(p) have the
+following closed forms as
+⎡
+⎣
+⎢
+⎢
+⎢
+⎤
+⎦
+⎥
+⎥
+⎥
+p
+u
+uu
+u
+uu
+uv u v
+uv
+v u v
+uv
+u
+v
+vv
+vv
+v
+C′( ) =
+2
++ 4
+2
++
++ 2
++
++ 2
+2
+2
++ 4
+,
+x
+y
+x
+x
+y
+y
+x
+y
+2
+2
+(A13)
+⎡
+⎣
+⎢
+⎢
+⎢
+⎢
+⎤
+⎦
+⎥
+⎥
+⎥
+⎥
+p
+u
+uu
+u
+uu
+u u
+u
+u
+uu
+u v
+u v
+uv
+v
+u v
+uv
+u v
+u v
+u
+v
+v
+vv
+v
+v
+vv
+vv
+v v
+v
+u v
+u v
+uv
+u
+D′( ) =
++
++ 4
++ 1
+2
++ 2
++ 4
++
++
++
++ 2
++
++
++
++ 2
++ 2
++ 1
++
++ 4
++ 1
++
+2
++ 2
++ 4
++
++
++ 2
+.
+x
+x
+x
+xy
+x
+y
+y
+y
+yy
+xx
+x x
+xx
+x
+xy
+xy
+x y
+y x
+x
+y
+y
+y
+y
+x
+xx
+xy
+x y
+x
+yy
+y y
+yy
+y
+2
+2
+1
+2
+1
+2
+2
+2
+1
+2
+1
+2
+(A14)
+References
+[1] Prince SJD, Eagle RA. Weighted directional energy model of human stereo
+correspondence. Vis Res 2000;40(9):1143–55.
+[2] Pankow M, Justusson B, Waas AM. Three-dimensional digital image correlation
+technique using single high-speed camera for measuring large out-of-plane
+displacements at high framing rates. Appl Opt 2010;49(17):3418–27.
+[3] Cheng P, Sutton MA, Schreier HW, McNeill SR. Full-ﬁeld speckle pattern image
+correlation with B-spline deformation function. Exp Mech 2002;42(3):344–52.
+[4] Shao X, Dai X, Chen Z, He X. Real-time 3D digital image correlation method and its
+application in human pulse monitoring. Appl Opt 2016;55(4):696–704.
+[5] Fleet DJ, Jepson AD. Stability of phase information. IEEE Trans Pattern Anal Mach
+Intell 1993;15(12):1253–68.
+[6] Bruck HA, Mcneill SR, Sutton MA, Peters WH. Digital image correlation using
+Newton-Raphson method of partial diﬀerential correction. Exp Mech
+1989;29(3):261–7.
+[7] Schreier HW, Braasch RJ, Sutton MA. Systematic errors in digital image correlation
+caused by intensity interpolation. Opt Eng 2000;39(11):2915–21.
+[8] Su Y, Zhang QC, Gao ZR, Xu XH, Wu XP. Fourier-based interpolation bias
+prediction in digital image correlation. Opt Express 2015;23(15):19242–60.
+[9] Su Y, Zhang QC, Gao ZR, Xu XH. Noise-induced bias for convolution-based
+interpolation in digital image correlation. Opt Express 2016;24(2):1175–95.
+[10] Su Y, Zhang QC, Xu XH, Gao ZR. Quality assessment of speckle patterns for DIC by
+consideration of both systematic errors and random errors. Opt Lasers Eng
+2016;86:132–42.
+30
+40
+50
+60
+0.950
+0.955
+0.960
+0.965
+Correlation coefficient
+(a) Subset size (pixels)
+ FC-GN2
+ The proposed IC-GN2
+ Gao's IC-GN2
+30
+40
+50
+60
+0.935
+0.940
+0.945
+0.950
+0.955
+ FC-GN2
+ The proposed IC-GN2
+ Gao's IC-GN2
+Correlation coefficient
+(b) Subset size (pixels)
+30
+40
+50
+60
+0.92
+0.93
+0.94
+0.95
+ FC-GN2
+ The proposed IC-GN2
+ Gao's IC-GN2
+Correlation coefficient
+(c) Subset size (pixels)
+30
+40
+50
+60
+0.91
+0.92
+0.93
+0.94
+ FC-GN2
+ The proposed IC-GN2
+ Gao's IC-GN2
+Correlation coefficient
+(d) Subset size (pixels)
+Fig. 9. Relationship between mean correlation coeﬃcient and subset size under (a) 7.5% deformation, (b) 15% deformation, (c) 22.5% deformation and (d) 27% deformation.
+R. Bai et al.
+Optics and Lasers in Engineering 90 (2017) 48–58
+57
+
+--- Page 11 ---
+[11] Gao ZR, Xu XH, Su Y, Zhang QC. Experimental analysis of image noise and
+interpolation bias in digital image correlation. Opt Lasers Eng 2016;81:46–53.
+[12] Sutton MA, Orteu JJ, Schreier HW. Digital image correlation for shape, motion and
+deformation measurements. New York, USA:: Springer; 2009. http://dx.doi.org/
+10.1007/978-0-387-78747-3.
+[13] Lu H, Cary PD. Deformation measurement by digital image correlation: imple-
+mentation of a second-order displacement gradient. Exp Mech
+2000;40(4):393–400.
+[14] Wang Y, Sutton MA, Bruck HA, Schreier HW. Quantitative error assessment in
+pattern matching: eﬀects of intensity pattern noise, interpolation, strain and image
+contrast on motion measurements. Strain 2009;45(2):160–78.
+[15] Wang ZY, Li HQ, Tong JW, Ruan JT. Statistical analysis of the eﬀect of intensity
+pattern noise on the displacement measurement precision of digital image
+correlation using self-correlated images. Exp Mech 2007;47(5):701–7.
+[16] Schreier HW, Sutton MA. System errors in digital image correlation due to
+undermatched shape functions. Exp Mech 2002;42(3):303–10.
+[17] Xu XH, Su Y, Cai YL, Cheng T, Zhang QC. Eﬀects of various shape functions and
+subset size in local deformation measurements using DIC. Exp Mech
+2015;55(8):1575–90.
+[18] Shum HY, Szeliski R. Construction of panoramic image mosaics with global and
+local alignment. Int J Comput Vis 2000;16(1):63–84.
+[19] Baker S, Dellaert F, Matthews I. Aligning images incrementally backwards.
+Technical Report CMU-RI-TR-01-03, CMU Rob. Institute; 2001.
+[20] Pan B, Xie HM, Gao J, Asundi A. Improved speckle projection proﬁlometry for out-
+of-plane shape measurement. Appl Opt 2008;47(29):5527–33.
+[21] Pan B, Xie HM, Yang LH, Wang ZY. Accurate measurement of satellite antenna
+surface using three dimensional digital image correlation technique. Strain
+2009;45(2):194–200.
+[22] Shao XX, Dai XJ, He XY. Noise robustness and parallel computation of the inverse
+compositional Gauss–Newton algorithm in digital image correlation. Opt Lasers
+Eng 2015;71:9–19.
+[23] Gao Y, Cheng T, Su Y, Xu XH, Zhang Y, Zhang QC. High-eﬃciency high-accuracy
+digital image correlation for three-dimensional measurement. Opt Lasers Eng
+2015;65:73–80.
+[24] Shao XX, Dai YT, He XY, Wang HT, Wu G. Real-time digital image correlation for
+quasi-static test in civil engineering. Acta Opt Sin 2015;35(10):1012003.
+[25] Hild F, Roux S. Digital image correlation: from displacement measurement to
+identiﬁcation of elastic properties – a review. Strain 2006;42(2):69–80.
+[26] Zhou P, Goodson KE. Subpixel displacement and deformation gradient measure-
+ment using digital image/speckle correlation (DISC). Opt Eng
+2001;40(8):1613–20.
+[27] Wong TT, Luk WS. Sampling with Hammersley and Halton points. J Graph Tools
+1997;2(2):9–24.
+R. Bai et al.
+Optics and Lasers in Engineering 90 (2017) 48–58
+58
+

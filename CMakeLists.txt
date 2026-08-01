@@ -12,14 +12,19 @@ include(Dependencies)
 if(NOT OpenCV_FOUND AND DEFINED OpenCV_DIR)
     get_filename_component(_opencv_prefix "${OpenCV_DIR}/.." ABSOLUTE)
     set(_opencv_include "${_opencv_prefix}/include")
+    # MinGW OpenCV layout: <prefix>/x64/mingw/{lib,bin}, <prefix>/include
+    if(NOT EXISTS "${_opencv_include}/opencv2/core.hpp")
+        get_filename_component(_opencv_real_prefix "${_opencv_prefix}/../.." ABSOLUTE)
+        set(_opencv_include "${_opencv_real_prefix}/include")
+    endif()
     set(_opencv_lib_dir "${_opencv_prefix}/lib")
     set(_opencv_required_libs
-        opencv_core4100
-        opencv_flann4100
-        opencv_imgproc4100
-        opencv_imgcodecs4100
-        opencv_features2d4100
-        opencv_calib3d4100
+        opencv_core4110
+        opencv_flann4110
+        opencv_imgproc4110
+        opencv_imgcodecs4110
+        opencv_features2d4110
+        opencv_calib3d4110
     )
     set(_opencv_manual_libs)
     set(_opencv_manual_found TRUE)
@@ -47,6 +52,7 @@ target_compile_features(traditional_dic_core PUBLIC cxx_std_17)
 traditional_dic_apply_compiler_options(traditional_dic_core)
 target_link_libraries(traditional_dic_core PUBLIC Eigen3::Eigen yaml-cpp::yaml-cpp)
 if(OpenCV_FOUND)
+    target_include_directories(traditional_dic_core PUBLIC ${OpenCV_INCLUDE_DIRS})
     target_link_libraries(traditional_dic_core PUBLIC ${OpenCV_LIBS})
     target_compile_definitions(traditional_dic_core PUBLIC TRADITIONAL_DIC_HAS_OPENCV=1)
 endif()

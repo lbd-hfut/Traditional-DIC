@@ -38,6 +38,13 @@ struct Displacement2D {
     double du_dy{0.0};
     double dv_dx{0.0};
     double dv_dy{0.0};
+    // Second-order shape function parameters
+    double d2u_dx2{0.0};
+    double d2u_dxdy{0.0};
+    double d2u_dy2{0.0};
+    double d2v_dx2{0.0};
+    double d2v_dxdy{0.0};
+    double d2v_dy2{0.0};
     double correlation{0.0};
     SolverStatus status{SolverStatus::InvalidInput};
     bool valid{false};

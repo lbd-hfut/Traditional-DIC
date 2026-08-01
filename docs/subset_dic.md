@@ -111,7 +111,7 @@ pipeline.
 
 4. Implement Forward Gauss-Newton for first-order SSD and ZNSSD.
    This path should re-evaluate the deformed-image gradient/Jacobian as required
-   by a forward-additive formulation.
+   by a forward-compositional formulation.
 
 5. Implement Forward Gauss-Newton for second-order SSD and ZNSSD.
 

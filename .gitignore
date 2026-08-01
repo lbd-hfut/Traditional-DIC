@@ -269,3 +269,10 @@ __marimo__/
 
 # .agents of claude chatgpt deepcode opencode
 /.agents/
+
+
+case/**/*.csv
+case/**/*.txt
+opencv-build/
+build*.txt
+build*.txt-err

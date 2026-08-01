@@ -280,18 +280,18 @@ BSplinePrecomputedImage BSplineImagePreprocessor::compute(const Image& image) co
     result.coefficients = form_coefficients(image);
     result.gradient_x = Eigen::MatrixXd::Zero(result.height, result.width);
     result.gradient_y = Eigen::MatrixXd::Zero(result.height, result.width);
-    result.local_polynomial_blocks.reserve(static_cast<std::size_t>(result.width * result.height));
-    for (int y = 0; y < result.height; ++y) {
-        for (int x = 0; x < result.width; ++x) {
-            const auto coefficient_block = extract_coefficient_block(result.coefficients, x, y);
-            auto local_block = build_local_polynomial_block(coefficient_block, result.qk);
-            // Same convention as the SubsetDIC reference pipeline:
-            // gradients are extracted at the pixel center, dx = dy = 0.5.
-            if (local_block.rows() > 1 && local_block.cols() > 1) {
-                result.gradient_x(y, x) = evaluate_polynomial_dx(local_block, 0.5, 0.5);
-                result.gradient_y(y, x) = evaluate_polynomial_dy(local_block, 0.5, 0.5);
+    if (config_.precompute_local_blocks) {
+        result.local_polynomial_blocks.reserve(static_cast<std::size_t>(result.width * result.height));
+        for (int y = 0; y < result.height; ++y) {
+            for (int x = 0; x < result.width; ++x) {
+                const auto coefficient_block = extract_coefficient_block(result.coefficients, x, y);
+                auto local_block = build_local_polynomial_block(coefficient_block, result.qk);
+                if (local_block.rows() > 1 && local_block.cols() > 1) {
+                    result.gradient_x(y, x) = evaluate_polynomial_dx(local_block, 0.5, 0.5);
+                    result.gradient_y(y, x) = evaluate_polynomial_dy(local_block, 0.5, 0.5);
+                }
+                result.local_polynomial_blocks.push_back(std::move(local_block));
             }
-            result.local_polynomial_blocks.push_back(std::move(local_block));
         }
     }
 

@@ -1,0 +1,56 @@
+solver: subset
+
+subset:
+  radius: 15
+  truncate_roi_subsets: true
+  min_valid_sample_ratio: 0.5
+  min_valid_samples: 12
+
+shape_function:
+  order: 2
+
+optimization:
+  method: icgn
+  max_iterations: 30
+  convergence_threshold: 1.0e-3
+
+correlation:
+  criterion: ssd
+
+interpolation:
+  method: bspline
+  degree: 5
+
+initialization:
+  method: integer_search
+
+  integer_search:
+    subset_radius: 10
+    search_radius: 30
+    pyramid_enabled: true
+    pyramid_scale: 4
+    pyramid_refinement_radius: 4
+
+  subpixel_refinement:
+    enabled: true
+    shape_function: second_order
+    optimizer: icgn
+    criterion: ssd
+    subset_radius: 15
+    max_iterations: 30
+    convergence_threshold: 1.0e-3
+
+seed_selection:
+  method: roi_kmeans
+  seed_count: 64
+  threads: 1
+  quality_metric: znssd
+  max_znssd: 0.2
+  min_displacement_norm: 0.0
+  min_texture_std: 0.02
+  kmeans_iterations: 20
+  kmeans_sample_limit: 20000
+
+reliability_propagation:
+  spacing: 3
+  max_znssd: 100.0

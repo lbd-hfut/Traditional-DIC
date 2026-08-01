@@ -135,12 +135,14 @@ SeedSelectionResult SeedSelector::select_best_seed(const Image& reference,
     BSplineInterpolator reference_interpolator(nullptr);
     BSplineInterpolator deformed_interpolator(nullptr);
     std::optional<BSplinePrecomputedImage> deformed_precomputed;
-    if (config_.seed_initialization.subpixel.enabled &&
-        config_.seed_initialization.subpixel.optimizer == SubsetOptimizationMethod::ICGN) {
+    if (config_.seed_initialization.subpixel.enabled) {
         auto precompute_config = config_.image_precompute;
-        precompute_config.use_exact_prefilter = false;
+        precompute_config.precompute_local_blocks = false;
         BSplineImagePreprocessor preprocessor(precompute_config);
-        deformed_precomputed = preprocessor.compute_lazy(deformed);
+        // FGN recomputes deformed image gradients every iteration, so accurate
+        // coefficients are essential.  Use full compute() (with IIR prefilter)
+        // but skip local-block storage to keep memory and build time low.
+        deformed_precomputed = preprocessor.compute(deformed);
         deformed_interpolator = BSplineInterpolator(&(*deformed_precomputed));
     }
 
@@ -156,10 +158,20 @@ SeedSelectionResult SeedSelector::select_best_seed(const Image& reference,
         );
         if (evaluation.valid && evaluation.quality_passed &&
             evaluation.displacement_norm >= config_.seed_selection.min_displacement_norm) {
-            if (!result.found ||
-                evaluation.displacement_norm > result.best_seed.displacement_norm) {
+            // Pick the seed with the best quality (lowest ZNSSD/SSD or highest ZNCC),
+            // not the largest displacement.  Large displacements can be spurious
+            // local minima (especially with FGN), whereas best match quality is
+            // the most reliable indicator of a correct convergence.
+            if (!result.found) {
                 result.best_seed = evaluation;
                 result.found = true;
+            } else {
+                const bool better = (config_.seed_selection.quality_metric == SeedQualityMetric::ZNCC)
+                    ? (evaluation.quality > result.best_seed.quality)   // higher ZNCC = better
+                    : (evaluation.quality < result.best_seed.quality);  // lower ZNSSD/SSD = better
+                if (better) {
+                    result.best_seed = evaluation;
+                }
             }
         }
         result.candidates.push_back(evaluation);

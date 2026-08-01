@@ -64,9 +64,48 @@ private:
                                                   const InitialDisplacement& initial,
                                                   const BSplineInterpolator& reference_interpolator,
                                                   const BSplineInterpolator& deformed_interpolator) const;
-    Displacement2D solve_first_order_ssd_placeholder(const Eigen::Vector2d& point, const InitialDisplacement& initial) const;
-    Displacement2D solve_second_order_znssd_placeholder(const Eigen::Vector2d& point, const InitialDisplacement& initial) const;
-    Displacement2D solve_second_order_ssd_placeholder(const Eigen::Vector2d& point, const InitialDisplacement& initial) const;
+    Displacement2D solve_first_order_ssd(const Image& reference, const Image& deformed, const Eigen::Vector2d& point, const InitialDisplacement& initial) const;
+    Displacement2D solve_first_order_ssd(const Image& reference,
+                                          const Image& deformed,
+                                          const Eigen::Vector2d& point,
+                                          const InitialDisplacement& initial,
+                                          const BSplineInterpolator& reference_interpolator,
+                                          const BSplineInterpolator& deformed_interpolator) const;
+    Displacement2D solve_first_order_ssd_masked(const Image& reference,
+                                                 const Image& deformed,
+                                                 const Mask& roi,
+                                                 const Eigen::Vector2d& point,
+                                                 const InitialDisplacement& initial,
+                                                 const BSplineInterpolator& reference_interpolator,
+                                                 const BSplineInterpolator& deformed_interpolator) const;
+    Displacement2D solve_second_order_znssd(const Image& reference, const Image& deformed, const Eigen::Vector2d& point, const InitialDisplacement& initial) const;
+    Displacement2D solve_second_order_znssd(const Image& reference,
+                                             const Image& deformed,
+                                             const Eigen::Vector2d& point,
+                                             const InitialDisplacement& initial,
+                                             const BSplineInterpolator& reference_interpolator,
+                                             const BSplineInterpolator& deformed_interpolator) const;
+    Displacement2D solve_second_order_znssd_masked(const Image& reference,
+                                                    const Image& deformed,
+                                                    const Mask& roi,
+                                                    const Eigen::Vector2d& point,
+                                                    const InitialDisplacement& initial,
+                                                    const BSplineInterpolator& reference_interpolator,
+                                                    const BSplineInterpolator& deformed_interpolator) const;
+    Displacement2D solve_second_order_ssd(const Image& reference, const Image& deformed, const Eigen::Vector2d& point, const InitialDisplacement& initial) const;
+    Displacement2D solve_second_order_ssd(const Image& reference,
+                                            const Image& deformed,
+                                            const Eigen::Vector2d& point,
+                                            const InitialDisplacement& initial,
+                                            const BSplineInterpolator& reference_interpolator,
+                                            const BSplineInterpolator& deformed_interpolator) const;
+    Displacement2D solve_second_order_ssd_masked(const Image& reference,
+                                                   const Image& deformed,
+                                                   const Mask& roi,
+                                                   const Eigen::Vector2d& point,
+                                                   const InitialDisplacement& initial,
+                                                   const BSplineInterpolator& reference_interpolator,
+                                                   const BSplineInterpolator& deformed_interpolator) const;
     Displacement2D solve_unimplemented(const Eigen::Vector2d& point, const InitialDisplacement& initial) const;
 
     // TODO: Reference subset -> reference gradient -> shape Jacobian ->

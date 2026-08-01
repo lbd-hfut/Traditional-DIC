@@ -102,7 +102,7 @@ TEST(SeedSelector, GeneratesKmeansCandidatesAcrossHollowRoi)
     }
 }
 
-TEST(SeedSelector, SelectsQualityPassingCandidateWithLargestDisplacement)
+TEST(SeedSelector, SelectsBestQualityCandidate)
 {
     const auto reference = make_seed_image(80, 80, 0.0, 0.0);
     const auto deformed = make_seed_image(80, 80, 2.35, -1.45);
@@ -118,9 +118,12 @@ TEST(SeedSelector, SelectsQualityPassingCandidateWithLargestDisplacement)
     EXPECT_NEAR(result.best_seed.displacement.u, 2.35, 0.5);
     EXPECT_NEAR(result.best_seed.displacement.v, -1.45, 0.5);
 
+    // The best seed should have the best quality (lowest ZNSSD), not the
+    // largest displacement norm.  All valid candidates on this synthetic
+    // image recover the same displacement with similar quality.
     for (const auto& candidate : result.candidates) {
         if (candidate.valid && candidate.quality_passed) {
-            EXPECT_LE(candidate.displacement_norm, result.best_seed.displacement_norm + 1e-12);
+            EXPECT_LE(result.best_seed.quality, candidate.quality + 1e-12);
         }
     }
 }

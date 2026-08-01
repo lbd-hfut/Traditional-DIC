@@ -45,12 +45,13 @@ InitialDisplacement SubsetInitializer::estimate(
     std::optional<BSplinePrecomputedImage> deformed_precomputed;
 
     const auto& subpixel_config = config_.seed_initialization.subpixel;
-    if (subpixel_config.enabled &&
-        subpixel_config.optimizer == SubsetOptimizationMethod::ICGN) {
+    if (subpixel_config.enabled) {
         auto precompute_config = config_.image_precompute;
-        precompute_config.use_exact_prefilter = false;
+        precompute_config.precompute_local_blocks = false;
         BSplineImagePreprocessor preprocessor(precompute_config);
-        deformed_precomputed = preprocessor.compute_lazy(deformed);
+        // FGN recomputes deformed image gradients every iteration; accurate
+        // coefficients (with IIR prefilter) are essential.
+        deformed_precomputed = preprocessor.compute(deformed);
         deformed_interpolator = BSplineInterpolator(&(*deformed_precomputed));
     }
 
@@ -104,7 +105,14 @@ InitialDisplacement SubsetInitializer::estimate_with_interpolators(
         );
     } else {
         const ForwardGaussNewtonSolver solver(solver_config);
-        refined = solver.solve(reference, deformed, point, integer_initial);
+        refined = solver.solve_with_interpolators(
+            reference,
+            deformed,
+            point,
+            integer_initial,
+            reference_interpolator,
+            deformed_interpolator
+        );
     }
 
     if (refined.valid && refined.status == SolverStatus::Success) {
@@ -137,12 +145,13 @@ InitialDisplacement SubsetInitializer::estimate_with_mask(
     std::optional<BSplinePrecomputedImage> deformed_precomputed;
 
     const auto& subpixel_config = config_.seed_initialization.subpixel;
-    if (subpixel_config.enabled &&
-        subpixel_config.optimizer == SubsetOptimizationMethod::ICGN) {
+    if (subpixel_config.enabled) {
         auto precompute_config = config_.image_precompute;
-        precompute_config.use_exact_prefilter = false;
+        precompute_config.precompute_local_blocks = false;
         BSplineImagePreprocessor preprocessor(precompute_config);
-        deformed_precomputed = preprocessor.compute_lazy(deformed);
+        // FGN recomputes deformed image gradients every iteration; accurate
+        // coefficients (with IIR prefilter) are essential.
+        deformed_precomputed = preprocessor.compute(deformed);
         deformed_interpolator = BSplineInterpolator(&(*deformed_precomputed));
     }
 
@@ -205,7 +214,15 @@ InitialDisplacement SubsetInitializer::estimate_with_mask_interpolators(
         );
     } else {
         const ForwardGaussNewtonSolver solver(solver_config);
-        refined = solver.solve(reference, deformed, point, integer_initial);
+        refined = solver.solve_with_mask(
+            reference,
+            deformed,
+            roi,
+            point,
+            integer_initial,
+            reference_interpolator,
+            deformed_interpolator
+        );
     }
 
     if (refined.valid && refined.status == SolverStatus::Success) {

@@ -140,7 +140,8 @@ int main(int argc, char** argv)
         const dic::SubsetDIC solver(config);
         const auto results = solver.compute(reference, deformed, roi);
 
-        (*out) << "index,x,y,u,v,matched_x,matched_y,quality,du_dx,du_dy,dv_dx,dv_dy,valid\n";
+        (*out) << "index,x,y,u,v,matched_x,matched_y,quality,du_dx,du_dy,dv_dx,dv_dy,"
+                  "d2u_dx2,d2u_dxdy,d2u_dy2,d2v_dx2,d2v_dxdy,d2v_dy2,valid\n";
         for (std::size_t i = 0; i < results.size(); ++i) {
             const auto& result = results[i];
             (*out) << i << ','
@@ -155,6 +156,12 @@ int main(int argc, char** argv)
                    << result.du_dy << ','
                    << result.dv_dx << ','
                    << result.dv_dy << ','
+                   << result.d2u_dx2 << ','
+                   << result.d2u_dxdy << ','
+                   << result.d2u_dy2 << ','
+                   << result.d2v_dx2 << ','
+                   << result.d2v_dxdy << ','
+                   << result.d2v_dy2 << ','
                    << (result.valid ? 1 : 0) << '\n';
         }
 
