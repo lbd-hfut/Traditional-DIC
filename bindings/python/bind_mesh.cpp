@@ -236,6 +236,17 @@ dic::MeshConfig mesh_config_from_dict(py::dict d)
         cfg.search_radius = get_int(m, "search_radius", cfg.search_radius);
         cfg.regularization_alpha = get_double(m, "regularization_alpha", cfg.regularization_alpha);
         cfg.mirror_image_padding = get_bool(m, "mirror_image_padding", cfg.mirror_image_padding);
+        if (m.contains("optimization_method")) {
+            const std::string method = py::cast<std::string>(m["optimization_method"]);
+            if (method == "fedic_element_icgn") {
+                cfg.optimization_method = dic::MeshOptimizationMethod::FEDICElementICGN;
+            } else if (method == "fedic_element_fgn") {
+                cfg.optimization_method = dic::MeshOptimizationMethod::FEDICElementFGN;
+            } else {
+                throw std::runtime_error(
+                    "Mesh optimization_method must be 'fedic_element_icgn' or 'fedic_element_fgn'.");
+            }
+        }
     }
 
     if (d.contains("interpolation")) {

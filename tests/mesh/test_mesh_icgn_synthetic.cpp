@@ -121,6 +121,33 @@ TEST(MeshICGN, Q4_SubpixelTranslation) {
     EXPECT_NEAR(sv/cnt, dv, 0.7);
 }
 
+TEST(MeshFGN, Q4_SubpixelTranslation) {
+    const int w=60, h=60, nx=2, ny=2;
+    const double du=1.5, dv=-1.0;
+    auto ref = make_img(w,h,w/2.0,h/2.0);
+    auto def = make_img(w,h,w/2.0+du,h/2.0+dv);
+
+    dic::MeshConfig cfg;
+    cfg.max_iterations = 15; cfg.convergence_threshold = 1e-5;
+    cfg.regularization_alpha = 1e-6; cfg.search_radius = 8;
+    cfg.fedic_fft_initialization.window_size = 21;
+    cfg.fedic_fft_initialization.search_radius = 8;
+    cfg.optimization_method = dic::MeshOptimizationMethod::FEDICElementFGN;
+
+    dic::MeshDIC s(cfg);
+    auto r = s.compute(ref, def, make_q4_mesh(w,h,nx,ny));
+
+    int npx=nx+1, npy=ny+1; double su=0, sv=0; int cnt=0;
+    for (size_t i = 0; i < r.size(); ++i) {
+        int col=i%npx, row=i/npx;
+        if (col==0||col==npx-1||row==0||row==npy-1) continue;
+        su+=r[i].u; sv+=r[i].v; ++cnt;
+    }
+    ASSERT_GT(cnt, 0);
+    EXPECT_NEAR(su/cnt, du, 0.7);
+    EXPECT_NEAR(sv/cnt, dv, 0.7);
+}
+
 TEST(MeshICGN, Q8_ZeroDisplacement) {
     const int w=60, h=60, nx=2, ny=2;
     auto ref = make_img(w,h,w/2.0,h/2.0);

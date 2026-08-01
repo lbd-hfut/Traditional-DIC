@@ -83,6 +83,7 @@ TEST(MeshDICIntegration, RecoversUniformTranslationQ4)
     config.convergence_threshold = 1e-3;
     config.regularization_alpha = 0.0;
     config.search_radius = 12;
+    config.mirror_image_padding = true;
     config.fedic_fft_initialization.window_size = 21;
     config.fedic_fft_initialization.search_radius = 12;
 
@@ -121,6 +122,7 @@ TEST(MeshDICIntegration, RecoversZeroDisplacementQ4)
     config.convergence_threshold = 1e-2;
     config.regularization_alpha = 0.0;
     config.search_radius = 12;
+    config.mirror_image_padding = true;
     config.fedic_fft_initialization.window_size = 21;
     config.fedic_fft_initialization.search_radius = 12;
 

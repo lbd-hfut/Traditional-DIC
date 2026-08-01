@@ -27,6 +27,7 @@ using mesh::internal::G2LParams;
 using mesh::internal::StiffnessCache;
 using mesh::internal::nodes_per_element;
 using mesh::internal::assemble_stiffness;
+using mesh::internal::global_fgn;
 using mesh::internal::global_icgn;
 using mesh::internal::compute_global_to_local;
 
@@ -388,11 +389,16 @@ static void solve_global_mesh_displacement(
     const BSplineInterpolator* def_interp,
     double alpha,
     double tol,
-    int max_it)
+    int max_it,
+    MeshOptimizationMethod method)
 {
-    global_icgn(cache, g2l, ref_img, img_h, img_w,
-                elements, n_elements, U, def_interp, alpha, tol, max_it,
-                0.0);
+    if (method == MeshOptimizationMethod::FEDICElementFGN) {
+        global_fgn(cache, g2l, ref_img, img_h, img_w,
+                   elements, n_elements, U, def_interp, alpha, tol, max_it, 0.0);
+    } else {
+        global_icgn(cache, g2l, ref_img, img_h, img_w,
+                    elements, n_elements, U, def_interp, alpha, tol, max_it, 0.0);
+    }
 }
 
 MeshDIC::MeshDIC(MeshConfig config) : config_(config) {}
@@ -525,7 +531,8 @@ std::vector<Displacement2D> MeshDIC::compute(
     double tol = config_.convergence_threshold;
     int max_it = config_.max_iterations;
     solve_global_mesh_displacement(cache, g2l, ref_flat.data(), img_h, img_w,
-        elements_flat.data(), n_elements, U, &def_interp, alpha, tol, max_it);
+        elements_flat.data(), n_elements, U, &def_interp, alpha, tol, max_it,
+        config_.optimization_method);
 
     // ---- 9-10. Write back + convert ----
     std::vector<Displacement2D> results; results.reserve(n_nodes);

@@ -521,4 +521,150 @@ int global_icgn(
     return max_iter;
 }
 
+int global_fgn(
+    const StiffnessCache& cache,
+    const G2LOutput& g2l,
+    const double* ref_img, int img_h, int img_w,
+    const int* elements, int n_elements,
+    Eigen::VectorXd& U,
+    const BSplineInterpolator* def_interp,
+    double alpha, double tol, int max_iter, double beta)
+{
+    (void)g2l;
+    const std::vector<int>& free_dofs = cache.fedic_free_dofs;
+    const int n_free = static_cast<int>(free_dofs.size());
+    if (n_free == 0 || def_interp == nullptr) return -1;
+
+    const mesh::MeshElementType type = cache.element_type;
+    const int nn = nodes_per_element(type);
+    const int dof = 2 * nn;
+    const bool has_initial = U.squaredNorm() > 0.0;
+
+    for (int iter = 0; iter < max_iter; ++iter) {
+        std::vector<Eigen::Triplet<double>> triplets;
+        Eigen::VectorXd b = Eigen::VectorXd::Zero(cache.fem_size);
+        triplets.reserve(cache.A.nonZeros());
+
+        for (int e = 0; e < n_elements; ++e) {
+            const int n_pix = static_cast<int>(cache.elem_samples[e].size());
+            if (n_pix == 0) continue;
+
+            const auto& dofs = cache.elem_dofs[e];
+            Eigen::VectorXd U_e(dof);
+            for (int k = 0; k < nn; ++k) {
+                U_e(2 * k) = U(dofs[2 * k]);
+                U_e(2 * k + 1) = U(dofs[2 * k + 1]);
+            }
+
+            Eigen::MatrixXd A_e = Eigen::MatrixXd::Zero(dof, dof);
+            Eigen::VectorXd b_e = Eigen::VectorXd::Zero(dof);
+            std::vector<double> N_loc;
+            for (int pi = 0; pi < n_pix; ++pi) {
+                const auto& sample = cache.elem_samples[e][pi];
+                const int idx = sample.pixel_index;
+                const int py = idx / img_w;
+                const int px = idx % img_w;
+
+                shape_values_only(type, sample.xi, sample.eta, N_loc);
+                double u_ip = 0.0;
+                double v_ip = 0.0;
+                for (int k = 0; k < nn; ++k) {
+                    u_ip += N_loc[k] * U_e(2 * k);
+                    v_ip += N_loc[k] * U_e(2 * k + 1);
+                }
+                const double wx = cache.fedic_compatible ? px + u_ip
+                    : std::max(0.0, std::min(static_cast<double>(img_w - 1), px + u_ip));
+                const double wy = cache.fedic_compatible ? py + v_ip
+                    : std::max(0.0, std::min(static_cast<double>(img_h - 1), py + v_ip));
+
+                const double r = ref_img[idx] - def_interp->value(wx, wy);
+                const Eigen::Vector2d grad = def_interp->gradient(wx, wy);
+                if (!std::isfinite(r) || !grad.allFinite()) continue;
+
+                Eigen::VectorXd jac(dof);
+                for (int k = 0; k < nn; ++k) {
+                    jac(2 * k) = N_loc[k] * grad.x();
+                    jac(2 * k + 1) = N_loc[k] * grad.y();
+                }
+                A_e.noalias() += jac * jac.transpose();
+                b_e.noalias() += r * jac;
+
+                Eigen::Map<const Eigen::Matrix<double, 4, Eigen::Dynamic, Eigen::RowMajor>>
+                    DN_mat(cache.elem_DN_cache[e].row(pi).data(), 4, dof);
+                A_e.noalias() += alpha * DN_mat.transpose() * DN_mat;
+                b_e.noalias() -= alpha * DN_mat.transpose() * DN_mat * U_e;
+            }
+
+            if (beta > 0.0) {
+                A_e.diagonal().array() += beta;
+                b_e.noalias() -= beta * U_e;
+            }
+            for (int i = 0; i < dof; ++i) {
+                b(dofs[i]) += b_e(i);
+                for (int j = 0; j < dof; ++j) {
+                    if (std::abs(A_e(i, j)) > 1e-15)
+                        triplets.push_back({dofs[i], dofs[j], A_e(i, j)});
+                }
+            }
+        }
+
+        Eigen::SparseMatrix<double> A(cache.fem_size, cache.fem_size);
+        A.setFromTriplets(triplets.begin(), triplets.end());
+        A.makeCompressed();
+
+        std::vector<Eigen::Triplet<double>> free_triplets;
+        free_triplets.reserve(A.nonZeros());
+        for (int k = 0; k < A.outerSize(); ++k) {
+            for (Eigen::SparseMatrix<double>::InnerIterator it(A, k); it; ++it) {
+                const auto ir = std::lower_bound(free_dofs.begin(), free_dofs.end(), static_cast<int>(it.row()));
+                const auto ic = std::lower_bound(free_dofs.begin(), free_dofs.end(), static_cast<int>(it.col()));
+                if (ir != free_dofs.end() && *ir == it.row() &&
+                    ic != free_dofs.end() && *ic == it.col()) {
+                    free_triplets.push_back({static_cast<int>(ir - free_dofs.begin()),
+                                             static_cast<int>(ic - free_dofs.begin()), it.value()});
+                }
+            }
+        }
+        Eigen::SparseMatrix<double> A_free(n_free, n_free);
+        A_free.setFromTriplets(free_triplets.begin(), free_triplets.end());
+        A_free.makeCompressed();
+        Eigen::SparseLU<Eigen::SparseMatrix<double>> solver;
+        solver.compute(A_free);
+        if (solver.info() != Eigen::Success) return -1;
+
+        Eigen::VectorXd b_free(n_free);
+        for (int i = 0; i < n_free; ++i) b_free(i) = b(free_dofs[i]);
+        const Eigen::VectorXd dU_free = solver.solve(b_free);
+        if (solver.info() != Eigen::Success) return -1;
+
+        const double norm_dof = type == mesh::MeshElementType::T3
+            ? static_cast<double>(cache.fem_size) : static_cast<double>(n_free);
+        const double raw_normW = dU_free.norm() / std::sqrt(norm_dof);
+        if (!std::isfinite(raw_normW)) return -1;
+        if (raw_normW > 0.1 / tol) return (iter == 0 && !has_initial) ? -1 : iter;
+
+        double step = raw_normW > 0.1 ? 0.1 / raw_normW : 1.0;
+        const double obj0 = compute_objective(cache, g2l, ref_img, img_h, img_w,
+                                              elements, n_elements, U, def_interp, alpha, beta);
+        if (!std::isfinite(obj0)) return -1;
+        Eigen::VectorXd U_trial = U;
+        bool accepted = false;
+        for (int bt = 0; bt < 12; ++bt) {
+            U_trial = U;
+            for (int i = 0; i < n_free; ++i) U_trial(free_dofs[i]) += step * dU_free(i);
+            const double obj1 = compute_objective(cache, g2l, ref_img, img_h, img_w,
+                                                  elements, n_elements, U_trial, def_interp, alpha, beta);
+            if (std::isfinite(obj1) && obj1 <= obj0) {
+                accepted = true;
+                break;
+            }
+            step *= 0.5;
+        }
+        if (!accepted) return (iter == 0 && !has_initial) ? -1 : iter;
+        U = U_trial;
+        if (step * raw_normW < tol) return iter + 1;
+    }
+    return max_iter;
+}
+
 } // namespace dic::mesh::internal

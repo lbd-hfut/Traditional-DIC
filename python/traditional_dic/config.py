@@ -36,8 +36,10 @@ def normalize_mesh_config(config: dict[str, Any] | None) -> dict[str, Any]:
     interpolation = dict(src.get("interpolation", {}) or {})
 
     method = str(optimization.get("method", "fedic_element_icgn")).strip().lower()
-    if method != "fedic_element_icgn":
-        raise ValueError("Mesh optimization.method must be 'fedic_element_icgn'.")
+    if method not in {"fedic_element_icgn", "fedic_element_fgn"}:
+        raise ValueError(
+            "Mesh optimization.method must be 'fedic_element_icgn' or 'fedic_element_fgn'."
+        )
 
     out["mesh"] = {
         "max_iterations": optimization.get("max_iterations", mesh.get("max_iterations", 30)),
@@ -46,6 +48,7 @@ def normalize_mesh_config(config: dict[str, Any] | None) -> dict[str, Any]:
         ),
         "regularization_alpha": optimization.get("regularization_alpha", mesh.get("regularization_alpha", 0.0)),
         "mirror_image_padding": optimization.get("mirror_image_padding", mesh.get("mirror_image_padding", False)),
+        "optimization_method": method,
         "search_radius": initialization.get("fedic_fft", {}).get("search_radius", mesh.get("search_radius", 30)),
     }
     out["interpolation"] = interpolation

@@ -1,30 +1,35 @@
+# This file configures only the Mesh-DIC route; it does not change subset DIC.
 solver: mesh  # options: subset, mesh
 
 mesh:
+  # Default element type when a caller does not explicitly select one.
+  # Q8 keeps its curved-edge global-to-natural filtering; do not replace a curved Q8 boundary with a Q4 polygon.
   element_type: q4  # options: t3, q4, q8
 
-# Mesh generation sizes are in image pixels.
+# Mesh-generation lengths are in reference-image pixels. A larger target element size
+# is usually sufficient for a smooth displacement field and reduces global solve cost.
 mesh_generation:
   # options: auto, manual, structured, unstructured
   # auto: use the built-in ROI/mask generator.
   # manual: read a user-supplied mesh from nodes_file/elements_file.
   method: auto
 
+  # Q8 adds midside nodes and supports curved element edges generated from the ROI boundary.
   element_type: q4  # options: t3, q4, q8
 
-  target_element_size: 75.0  # positive pixels; target characteristic element size
+  target_element_size: 75.0  # positive pixels; target element edge scale
 
-  min_element_size: 45.0  # 0 or positive pixels; lower accepted element size
+  min_element_size: 45.0  # 0 disables this lower size preference
 
-  max_element_size: 110.0  # 0 or positive pixels; upper accepted element size
+  max_element_size: 110.0  # 0 disables this upper size preference
 
-  fit_roi_boundary: true  # options: true, false
+  fit_roi_boundary: true  # preserve the ROI boundary; useful for annular and other non-rectangular domains
 
   remove_outside_elements: true  # options: true, false
 
   remove_outside_nodes: true  # options: true, false
 
-  allow_partial_elements: false  # options: true, false
+  allow_partial_elements: false  # false keeps only elements fully accepted by the ROI policy
 
   min_element_quality: 0.1  # non-negative; larger rejects poorer elements
 
@@ -33,31 +38,40 @@ mesh_generation:
   min_jacobian: 0.05  # positive; lower bound for accepted element Jacobian quality
 
 optimization:
-  method: fedic_element_icgn
-  max_iterations: 30  # positive integer
-  convergence_threshold: 1.0e-3  # positive floating point tolerance
-  regularization_alpha: 0.0  # non-negative displacement-gradient regularization weight
-  mirror_image_padding: true  # options: true, false; true mirror-pads images for interpolation/search near image boundaries
+  # fedic_element_icgn: reference-gradient, constant Hessian; default and lower cost.
+  # fedic_element_fgn: deformed-gradient, reassembled Hessian each iteration; more expensive but useful for comparison.
+  method: fedic_element_icgn  # options: fedic_element_icgn, fedic_element_fgn
+  max_iterations: 30  # positive integer; cap for the selected global solver
+  convergence_threshold: 1.0e-3  # normalized global nodal-update tolerance in pixels
+  regularization_alpha: 0.0  # non-negative displacement-gradient energy weight; 0 leaves the data term unregularized
+  # Required for reliable FFT initialization/interpolation at nodes near an image edge.
+  # Padding width is derived from FFT window/search radii and B-spline border; reported coordinates remain unpadded.
+  mirror_image_padding: true  # options: true, false
 
 interpolation:
+  # Shared B-spline interpolation used for warped intensities; FGN also samples its gradient at the warped point.
   method: bspline  # options: bspline
-  degree: 5  # options: 1, 3, 5
+  degree: 5  # options: 1, 3, 5; higher degree is smoother but costs more per sample
 
 initialization:
-  method: fedic_fft
+  # Mesh-only nodal initialization. It is independent of subset initialization.
+  method: fedic_fft  # options: fedic_fft
 
   fedic_fft:
-    # FE-DIC funIntegerSearchPt uses an independent square winsize.
-    window_size: 75
-    search_radius: 30
-    mirror_boundary_fallback: true  # use mirrored images only when the FE-DIC window crosses an image boundary
+    # FE-DIC-style independent square FFT correlation window on each mesh node.
+    # Use a window smaller than the local deformation scale but large enough to contain speckle texture.
+    window_size: 75  # positive pixels; normally choose an odd size
+    search_radius: 30  # non-negative pixels; integer displacement search range around each node
+    # With optimization.mirror_image_padding=true, retry only invalid edge windows on the padded images.
+    mirror_boundary_fallback: true  # options: true, false
 
   quality_control:
-    enabled: false  # options: true, false; mesh-only nodal initialization filtering/repair
-    min_zncc: -1.0  # lower NCC reliability threshold; values below are treated as invalid
-    max_znssd: .inf  # upper ZNSSD reliability threshold; values above are treated as invalid
-    fedic_qfactor_enabled: false  # FE-DIC PCE/PPE correlation-surface quality filter
+    # Optional mesh-only rejection and neighbor repair after FFT initialization, before the global solver.
+    enabled: false  # options: true, false
+    min_zncc: -1.0  # lower normalized-correlation reliability threshold; -1 disables rejection by ZNCC
+    max_znssd: .inf  # upper ZNSSD reliability threshold; .inf disables rejection by ZNSSD
+    fedic_qfactor_enabled: false  # enable FE-DIC PCE/PPE correlation-surface reliability filtering
     fedic_qfactor_std_factor: 1.25  # reject q-factors below mean - factor * standard deviation
-    neighbor_mad_factor: 4.0  # robust local displacement outlier cutoff
-    max_neighbor_deviation: 0.0  # pixels; 0 disables absolute local deviation cap
-    interpolation_neighbors: 8  # positive integer; nearest valid nodes used for repair
+    neighbor_mad_factor: 4.0  # robust local displacement-outlier threshold from neighbor MAD
+    max_neighbor_deviation: 0.0  # pixels; 0 disables the additional absolute neighbor-deviation limit
+    interpolation_neighbors: 8  # positive integer; nearest valid nodes used to repair rejected initial values

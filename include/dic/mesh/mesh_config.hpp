@@ -36,6 +36,11 @@ enum class MeshNodalInitializationMethod {
     FEDICFFT
 };
 
+enum class MeshOptimizationMethod {
+    FEDICElementICGN,
+    FEDICElementFGN
+};
+
 struct MeshConfig {
     int max_iterations{30};
     double convergence_threshold{1e-3};
@@ -43,6 +48,7 @@ struct MeshConfig {
     double regularization_alpha{0.0};
     bool mirror_image_padding{false};
     BSplinePrecomputeConfig image_precompute{};
+    MeshOptimizationMethod optimization_method{MeshOptimizationMethod::FEDICElementICGN};
     MeshNodalInitializationMethod nodal_initialization_method{
         MeshNodalInitializationMethod::FEDICFFT};
 

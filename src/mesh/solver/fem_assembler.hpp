@@ -90,4 +90,15 @@ int global_icgn(
     const BSplineInterpolator* def_interp,
     double alpha, double tol, int max_iter, double beta);
 
+// Forward-additive GN: rebuilds the Jacobian and Hessian from the deformed
+// image gradient at the current warped coordinates on every iteration.
+int global_fgn(
+    const StiffnessCache& cache,
+    const G2LOutput& g2l,
+    const double* ref_img, int img_h, int img_w,
+    const int* elements, int n_elements,
+    Eigen::VectorXd& U,
+    const BSplineInterpolator* def_interp,
+    double alpha, double tol, int max_iter, double beta);
+
 } // namespace dic::mesh::internal
