@@ -20,6 +20,7 @@ if str(PYTHON_ROOT) not in sys.path:
 
 import traditional_dic as tdic  # noqa: E402
 from traditional_dic.config import load_config, normalize_subset_config  # noqa: E402
+from traditional_dic.visualization import plot_2d_field_overlay, visualization_dir_for_result  # noqa: E402
 
 
 def read_gray(path: Path) -> np.ndarray:
@@ -120,9 +121,22 @@ def write_stats(result: dict[str, np.ndarray], path: Path) -> None:
 def write_legend(path: Path, component: str, vmin: float, vmax: float) -> None:
     path.write_text(
         f"component={component}\ncolor_min={vmin}\ncolor_max={vmax}\n"
-        "colormap=blue-green-red percentile clipped\n",
+        "colormap=jet percentile clipped\n",
         encoding="utf-8",
     )
+
+
+def field_limits(result: dict[str, np.ndarray], component: str) -> tuple[float, float]:
+    valid = np.asarray(result["valid"], dtype=bool)
+    u = np.asarray(result["u"], dtype=np.float64)[valid]
+    v = np.asarray(result["v"], dtype=np.float64)[valid]
+    values = u if component == "u" else v if component == "v" else np.hypot(u, v)
+    if values.size == 0:
+        return 0.0, 1.0
+    vmin, vmax = np.percentile(values, [1.0, 99.0])
+    if component == "mag":
+        vmin = 0.0
+    return float(vmin), float(vmax)
 
 
 def save_overview(out_dir: Path) -> None:
@@ -156,6 +170,8 @@ def main() -> None:
     args = parser.parse_args()
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
+    visualization_dir = visualization_dir_for_result(args.reference.parent, args.out_dir)
+    visualization_dir.mkdir(parents=True, exist_ok=True)
     reference = read_gray(args.reference)
     deformed = read_gray(args.deformed)
     roi = read_mask(args.roi)
@@ -176,14 +192,23 @@ def main() -> None:
 
     save_subset_csv(result, args.out_dir / "displacements.csv")
     write_stats(result, args.out_dir / "stats.json")
-    height, width = reference.shape
     for component in ("mag", "u", "v"):
-        image, vmin, vmax = render_points(result, component, width, height)
-        image.save(args.out_dir / f"subset_field_{component}.png")
-        write_legend(args.out_dir / f"subset_field_{component}_legend.txt", component, vmin, vmax)
-    save_overview(args.out_dir)
+        vmin, vmax = field_limits(result, component)
+        label = "|U| px" if component == "mag" else f"{component} px"
+        plot_2d_field_overlay(
+            reference,
+            result,
+            visualization_dir / f"subset_field_{component}.png",
+            component=component,
+            title=f"Subset {label}",
+            label=label,
+            cmap="jet",
+        )
+        write_legend(visualization_dir / f"subset_field_{component}_legend.txt", component, vmin, vmax)
+    save_overview(visualization_dir)
 
     print(f"Wrote Subset-DIC results to {args.out_dir}")
+    print(f"Wrote Subset-DIC visualizations to {visualization_dir}")
 
 
 if __name__ == "__main__":

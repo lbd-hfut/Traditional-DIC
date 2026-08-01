@@ -25,6 +25,7 @@ from traditional_dic.multiview import (  # noqa: E402
     save_pair_selection_report,
     select_camera_pairs,
 )
+from traditional_dic.visualization import visualization_dir_for_result  # noqa: E402
 
 
 def _natural_key(path: Path) -> list[int | str]:
@@ -293,10 +294,11 @@ def _plot_camera_observations_2d(data: Mapping[str, Any], out_dir: Path, dpi: in
 
 def _save_calibration_visualization(
     calibration_data: Mapping[str, Any],
+    case_root: Path,
     calibration_dir: Path,
     image_paths: Sequence[Path],
 ) -> dict[str, str]:
-    out_dir = calibration_dir / "visualization"
+    out_dir = visualization_dir_for_result(case_root, calibration_dir)
     data = _calibration_visualization_data(calibration_data, image_paths)
     _save_calibration_visualization_products(data, out_dir)
     outputs = {
@@ -364,6 +366,7 @@ def run_pipeline(
     scaled_calibration_data = _scaled_calibration_data(calibration_data, scale_data)
     visualization_outputs = _save_calibration_visualization(
         scaled_calibration_data,
+        case_root,
         calibration_dir,
         image_paths,
     )

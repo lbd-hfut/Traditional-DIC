@@ -493,6 +493,7 @@ def compute_pairwise_2d_dic(
     from .config import load_config, mesh_generation_config, normalize_mesh_config, normalize_subset_config
     from .mesh import mesh as compute_mesh
     from .subset import subset as compute_subset
+    from .visualization import visualization_dir_for_result
 
     case_root = Path(case_root)
     mv_cfg = _load_multiview_config(config, case_root)
@@ -526,6 +527,7 @@ def compute_pairwise_2d_dic(
         pairs = pairs[: max(0, int(opts.max_pairs))]
 
     root_out = _case_path(case_root, opts.output_dir)
+    visualization_out = visualization_dir_for_result(case_root, root_out)
     mask_root = _case_path(case_root, opts.roi_dir)
     pair_dirs: list[str] = []
     roi_overview_items: list[tuple[str, Path]] = []
@@ -569,6 +571,7 @@ def compute_pairwise_2d_dic(
 
         if opts.run_subset:
             subset_dir = pair_root / "subset"
+            subset_visualization_dir = visualization_out / pair_label / "subset"
             subset_solve_roi = left_mask if str(opts.subset_solve_roi_mode).lower() == "left_mask" else roi
             _compute_standard_subset_fields(
                 compute_subset,
@@ -578,6 +581,7 @@ def compute_pairwise_2d_dic(
                 roi,
                 subset_cfg,
                 subset_dir,
+                subset_visualization_dir,
                 width,
                 height,
             )
@@ -588,10 +592,12 @@ def compute_pairwise_2d_dic(
             for etype in mesh_types:
                 nodes, elements = mesh_data[etype]
                 mesh_dir = mesh_root / etype
+                mesh_visualization_dir = visualization_out / pair_label / "mesh" / etype
                 mesh_gen_dir = mesh_dir / "meshGen"
+                mesh_visualization_gen_dir = mesh_visualization_dir / "meshGen"
                 _write_nodes(mesh_gen_dir / f"nodes_{etype}.txt", nodes)
                 _write_elements(mesh_gen_dir / f"elements_{etype}.txt", elements)
-                _render_mesh(mesh_gen_dir / f"mesh_{etype}.png", roi, nodes, elements, etype)
+                _render_mesh(mesh_visualization_gen_dir / f"mesh_{etype}.png", roi, nodes, elements, etype)
                 _compute_standard_mesh_fields(
                     compute_mesh,
                     reference,
@@ -601,6 +607,7 @@ def compute_pairwise_2d_dic(
                     etype,
                     mesh_cfg,
                     mesh_dir,
+                    mesh_visualization_dir,
                     width,
                     height,
                 )
@@ -635,6 +642,7 @@ def compute_pairwise_3d_dic(
     """
 
     from .stereo import camera_from_dict, reconstruct_from_field_files
+    from .visualization import visualization_dir_for_result
 
     case_root = Path(case_root)
     mv_cfg = _load_multiview_config(config, case_root)
@@ -680,12 +688,15 @@ def compute_pairwise_3d_dic(
         pair_label = f"{left_name}-{right_name}"
         pair_field_dir = field_root / pair_label / str(opts.solver)
         pair_out_dir = out_root / pair_label
+        pair_visualization_dir = visualization_dir_for_result(case_root, pair_out_dir)
         result = reconstruct_from_field_files(
             pair_field_dir,
             cameras_by_label[left_name],
             cameras_by_label[right_name],
             out_dir=pair_out_dir,
             deformation_out_dir=pair_out_dir,
+            visualization_out_dir=pair_visualization_dir,
+            deformation_visualization_out_dir=pair_visualization_dir,
             write_shape_maps=bool(opts.write_shape_maps),
             write_deformation_maps=bool(opts.write_deformation_maps),
             write_surface_strain=False,
@@ -706,6 +717,7 @@ def compute_pairwise_3d_dic(
                 "right_camera": right_name,
                 "field_dir": str(pair_field_dir),
                 "output_dir": str(pair_out_dir),
+                "visualization_dir": str(pair_visualization_dir),
                 "total_points": int(result.total_points),
                 "valid_points": int(result.valid_points),
             }
@@ -874,6 +886,7 @@ def stitch_pairwise_3d_surfaces(
 ) -> PairwiseSurfaceStitchRunResult:
     """Stitch pair surfaces using the MultiDIC overlap/zipper workflow."""
     from .surface_stitching import clean_stitched_surface, SurfaceMesh, stitch_surfaces, write_stitch_visualizations
+    from .visualization import visualization_dir_for_result
 
     case_root = Path(case_root)
     mv_cfg = _load_multiview_config(config, case_root)
@@ -998,7 +1011,8 @@ def stitch_pairwise_3d_surfaces(
         )
     _write_stitched_points(out_root / "stitched_points.csv", point_rows)
     _write_stitched_faces(out_root / "stitched_faces.csv", face_rows)
-    write_stitch_visualizations(stitched, out_root)
+    visualization_root = visualization_dir_for_result(case_root, out_root)
+    write_stitch_visualizations(stitched, visualization_root)
     (out_root / "stitched_summary.json").write_text(
         json.dumps(
             {
@@ -1015,6 +1029,7 @@ def stitch_pairwise_3d_surfaces(
                 "overlap_removed_faces": int(stitched.overlap_removed_faces),
                 "zipper_faces": int(stitched.zipper_faces),
                 "hole_faces": int(stitched.hole_faces),
+                "visualization_dir": str(visualization_root),
                 "pairs": pair_summaries,
             },
             indent=2,
@@ -2147,6 +2162,7 @@ def _compute_standard_subset_fields(
     output_roi: np.ndarray,
     subset_cfg: Mapping[str, Any],
     out_dir: Path,
+    visualization_dir: Path,
     width: int,
     height: int,
 ) -> None:
@@ -2161,7 +2177,7 @@ def _compute_standard_subset_fields(
         valid &= _points_inside_roi(xy, output_roi)
         _write_displacement_field(out_dir / field_name, xy, uv, corr, valid, id_name="id")
         stem = Path(field_name).stem
-        _render_field_components(out_dir, stem, xy[valid], uv[valid], width, height, title, dense=False)
+        _render_field_components(visualization_dir, stem, xy[valid], uv[valid], width, height, title, dense=False)
 
 
 def _compute_standard_mesh_fields(
@@ -2173,6 +2189,7 @@ def _compute_standard_mesh_fields(
     element_type: str,
     mesh_cfg: Mapping[str, Any],
     out_dir: Path,
+    visualization_dir: Path,
     width: int,
     height: int,
 ) -> None:
@@ -2187,7 +2204,7 @@ def _compute_standard_mesh_fields(
         stem = Path(field_name).stem
         dense_xy, dense_uv = _write_dense_displacement_field(out_dir / f"{stem}_dense.csv", samples, uv)
         _render_scalar_field(
-            out_dir / f"{stem}_dense_mag.png",
+            visualization_dir / f"{stem}_dense_mag.png",
             dense_xy,
             np.linalg.norm(dense_uv, axis=1),
             width,

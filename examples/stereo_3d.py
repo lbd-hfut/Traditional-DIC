@@ -35,6 +35,7 @@ from traditional_dic.stereo import (  # noqa: E402
     load_camera_pair,
     reconstruct_from_field_files,
 )
+from traditional_dic.visualization import visualization_dir_for_result  # noqa: E402
 
 
 FIELD_DEFS = [
@@ -187,12 +188,13 @@ def run_calibration(paths: dict[str, Path], calibration_cfg: dict[str, Any], out
     return camera_path
 
 
-def compute_subset_fields(paths: dict[str, Path], subset_cfg: dict[str, Any], disp_dir: Path) -> None:
+def compute_subset_fields(paths: dict[str, Path], subset_cfg: dict[str, Any], disp_dir: Path, visualization_dir: Path) -> None:
     reference = read_gray(paths["left_reference"])
     roi = read_mask(paths["roi"])
     height, width = reference.shape
     config = normalize_subset_config(subset_cfg)
     disp_dir.mkdir(parents=True, exist_ok=True)
+    visualization_dir.mkdir(parents=True, exist_ok=True)
 
     for field_name, image_key, title in FIELD_DEFS:
         print(f"Computing subset {title}")
@@ -202,7 +204,7 @@ def compute_subset_fields(paths: dict[str, Path], subset_cfg: dict[str, Any], di
         xy_all = np.column_stack([np.asarray(result["x"], dtype=np.float64), np.asarray(result["y"], dtype=np.float64)])
         uv_all = np.column_stack([np.asarray(result["u"], dtype=np.float64), np.asarray(result["v"], dtype=np.float64)])
         write_result_field(disp_dir / field_name, xy_all, uv_all, result["correlation"], valid)
-        render_field_components(disp_dir, Path(field_name).stem, xy_all[valid], uv_all[valid], width, height, title)
+        render_field_components(visualization_dir, Path(field_name).stem, xy_all[valid], uv_all[valid], width, height, title)
 
 
 def write_nodes(path: Path, nodes: np.ndarray) -> None:
@@ -403,7 +405,13 @@ def mesh_data_by_type(paths: dict[str, Path], mesh_cfg: dict[str, Any]) -> tuple
     return data, width, height
 
 
-def compute_mesh_fields(paths: dict[str, Path], mesh_cfg: dict[str, Any], disp_root: Path, element_types: list[str]) -> None:
+def compute_mesh_fields(
+    paths: dict[str, Path],
+    mesh_cfg: dict[str, Any],
+    disp_root: Path,
+    visualization_root: Path,
+    element_types: list[str],
+) -> None:
     reference = read_gray(paths["left_reference"])
     images = {key: read_gray(path) for _, key, _ in FIELD_DEFS for path in [paths[key]]}
     config = normalize_mesh_config(mesh_cfg)
@@ -411,11 +419,13 @@ def compute_mesh_fields(paths: dict[str, Path], mesh_cfg: dict[str, Any], disp_r
 
     for etype in element_types:
         disp_dir = disp_root / etype
+        visualization_dir = visualization_root / etype
         mesh_dir = disp_dir / "meshGen"
+        visualization_mesh_dir = visualization_dir / "meshGen"
         nodes, elements = data_by_type[etype]
         write_nodes(mesh_dir / f"nodes_{etype}.txt", nodes)
         write_elements(mesh_dir / f"elements_{etype}.txt", elements)
-        draw_mesh(mesh_dir / f"mesh_{etype}.png", paths["roi"], nodes, elements, etype)
+        draw_mesh(visualization_mesh_dir / f"mesh_{etype}.png", paths["roi"], nodes, elements, etype)
         samples = dense_mesh_samples(nodes, elements, etype, width, height)
 
         for field_name, image_key, title in FIELD_DEFS:
@@ -428,7 +438,7 @@ def compute_mesh_fields(paths: dict[str, Path], mesh_cfg: dict[str, Any], disp_r
             stem = Path(field_name).stem
             dense_xy, dense_uv = write_dense_field(disp_dir / f"{stem}_dense.csv", samples, uv)
             render_scalar_field(
-                disp_dir / f"{stem}_dense_mag.png",
+                visualization_dir / f"{stem}_dense_mag.png",
                 dense_xy,
                 np.linalg.norm(dense_uv, axis=1),
                 width,
@@ -440,12 +450,16 @@ def compute_mesh_fields(paths: dict[str, Path], mesh_cfg: dict[str, Any], disp_r
 
 def reconstruct_subset(paths: dict[str, Path], output_dirs: dict[str, Path], recon_cfg: dict[str, Any], camera_path: Path) -> None:
     left_camera, right_camera, world_scale = load_camera_pair(camera_path)
+    reconstruct_dir = output_dirs["reconstruct"] / "subset"
+    deformation_dir = output_dirs["deformation"] / "subset"
     result = reconstruct_from_field_files(
         output_dirs["disp"] / "subset",
         left_camera,
         right_camera,
-        out_dir=output_dirs["reconstruct"] / "subset",
-        deformation_out_dir=output_dirs["deformation"] / "subset",
+        out_dir=reconstruct_dir,
+        deformation_out_dir=deformation_dir,
+        visualization_out_dir=visualization_dir_for_result(paths["case_root"], reconstruct_dir),
+        deformation_visualization_out_dir=visualization_dir_for_result(paths["case_root"], deformation_dir),
         min_correlation=float(recon_cfg.get("min_correlation", 0.0)),
         quality_metric=str(recon_cfg.get("quality_metric", "correlation")),
         max_znssd=float(recon_cfg.get("max_znssd", 2.0)),
@@ -464,12 +478,16 @@ def reconstruct_mesh(output_dirs: dict[str, Path], recon_cfg: dict[str, Any], ca
         if not elements_path.exists():
             elements_path = disp_dir / f"elements_{etype}.txt"
         elements = read_elements(elements_path)
+        reconstruct_dir = output_dirs["reconstruct"] / "mesh" / etype
+        deformation_dir = output_dirs["deformation"] / "mesh" / etype
         result = reconstruct_from_field_files(
             disp_dir,
             left_camera,
             right_camera,
-            out_dir=output_dirs["reconstruct"] / "mesh" / etype,
-            deformation_out_dir=output_dirs["deformation"] / "mesh" / etype,
+            out_dir=reconstruct_dir,
+            deformation_out_dir=deformation_dir,
+            visualization_out_dir=visualization_dir_for_result(output_dirs["case_root"], reconstruct_dir),
+            deformation_visualization_out_dir=visualization_dir_for_result(output_dirs["case_root"], deformation_dir),
             faces=elements,
             write_shape_maps=False,
             write_deformation_maps=False,
@@ -484,8 +502,10 @@ def reconstruct_mesh(output_dirs: dict[str, Path], recon_cfg: dict[str, Any], ca
             disp_dir,
             left_camera,
             right_camera,
-            out_dir=output_dirs["reconstruct"] / "mesh" / etype,
-            deformation_out_dir=output_dirs["deformation"] / "mesh" / etype,
+            out_dir=reconstruct_dir,
+            deformation_out_dir=deformation_dir,
+            visualization_out_dir=visualization_dir_for_result(output_dirs["case_root"], reconstruct_dir),
+            deformation_visualization_out_dir=visualization_dir_for_result(output_dirs["case_root"], deformation_dir),
             output_prefix="dense_",
             write_surface_strain=False,
             min_correlation=float(recon_cfg.get("min_correlation", 0.0)),
@@ -519,6 +539,7 @@ def build_output_dirs(paths: dict[str, Path], stereo_cfg: dict[str, Any]) -> dic
     root = case_path(paths["case_root"], output.get("root", "result"))
     return {
         "root": root,
+        "case_root": paths["case_root"],
         "calibration": root / output.get("calibration", "calibration"),
         "disp": root / output.get("disp", "disp"),
         "reconstruct": root / output.get("reconstruct", "reconstruct"),
@@ -557,14 +578,23 @@ def main() -> None:
         if workflow.get("visualize_calibration", False):
             from case.visualize_calibration_results import visualize_saved_stereo_calibration_result
 
-            visualize_saved_stereo_calibration_result(output_dirs["calibration"] / "stereo_calibration.json", output_dirs["calibration"])
+            visualize_saved_stereo_calibration_result(
+                output_dirs["calibration"] / "stereo_calibration.json",
+                visualization_dir_for_result(paths["case_root"], output_dirs["calibration"]),
+            )
     elif not camera_path.exists():
         raise FileNotFoundError(camera_path)
 
     if solver == "subset":
         if compute_fields:
             subset_cfg = load_config(resolve_path(stereo_cfg.get("configs", {}).get("subset", "config/subset_2d.yaml")))
-            compute_subset_fields(paths, subset_cfg, output_dirs["disp"] / "subset")
+            subset_disp_dir = output_dirs["disp"] / "subset"
+            compute_subset_fields(
+                paths,
+                subset_cfg,
+                subset_disp_dir,
+                visualization_dir_for_result(paths["case_root"], subset_disp_dir),
+            )
         if reconstruct:
             reconstruct_subset(paths, output_dirs, stereo_cfg.get("reconstruction", {}), camera_path)
     elif solver == "mesh":
@@ -575,7 +605,14 @@ def main() -> None:
             element_types = [str(v).upper() for v in element_values]
         if compute_fields:
             mesh_cfg = load_config(resolve_path(stereo_cfg.get("configs", {}).get("mesh", "config/mesh_2d.yaml")))
-            compute_mesh_fields(paths, mesh_cfg, output_dirs["disp"] / "mesh", element_types)
+            mesh_disp_dir = output_dirs["disp"] / "mesh"
+            compute_mesh_fields(
+                paths,
+                mesh_cfg,
+                mesh_disp_dir,
+                visualization_dir_for_result(paths["case_root"], mesh_disp_dir),
+                element_types,
+            )
         if reconstruct:
             reconstruct_mesh(output_dirs, stereo_cfg.get("reconstruction", {}), camera_path, element_types)
     else:

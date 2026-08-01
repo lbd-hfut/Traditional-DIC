@@ -382,6 +382,8 @@ def reconstruct_from_field_files(
     *,
     out_dir: Optional[str | Path] = None,
     deformation_out_dir: Optional[str | Path] = None,
+    visualization_out_dir: Optional[str | Path] = None,
+    deformation_visualization_out_dir: Optional[str | Path] = None,
     faces: Optional[Sequence[Sequence[int]]] = None,
     output_prefix: str = "",
     write_shape_maps: bool = True,
@@ -400,6 +402,7 @@ def reconstruct_from_field_files(
     """Read standard field files from a directory, reconstruct, and write 3D CSVs."""
     field_dir = Path(field_dir)
     out_dir = Path(out_dir) if out_dir is not None else field_dir
+    visualization_out_dir = Path(visualization_out_dir) if visualization_out_dir is not None else out_dir
     result, meta = reconstruct_from_fields(
         load_field_csv(field_dir / reference_field),
         load_field_csv(field_dir / left_temporal_field),
@@ -419,20 +422,25 @@ def reconstruct_from_field_files(
         save_shape_visualizations(
             result,
             meta,
-            out_dir,
+            visualization_out_dir,
             int(getattr(left_camera, "image_width", 0)),
             int(getattr(left_camera, "image_height", 0)),
             prefix=output_prefix,
         )
     if deformation_out_dir is not None:
         deformation_out_dir = Path(deformation_out_dir)
+        deformation_visualization_out_dir = (
+            Path(deformation_visualization_out_dir)
+            if deformation_visualization_out_dir is not None
+            else deformation_out_dir
+        )
         save_deformation_csv(result, meta, deformation_out_dir / f"{output_prefix}deformation_3d.csv")
         save_summary_json(result, deformation_out_dir / f"{output_prefix}deformation_3d_summary.json")
         if write_deformation_maps:
             save_deformation_visualizations(
                 result,
                 meta,
-                deformation_out_dir,
+                deformation_visualization_out_dir,
                 int(getattr(left_camera, "image_width", 0)),
                 int(getattr(left_camera, "image_height", 0)),
                 prefix=output_prefix,

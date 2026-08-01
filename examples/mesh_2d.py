@@ -21,6 +21,7 @@ if str(PYTHON_ROOT) not in sys.path:
 import traditional_dic as tdic  # noqa: E402
 from traditional_dic import io as dic_io  # noqa: E402
 from traditional_dic.config import load_config, mesh_generation_config, normalize_mesh_config  # noqa: E402
+from traditional_dic.visualization import visualization_dir_for_result  # noqa: E402
 
 
 def read_gray(path: Path) -> np.ndarray:
@@ -135,6 +136,7 @@ def result_uv(result: dict[str, np.ndarray]) -> np.ndarray:
 
 
 def render_mesh_field(
+    reference: np.ndarray,
     nodes: np.ndarray,
     elements: np.ndarray,
     result: dict[str, np.ndarray],
@@ -186,9 +188,15 @@ def render_mesh_field(
                     accum[yy, xx] += color
                     weight[yy, xx] += 1.0
 
-    rgb = np.ones((height, width, 3), dtype=np.float64)
+    base = np.asarray(reference, dtype=np.float64)
+    if base.ndim != 2:
+        base = np.mean(base[..., :3], axis=2)
+    if np.nanmax(base) > 1.0:
+        base = base / max(float(np.nanmax(base)), 1.0)
+    rgb = np.repeat(np.clip(base, 0.0, 1.0)[..., None], 3, axis=2)
     mask = weight > 0
-    rgb[mask] = accum[mask] / weight[mask, None]
+    field_rgb = accum[mask] / weight[mask, None]
+    rgb[mask] = 0.2 * rgb[mask] + 0.8 * field_rgb
     image = Image.fromarray(np.clip(rgb * 255.0, 0, 255).astype(np.uint8), "RGB")
     return draw_mesh_edges(image, nodes, elements, etype), float(vmin), float(vmax)
 
@@ -196,7 +204,7 @@ def render_mesh_field(
 def draw_mesh_edges(image: Image.Image, nodes: np.ndarray, elements: np.ndarray, etype: str) -> Image.Image:
     overlay = Image.new("RGBA", image.size, (255, 255, 255, 0))
     draw = ImageDraw.Draw(overlay)
-    edge_color = (145, 145, 145, 95)
+    edge_color = (128, 128, 128, 255)
     if etype == "T3":
         edge_ids = [(0, 1), (1, 2), (2, 0)]
     elif etype == "Q4":
@@ -212,7 +220,7 @@ def draw_mesh_edges(image: Image.Image, nodes: np.ndarray, elements: np.ndarray,
 def write_legend(path: Path, component: str, vmin: float, vmax: float) -> None:
     path.write_text(
         f"component={component}\ncolor_min={vmin}\ncolor_max={vmax}\n"
-        "colormap=blue-green-red percentile clipped\nmesh_edges=rgba(145,145,145,0.37)\n",
+        "colormap=blue-green-red percentile clipped\nmesh_edges=gray,width=1\n",
         encoding="utf-8",
     )
 
@@ -238,19 +246,21 @@ def run_element(
     deformed: np.ndarray,
     generated_meshes: dict,
     out_root: Path,
+    visualization_root: Path,
     etype: str,
     args,
     api_config: dict,
 ) -> None:
     out_dir = out_root / etype
-    vis_dir = out_dir / "field_visualization"
+    element_visualization_dir = visualization_root / etype
+    vis_dir = element_visualization_dir / "field_visualization"
     vis_dir.mkdir(parents=True, exist_ok=True)
     mesh_data = generated_meshes[etype]
     nodes = np.asarray(mesh_data["nodes"], dtype=np.float64)
     elements = np.asarray(mesh_data["elements"], dtype=np.int64)
     write_nodes(out_dir / f"nodes_{etype}.txt", nodes)
     write_elements(out_dir / f"elements_{etype}.txt", elements)
-    save_mesh_preview(out_dir / f"mesh_preview_{etype}.png", nodes, elements, etype, reference.shape[1], reference.shape[0])
+    save_mesh_preview(element_visualization_dir / f"mesh_preview_{etype}.png", nodes, elements, etype, reference.shape[1], reference.shape[0])
 
     result = tdic.mesh(
         reference,
@@ -264,7 +274,7 @@ def run_element(
 
     height, width = reference.shape
     for component in ("mag", "u", "v"):
-        image, vmin, vmax = render_mesh_field(nodes, elements, result, etype, width, height, component)
+        image, vmin, vmax = render_mesh_field(reference, nodes, elements, result, etype, width, height, component)
         image.save(vis_dir / f"{etype}_field_{component}_mesh_overlay.png")
         write_legend(vis_dir / f"{etype}_field_{component}_legend.txt", component, vmin, vmax)
 
@@ -278,7 +288,7 @@ def run_element(
         "initialization": api_config.get("initialization", {}).get("method", ""),
         "nodes_file": f"nodes_{etype}.txt",
         "elements_file": f"elements_{etype}.txt",
-        "mesh_preview": f"mesh_preview_{etype}.png",
+        "mesh_preview": str(element_visualization_dir / f"mesh_preview_{etype}.png"),
         "generation_summary": generated_meshes.get("summary", {}),
     }
     (out_dir / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
@@ -313,6 +323,8 @@ def main() -> None:
         print("Warning: Mesh ZNSSD global solver is not implemented; use SSD for solved mesh displacement.")
     element_types = ["T3", "Q4", "Q8"] if args.element == "all" else [args.element]
     args.out_dir.mkdir(parents=True, exist_ok=True)
+    visualization_dir = visualization_dir_for_result(args.reference.parent, args.out_dir)
+    visualization_dir.mkdir(parents=True, exist_ok=True)
 
     generated_meshes = tdic.generate_annulus_meshes_from_mask(
         roi,
@@ -328,9 +340,9 @@ def main() -> None:
     )
 
     for etype in element_types:
-        run_element(reference, deformed, generated_meshes, args.out_dir, etype, args, api_config)
-    save_overview(args.out_dir, element_types)
-    print(f"Wrote Mesh-DIC overview to {args.out_dir / 'overview.png'}")
+        run_element(reference, deformed, generated_meshes, args.out_dir, visualization_dir, etype, args, api_config)
+    save_overview(visualization_dir, element_types)
+    print(f"Wrote Mesh-DIC overview to {visualization_dir / 'overview.png'}")
 
 
 if __name__ == "__main__":

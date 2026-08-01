@@ -139,7 +139,7 @@ def render_field(nodes, elements, U, etype, width, height, component):
 def draw_mesh_edges(image, nodes, elements, etype):
     overlay = Image.new("RGBA", image.size, (255, 255, 255, 0))
     draw = ImageDraw.Draw(overlay)
-    edge_color = (145, 145, 145, 95)
+    edge_color = (128, 128, 128, 255)
     if etype == "T3":
         edge_ids = [(0, 1), (1, 2), (2, 0)]
     elif etype == "Q4":
@@ -160,7 +160,7 @@ def write_legend(path, component, vmin, vmax):
         f"color_min={vmin}\n"
         f"color_max={vmax}\n"
         "colormap=blue-green-red percentile clipped\n"
-        "mesh_edges=rgba(145,145,145,0.37)\n"
+        "mesh_edges=gray,width=1\n"
     )
 
 

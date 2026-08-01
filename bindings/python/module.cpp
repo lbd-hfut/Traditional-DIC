@@ -31,6 +31,7 @@ void bind_geometry(pybind11::module_& m);
 void bind_reconstruction(pybind11::module_& m);
 void bind_postprocess(pybind11::module_& m);
 void bind_surface_outlier_cleaning(pybind11::module_& m);
+void bind_visualization(pybind11::module_& m);
 
 PYBIND11_MODULE(_traditional_dic, m) {
     m.doc() = "Traditional-DIC C++ backend skeleton";
@@ -43,4 +44,5 @@ PYBIND11_MODULE(_traditional_dic, m) {
     bind_reconstruction(m);
     bind_postprocess(m);
     bind_surface_outlier_cleaning(m);
+    bind_visualization(m);
 }
