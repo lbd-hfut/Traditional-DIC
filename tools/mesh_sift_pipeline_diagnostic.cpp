@@ -28,11 +28,6 @@
 
 namespace {
 
-enum class SolverKind {
-    ICGN,
-    ForwardGN
-};
-
 enum class InitKind {
     SIFT,
     Zero
@@ -50,19 +45,6 @@ dic::mesh::MeshElementType parse_element_type(const std::string& value)
     if (value == "T3" || value == "t3") return dic::mesh::MeshElementType::T3;
     if (value == "Q8" || value == "q8") return dic::mesh::MeshElementType::Q8;
     return dic::mesh::MeshElementType::Q4;
-}
-
-SolverKind parse_solver_kind(const std::string& value)
-{
-    if (value == "forward_gn" || value == "forward_gauss_newton" || value == "fgn") {
-        return SolverKind::ForwardGN;
-    }
-    return SolverKind::ICGN;
-}
-
-std::string solver_name(SolverKind solver)
-{
-    return solver == SolverKind::ForwardGN ? "forward_gauss_newton" : "global_icgn";
 }
 
 InitKind parse_init_kind(const std::string& value)
@@ -310,7 +292,7 @@ int main(int argc, char** argv)
     if (argc < 7) {
         std::cerr << "Usage: mesh_sift_pipeline_diagnostic <ref.bmp> <def.bmp>"
                   << " <nodes.txt> <elements.txt> <out_dir> <element_type>"
-                  << " [max_iterations=5] [pixel_stride=1] [solver=icgn|forward_gn]"
+                  << " [max_iterations=5] [pixel_stride=1]"
                   << " [init=sift|zero] [tolerance=1e-3]\n";
         return EXIT_FAILURE;
     }
@@ -379,9 +361,8 @@ int main(int argc, char** argv)
 
         const int max_iterations = argc >= 8 ? std::atoi(argv[7]) : 5;
         const int pixel_stride = argc >= 9 ? std::max(1, std::atoi(argv[8])) : 1;
-        const SolverKind solver_kind = argc >= 10 ? parse_solver_kind(argv[9]) : SolverKind::ICGN;
-        const InitKind init_kind = argc >= 11 ? parse_init_kind(argv[10]) : InitKind::SIFT;
-        const double tolerance = argc >= 12 ? std::atof(argv[11]) : 1e-3;
+        const InitKind init_kind = argc >= 10 ? parse_init_kind(argv[9]) : InitKind::SIFT;
+        const double tolerance = argc >= 11 ? std::atof(argv[10]) : 1e-3;
         if (pixel_stride > 1) {
             for (int y = 0; y < g2l.img_h; ++y) {
                 for (int x = 0; x < g2l.img_w; ++x) {
@@ -395,19 +376,16 @@ int main(int argc, char** argv)
 
         auto cache = dic::mesh::internal::assemble_stiffness(
             g2l, img_h, img_w, fx_flat.data(), fy_flat.data(),
-            n_nodes, elements.data(), n_elements, element_type, 0.0);
+            n_nodes, elements.data(), n_elements, element_type, 0.0, 0.0,
+            element_type != dic::mesh::MeshElementType::Q8, true);
 
         Eigen::VectorXd U_initial = init_kind == InitKind::Zero
             ? Eigen::VectorXd::Zero(2 * n_nodes)
             : compute_sift_initial_u(reference, deformed, nodes);
         Eigen::VectorXd U_final = U_initial;
-        const int iterations = solver_kind == SolverKind::ForwardGN
-            ? dic::mesh::internal::global_forward_gn(
-                cache, g2l, ref_flat.data(), img_h, img_w,
-                elements.data(), n_elements, U_final, &def_interp, 0.0, tolerance, max_iterations)
-            : dic::mesh::internal::global_icgn(
-                cache, g2l, ref_flat.data(), img_h, img_w,
-                elements.data(), n_elements, U_final, &def_interp, 0.0, tolerance, max_iterations);
+        const int iterations = dic::mesh::internal::global_icgn(
+            cache, g2l, ref_flat.data(), img_h, img_w,
+            elements.data(), n_elements, U_final, &def_interp, 0.0, tolerance, max_iterations, 0.0);
 
         write_u_csv(out_dir / "initial_U.csv", nodes, U_initial);
         write_u_csv(out_dir / "final_U.csv", nodes, U_final);
@@ -446,7 +424,7 @@ int main(int argc, char** argv)
             out << "inform_pixels=" << n_pixels << "\n";
             int valid_solver_pixels = 0;
             for (auto flag : g2l.valid) valid_solver_pixels += flag ? 1 : 0;
-            out << "solver=" << solver_name(solver_kind) << "\n";
+            out << "solver=fedic_element_icgn\n";
             out << "initialization=" << init_name(init_kind) << "\n";
             out << "solver_valid_pixels=" << valid_solver_pixels << "\n";
             out << "pixel_stride=" << pixel_stride << "\n";

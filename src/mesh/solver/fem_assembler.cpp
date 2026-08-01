@@ -109,7 +109,9 @@ StiffnessCache assemble_stiffness(
     int n_nodes,
     const int* elements, int n_elements,
     mesh::MeshElementType element_type,
-    double alpha, double beta)
+    double alpha, double beta,
+    bool fedic_compatible,
+    bool element_owned_samples)
 {
     StiffnessCache cache;
     int nn = nodes_per_element(element_type);
@@ -120,7 +122,10 @@ StiffnessCache assemble_stiffness(
 
     cache.fem_size = fem_size;
     cache.element_type = element_type;
+    cache.fedic_compatible = fedic_compatible;
+    cache.element_owned_samples = element_owned_samples;
     cache.elem_pixels.resize(n_elements);
+    cache.elem_samples.resize(n_elements);
     cache.elem_dofs.resize(n_elements);
     cache.elem_N_cache.resize(n_elements);
     cache.elem_DN_cache.resize(n_elements);
@@ -134,19 +139,46 @@ StiffnessCache assemble_stiffness(
             dofs[2 * k + 1] = 2 * nid + 1;
         }
         cache.elem_dofs[e] = dofs;
+        if (fedic_compatible || element_owned_samples) {
+            cache.fedic_free_dofs.insert(cache.fedic_free_dofs.end(),
+                                         dofs.begin(), dofs.end());
+        }
+    }
+    if (fedic_compatible || element_owned_samples) {
+        std::sort(cache.fedic_free_dofs.begin(), cache.fedic_free_dofs.end());
+        cache.fedic_free_dofs.erase(
+            std::unique(cache.fedic_free_dofs.begin(), cache.fedic_free_dofs.end()),
+            cache.fedic_free_dofs.end());
     }
 
     // Map pixels to elements
     int total = img_h * img_w;
     std::vector<std::vector<int>> elem_pix_map(n_elements);
-    for (int idx = 0; idx < total; ++idx) {
-        if (!g2l.valid[idx]) continue;
-        int eid = g2l.elem_id[idx] - 1;
-        if (eid < 0 || eid >= n_elements) continue;
-        if (!in_bounds(element_type, g2l.xi[idx], g2l.eta[idx])) continue;
-        if (!jacobian_is_usable(g2l.J11[idx], g2l.J12[idx],
-                                g2l.J21[idx], g2l.J22[idx])) continue;
-        elem_pix_map[eid].push_back(idx);
+    if (fedic_compatible || element_owned_samples) {
+        for (const auto& sample : g2l.element_samples) {
+            if (sample.element_id < 0 || sample.element_id >= n_elements) continue;
+            if (sample.pixel_index < 0 || sample.pixel_index >= total) continue;
+            if (!fedic_compatible &&
+                (!in_bounds(element_type, sample.xi, sample.eta) ||
+                 !jacobian_is_usable(sample.J11, sample.J12, sample.J21, sample.J22))) {
+                continue;
+            }
+            elem_pix_map[sample.element_id].push_back(sample.pixel_index);
+            cache.elem_samples[sample.element_id].push_back(sample);
+        }
+    } else {
+        for (int idx = 0; idx < total; ++idx) {
+            if (!g2l.valid[idx]) continue;
+            int eid = g2l.elem_id[idx] - 1;
+            if (eid < 0 || eid >= n_elements) continue;
+            if (!in_bounds(element_type, g2l.xi[idx], g2l.eta[idx])) continue;
+            if (!jacobian_is_usable(g2l.J11[idx], g2l.J12[idx],
+                                    g2l.J21[idx], g2l.J22[idx])) continue;
+            elem_pix_map[eid].push_back(idx);
+            cache.elem_samples[eid].push_back({eid, idx, g2l.xi[idx], g2l.eta[idx],
+                                                g2l.J11[idx], g2l.J12[idx],
+                                                g2l.J21[idx], g2l.J22[idx]});
+        }
     }
 
     std::vector<Eigen::Triplet<double>> triplets;
@@ -166,12 +198,13 @@ StiffnessCache assemble_stiffness(
         Eigen::MatrixXd A_e = Eigen::MatrixXd::Zero(dof, dof);
 
         for (int pi = 0; pi < n_pix; ++pi) {
-            int idx = pix_idx[pi];
+            const auto& sample = cache.elem_samples[e][pi];
+            int idx = sample.pixel_index;
             int py = idx / img_w, px = idx % img_w;
 
-            double xi = g2l.xi[idx], eta = g2l.eta[idx];
-            double J11 = g2l.J11[idx], J12 = g2l.J12[idx];
-            double J21 = g2l.J21[idx], J22 = g2l.J22[idx];
+            double xi = sample.xi, eta = sample.eta;
+            double J11 = sample.J11, J12 = sample.J12;
+            double J21 = sample.J21, J22 = sample.J22;
             double detJ = J11 * J22 - J12 * J21;
             if (std::abs(detJ) < 1e-12) continue;
             double iJ11 = J22 / detJ, iJ12 = -J12 / detJ;
@@ -259,18 +292,21 @@ Eigen::VectorXd assemble_residual(
         std::vector<double> warp_x(n_pix), warp_y(n_pix);
         std::vector<double> N_loc;
         for (int pi = 0; pi < n_pix; ++pi) {
-            int idx = pix_idx[pi];
+            const auto& sample = cache.elem_samples[e][pi];
+            int idx = sample.pixel_index;
             int py = idx / img_w, px = idx % img_w;
 
-            shape_values_only(type, g2l.xi[idx], g2l.eta[idx], N_loc);
+            shape_values_only(type, sample.xi, sample.eta, N_loc);
 
             double u_ip = 0.0, v_ip = 0.0;
             for (int k = 0; k < nn; ++k) {
                 u_ip += N_loc[k] * U_e(2 * k);
                 v_ip += N_loc[k] * U_e(2 * k + 1);
             }
-            warp_x[pi] = std::max(0.0, std::min(static_cast<double>(img_w - 1), px + u_ip));
-            warp_y[pi] = std::max(0.0, std::min(static_cast<double>(img_h - 1), py + v_ip));
+            warp_x[pi] = cache.fedic_compatible ? px + u_ip
+                                                 : std::max(0.0, std::min(static_cast<double>(img_w - 1), px + u_ip));
+            warp_y[pi] = cache.fedic_compatible ? py + v_ip
+                                                 : std::max(0.0, std::min(static_cast<double>(img_h - 1), py + v_ip));
         }
 
         // Interpolate deformed image at warped positions
@@ -280,7 +316,7 @@ Eigen::VectorXd assemble_residual(
 
         // Accumulate residual
         for (int pi = 0; pi < n_pix; ++pi) {
-            int idx = pix_idx[pi];
+            int idx = cache.elem_samples[e][pi].pixel_index;
             int py = idx / img_w, px = idx % img_w;
             double r_img = ref_img[py * img_w + px] - g_vals[pi];
 
@@ -343,18 +379,21 @@ double compute_objective(
         std::vector<double> warp_x(n_pix), warp_y(n_pix);
         std::vector<double> N_loc;
         for (int pi = 0; pi < n_pix; ++pi) {
-            int idx = pix_idx[pi];
+            const auto& sample = cache.elem_samples[e][pi];
+            int idx = sample.pixel_index;
             int py = idx / img_w, px = idx % img_w;
 
-            shape_values_only(type, g2l.xi[idx], g2l.eta[idx], N_loc);
+            shape_values_only(type, sample.xi, sample.eta, N_loc);
 
             double u_ip = 0.0, v_ip = 0.0;
             for (int k = 0; k < nn; ++k) {
                 u_ip += N_loc[k] * U_e(2 * k);
                 v_ip += N_loc[k] * U_e(2 * k + 1);
             }
-            warp_x[pi] = std::max(0.0, std::min(static_cast<double>(img_w - 1), px + u_ip));
-            warp_y[pi] = std::max(0.0, std::min(static_cast<double>(img_h - 1), py + v_ip));
+            warp_x[pi] = cache.fedic_compatible ? px + u_ip
+                                                 : std::max(0.0, std::min(static_cast<double>(img_w - 1), px + u_ip));
+            warp_y[pi] = cache.fedic_compatible ? py + v_ip
+                                                 : std::max(0.0, std::min(static_cast<double>(img_h - 1), py + v_ip));
         }
 
         std::vector<double> g_vals(n_pix);
@@ -362,7 +401,7 @@ double compute_objective(
                                    n_pix, g_vals.data());
 
         for (int pi = 0; pi < n_pix; ++pi) {
-            int idx = pix_idx[pi];
+            int idx = cache.elem_samples[e][pi].pixel_index;
             int py = idx / img_w, px = idx % img_w;
             double r = ref_img[py * img_w + px] - g_vals[pi];
             energy += 0.5 * r * r;
@@ -382,226 +421,7 @@ double compute_objective(
 }
 
 // ============================================================
-// Helper: assemble Forward-GN system (per-iteration Hessian + RHS
-// from deformed image gradients)
-// ============================================================
-static bool assemble_forward_system(
-    const StiffnessCache& cache,
-    const G2LOutput& g2l,
-    const double* ref_img, int img_h, int img_w,
-    const int* elements, int n_elements,
-    const Eigen::VectorXd& U,
-    const BSplineInterpolator* def_interp,
-    double alpha, double beta,
-    Eigen::SparseMatrix<double>& A,
-    Eigen::VectorXd& b,
-    std::vector<int>& free_nodes)
-{
-    int fem_size = cache.fem_size;
-    mesh::MeshElementType type = cache.element_type;
-    int nn = nodes_per_element(type);
-    int dof = 2 * nn;
-
-    std::vector<Eigen::Triplet<double>> triplets;
-    triplets.reserve(n_elements * dof * dof);
-    b = Eigen::VectorXd::Zero(fem_size);
-
-    std::vector<double> N_loc;
-    for (int e = 0; e < n_elements; ++e) {
-        const auto& pix_idx = cache.elem_pixels[e];
-        int n_pix = static_cast<int>(pix_idx.size());
-        if (n_pix == 0) continue;
-
-        const auto& dofs = cache.elem_dofs[e];
-
-        Eigen::VectorXd U_e(dof);
-        for (int k = 0; k < nn; ++k) {
-            U_e(2 * k)     = U(dofs[2 * k]);
-            U_e(2 * k + 1) = U(dofs[2 * k + 1]);
-        }
-
-        Eigen::MatrixXd A_e = Eigen::MatrixXd::Zero(dof, dof);
-        Eigen::VectorXd b_e = Eigen::VectorXd::Zero(dof);
-
-        for (int pi = 0; pi < n_pix; ++pi) {
-            int idx = pix_idx[pi];
-            int py = idx / img_w, px = idx % img_w;
-
-            shape_values_only(type, g2l.xi[idx], g2l.eta[idx], N_loc);
-
-            double u_ip = 0.0, v_ip = 0.0;
-            for (int k = 0; k < nn; ++k) {
-                u_ip += N_loc[k] * U_e(2 * k);
-                v_ip += N_loc[k] * U_e(2 * k + 1);
-            }
-
-            double wx = std::max(0.0, std::min(static_cast<double>(img_w - 1), px + u_ip));
-            double wy = std::max(0.0, std::min(static_cast<double>(img_h - 1), py + v_ip));
-
-            double g_val = 0.0, gx = 0.0, gy = 0.0;
-            if (def_interp) {
-                g_val = def_interp->value(wx, wy);
-                Eigen::Vector2d grad = def_interp->gradient(wx, wy);
-                gx = grad.x();
-                gy = grad.y();
-            }
-            if (!std::isfinite(g_val) || !std::isfinite(gx) || !std::isfinite(gy))
-                return false;
-
-            double r_img = ref_img[py * img_w + px] - g_val;
-
-            // g_row = [N0*gx, N0*gy, N1*gx, N1*gy, ...]
-            Eigen::VectorXd g_row = Eigen::VectorXd::Zero(dof);
-            for (int k = 0; k < nn; ++k) {
-                g_row(2 * k)     = N_loc[k] * gx;
-                g_row(2 * k + 1) = N_loc[k] * gy;
-            }
-            A_e += g_row * g_row.transpose();
-            b_e += r_img * g_row;
-
-            Eigen::Map<const Eigen::Matrix<double, 4, Eigen::Dynamic, Eigen::RowMajor>>
-                DN_mat(cache.elem_DN_cache[e].row(pi).data(), 4, dof);
-            A_e += alpha * DN_mat.transpose() * DN_mat;
-            b_e -= alpha * DN_mat.transpose() * DN_mat * U_e;
-        }
-
-        if (beta > 0.0) {
-            for (int k = 0; k < dof; ++k) {
-                A_e(k, k) += beta;
-                b_e(k) -= beta * U_e(k);
-            }
-        }
-
-        for (int i = 0; i < dof; ++i) {
-            b(dofs[i]) += b_e(i);
-            for (int j = 0; j < dof; ++j) {
-                if (std::abs(A_e(i, j)) > 1e-15)
-                    triplets.push_back({dofs[i], dofs[j], A_e(i, j)});
-            }
-        }
-    }
-
-    A.resize(fem_size, fem_size);
-    A.setFromTriplets(triplets.begin(), triplets.end());
-    A.makeCompressed();
-
-    free_nodes.clear();
-    for (int i = 0; i < fem_size; ++i) {
-        for (Eigen::SparseMatrix<double>::InnerIterator it(A, i); it; ++it) {
-            if (it.row() == it.col() && it.value() > 1e-10) {
-                free_nodes.push_back(i);
-                break;
-            }
-        }
-    }
-    return !free_nodes.empty();
-}
-
-// ============================================================
-// global_forward_gn
-// ============================================================
-int global_forward_gn(
-    const StiffnessCache& cache,
-    const G2LOutput& g2l,
-    const double* ref_img, int img_h, int img_w,
-    const int* elements, int n_elements,
-    Eigen::VectorXd& U,
-    const BSplineInterpolator* def_interp,
-    double alpha, double tol, int max_iter, double beta)
-{
-    bool has_initial = U.squaredNorm() > 0.0;
-
-    for (int iter = 0; iter < max_iter; ++iter) {
-        Eigen::SparseMatrix<double> A;
-        Eigen::VectorXd b_vec;
-        std::vector<int> free_nodes;
-        if (!assemble_forward_system(
-                cache, g2l, ref_img, img_h, img_w,
-                elements, n_elements, U,
-                def_interp, alpha, beta, A, b_vec, free_nodes)) {
-            return (iter == 0 && !has_initial) ? -1 : iter;
-        }
-
-        int n_free = static_cast<int>(free_nodes.size());
-        // Extract free-DOF submatrix
-        std::vector<Eigen::Triplet<double>> ft;
-        ft.reserve(A.nonZeros());
-        for (int k = 0; k < A.outerSize(); ++k) {
-            for (Eigen::SparseMatrix<double>::InnerIterator it(A, k); it; ++it) {
-                auto ir = std::lower_bound(free_nodes.begin(), free_nodes.end(),
-                                           static_cast<int>(it.row()));
-                auto ic = std::lower_bound(free_nodes.begin(), free_nodes.end(),
-                                           static_cast<int>(it.col()));
-                if (ir != free_nodes.end() && *ir == static_cast<int>(it.row()) &&
-                    ic != free_nodes.end() && *ic == static_cast<int>(it.col())) {
-                    ft.push_back({static_cast<int>(ir - free_nodes.begin()),
-                                  static_cast<int>(ic - free_nodes.begin()), it.value()});
-                }
-            }
-        }
-
-        Eigen::SparseMatrix<double> A_free(n_free, n_free);
-        A_free.setFromTriplets(ft.begin(), ft.end());
-        A_free.makeCompressed();
-
-        Eigen::SparseLU<Eigen::SparseMatrix<double>> solver;
-        solver.compute(A_free);
-        if (solver.info() != Eigen::Success)
-            return (iter == 0 && !has_initial) ? -1 : iter;
-
-        Eigen::VectorXd b_free(n_free);
-        for (int i = 0; i < n_free; ++i) b_free(i) = b_vec(free_nodes[i]);
-
-        Eigen::VectorXd dU_free = solver.solve(b_free);
-        if (solver.info() != Eigen::Success)
-            return (iter == 0 && !has_initial) ? -1 : iter;
-
-        double raw_normW = dU_free.norm() / std::sqrt(static_cast<double>(n_free));
-        if (!std::isfinite(raw_normW))
-            return (iter == 0 && !has_initial) ? -1 : iter;
-        if (raw_normW > 0.1 / tol)
-            return (iter == 0 && !has_initial) ? -1 : iter;
-
-        double step = 1.0;
-        constexpr double max_normW = 0.1;
-        if (raw_normW > max_normW) step = max_normW / raw_normW;
-
-        double obj0 = compute_objective(
-            cache, g2l, ref_img, img_h, img_w,
-            elements, n_elements, U, def_interp, alpha, beta);
-        if (!std::isfinite(obj0))
-            return (iter == 0 && !has_initial) ? -1 : iter;
-
-        Eigen::VectorXd U_trial = U;
-        bool accepted = false;
-        for (int bt = 0; bt < 12; ++bt) {
-            U_trial = U;
-            for (int i = 0; i < n_free; ++i)
-                U_trial(free_nodes[i]) += step * dU_free(i);
-
-            double obj1 = compute_objective(
-                cache, g2l, ref_img, img_h, img_w,
-                elements, n_elements, U_trial, def_interp, alpha, beta);
-            if (std::isfinite(obj1) && obj1 <= obj0) {
-                accepted = true;
-                break;
-            }
-            step *= 0.5;
-        }
-
-        if (!accepted)
-            return (iter == 0 && !has_initial) ? -1 : iter;
-
-        U = U_trial;
-
-        double normW = step * raw_normW;
-        if (normW < tol) return iter + 1;
-    }
-    return max_iter;
-}
-
-// ============================================================
-// global_icgn (constant Hessian, forward-additive update)
+// global_icgn (constant Hessian with damped line search)
 // ============================================================
 int global_icgn(
     const StiffnessCache& cache,
@@ -612,17 +432,7 @@ int global_icgn(
     const BSplineInterpolator* def_interp,
     double alpha, double tol, int max_iter, double beta)
 {
-    // Extract free-DOF submatrix of constant Hessian
-    // (we use all DOFs that have diagonal entries > 1e-10 as "free")
-    std::vector<int> free_nodes;
-    for (int i = 0; i < cache.fem_size; ++i) {
-        for (Eigen::SparseMatrix<double>::InnerIterator it(cache.A, i); it; ++it) {
-            if (it.row() == it.col() && it.value() > 1e-10) {
-                free_nodes.push_back(i);
-                break;
-            }
-        }
-    }
+    const std::vector<int>& free_nodes = cache.fedic_free_dofs;
     int n_free = static_cast<int>(free_nodes.size());
     if (n_free == 0) return -1;
 
@@ -652,7 +462,6 @@ int global_icgn(
     if (solver.info() != Eigen::Success) return -1;
 
     bool has_initial = U.squaredNorm() > 0.0;
-
     for (int iter = 0; iter < max_iter; ++iter) {
         Eigen::VectorXd b_vec = assemble_residual(
             cache, g2l, ref_img, img_h, img_w,
@@ -664,7 +473,10 @@ int global_icgn(
         Eigen::VectorXd dU_free = solver.solve(b_free);
         if (solver.info() != Eigen::Success) return -1;
 
-        double raw_normW = dU_free.norm() / std::sqrt(static_cast<double>(n_free));
+        const double norm_dof = cache.element_type == mesh::MeshElementType::T3
+            ? static_cast<double>(cache.fem_size)
+            : static_cast<double>(n_free);
+        double raw_normW = dU_free.norm() / std::sqrt(norm_dof);
         if (!std::isfinite(raw_normW)) return -1;
         if (raw_normW > 0.1 / tol) {
             return (iter == 0 && !has_initial) ? -1 : iter;

@@ -290,7 +290,8 @@ int main(int argc, char** argv) {
         auto cache = dic::mesh::internal::assemble_stiffness(
             g2l, img_h, img_w,
             fx_flat.data(), fy_flat.data(),
-            n_nodes, elements_flat.data(), n_elements, etype, alpha);
+            n_nodes, elements_flat.data(), n_elements, etype, alpha, 0.0,
+            etype != dic::mesh::MeshElementType::Q8, true);
         std::cout << "  FEM size: " << cache.fem_size
                   << ", Hessian NNZ: " << cache.A.nonZeros() << "\n";
 
@@ -315,7 +316,7 @@ int main(int argc, char** argv) {
         int iterations = dic::mesh::internal::global_icgn(
             cache, g2l, ref_flat.data(), img_h, img_w,
             elements_flat.data(), n_elements,
-            U, &def_interp, alpha, 1e-3, 15);
+            U, &def_interp, alpha, 1e-3, 15, 0.0);
         std::cout << "  Iterations: " << iterations << "\n";
 
         t_print("compute strain");

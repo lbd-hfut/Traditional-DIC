@@ -231,20 +231,6 @@ dic::MeshConfig mesh_config_from_dict(py::dict d)
 
     if (d.contains("mesh")) {
         py::dict m = py::cast<py::dict>(d["mesh"]);
-        if (m.contains("solver") || m.contains("solver_method")) {
-            const std::string solver = m.contains("solver")
-                ? py::cast<std::string>(m["solver"])
-                : py::cast<std::string>(m["solver_method"]);
-            cfg.solver_method = (solver == "fgn" || solver == "forward_gn" || solver == "forward_gauss_newton")
-                ? dic::MeshSolverMethod::ForwardGaussNewton
-                : dic::MeshSolverMethod::GlobalICGN;
-        }
-        if (m.contains("objective") || m.contains("criterion")) {
-            const std::string criterion = m.contains("objective")
-                ? py::cast<std::string>(m["objective"])
-                : py::cast<std::string>(m["criterion"]);
-            cfg.objective = (criterion == "znssd") ? dic::CorrelationCriterionKind::ZNSSD : dic::CorrelationCriterionKind::SSD;
-        }
         cfg.max_iterations = get_int(m, "max_iterations", cfg.max_iterations);
         cfg.convergence_threshold = get_double(m, "convergence_threshold", cfg.convergence_threshold);
         cfg.search_radius = get_int(m, "search_radius", cfg.search_radius);
@@ -272,37 +258,39 @@ dic::MeshConfig mesh_config_from_dict(py::dict d)
         py::dict init = py::cast<py::dict>(d["initialization"]);
         if (init.contains("method")) {
             const std::string method = py::cast<std::string>(init["method"]);
-            cfg.seed_initialization.method = (method == "sift")
-                ? dic::SeedInitializationMethod::SIFT
-                : dic::SeedInitializationMethod::IntegerSearch;
+            if (method != "fedic_fft" && method != "fe_dic_fft") {
+                throw std::runtime_error("Mesh-DIC initialization.method must be 'fedic_fft'.");
+            }
         }
-        if (init.contains("integer_search")) {
-            py::dict is = py::cast<py::dict>(init["integer_search"]);
-            cfg.seed_initialization.integer_search.subset_radius =
-                get_int(is, "subset_radius", cfg.seed_initialization.integer_search.subset_radius);
-            cfg.seed_initialization.integer_search.search_radius =
-                get_int(is, "search_radius", cfg.seed_initialization.integer_search.search_radius);
-            cfg.seed_initialization.integer_search.sift_enabled =
-                get_bool(is, "sift_enabled", cfg.seed_initialization.integer_search.sift_enabled);
-            cfg.seed_initialization.integer_search.pyramid_enabled =
-                get_bool(is, "pyramid_enabled", cfg.seed_initialization.integer_search.pyramid_enabled);
-            cfg.seed_initialization.integer_search.pyramid_scale =
-                get_int(is, "pyramid_scale", cfg.seed_initialization.integer_search.pyramid_scale);
-            cfg.seed_initialization.integer_search.pyramid_refinement_radius =
-                get_int(is, "pyramid_refinement_radius", cfg.seed_initialization.integer_search.pyramid_refinement_radius);
+        if (init.contains("fedic_fft")) {
+            py::dict fft = py::cast<py::dict>(init["fedic_fft"]);
+            cfg.fedic_fft_initialization.window_size =
+                get_int(fft, "window_size", cfg.fedic_fft_initialization.window_size);
+            cfg.fedic_fft_initialization.search_radius =
+                get_int(fft, "search_radius", cfg.fedic_fft_initialization.search_radius);
+            cfg.fedic_fft_initialization.mirror_boundary_fallback =
+                get_bool(fft, "mirror_boundary_fallback",
+                         cfg.fedic_fft_initialization.mirror_boundary_fallback);
         }
-    }
-
-    if (d.contains("sift")) {
-        py::dict sift = py::cast<py::dict>(d["sift"]);
-        cfg.sift_node_initialization.max_features =
-            get_int(sift, "max_features", cfg.sift_node_initialization.max_features);
-        cfg.sift_node_initialization.ratio_threshold =
-            get_double(sift, "ratio_threshold", cfg.sift_node_initialization.ratio_threshold);
-        cfg.sift_node_initialization.interpolation_neighbors =
-            get_int(sift, "interpolation_neighbors", cfg.sift_node_initialization.interpolation_neighbors);
-        cfg.sift_node_initialization.interpolation_radius =
-            get_double(sift, "interpolation_radius", cfg.sift_node_initialization.interpolation_radius);
+        if (init.contains("quality_control")) {
+            py::dict qc = py::cast<py::dict>(init["quality_control"]);
+            cfg.initialization_quality.enabled =
+                get_bool(qc, "enabled", cfg.initialization_quality.enabled);
+            cfg.initialization_quality.min_zncc =
+                get_double(qc, "min_zncc", cfg.initialization_quality.min_zncc);
+            cfg.initialization_quality.max_znssd =
+                get_double(qc, "max_znssd", cfg.initialization_quality.max_znssd);
+            cfg.initialization_quality.fedic_qfactor_enabled =
+                get_bool(qc, "fedic_qfactor_enabled", cfg.initialization_quality.fedic_qfactor_enabled);
+            cfg.initialization_quality.fedic_qfactor_std_factor =
+                get_double(qc, "fedic_qfactor_std_factor", cfg.initialization_quality.fedic_qfactor_std_factor);
+            cfg.initialization_quality.neighbor_mad_factor =
+                get_double(qc, "neighbor_mad_factor", cfg.initialization_quality.neighbor_mad_factor);
+            cfg.initialization_quality.max_neighbor_deviation =
+                get_double(qc, "max_neighbor_deviation", cfg.initialization_quality.max_neighbor_deviation);
+            cfg.initialization_quality.interpolation_neighbors =
+                get_int(qc, "interpolation_neighbors", cfg.initialization_quality.interpolation_neighbors);
+        }
     }
 
     return cfg;

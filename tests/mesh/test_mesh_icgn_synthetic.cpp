@@ -81,9 +81,10 @@ TEST(MeshICGN, Q4_ZeroDisplacement) {
     auto def = make_img(w,h,w/2.0,h/2.0);
 
     dic::MeshConfig cfg;
-    cfg.solver_method = dic::MeshSolverMethod::GlobalICGN;
     cfg.max_iterations = 10; cfg.convergence_threshold = 1e-4;
     cfg.regularization_alpha = 0.0; cfg.search_radius = 4;
+    cfg.fedic_fft_initialization.window_size = 21;
+    cfg.fedic_fft_initialization.search_radius = 4;
 
     dic::MeshDIC s(cfg);
     auto r = s.compute(ref, def, make_q4_mesh(w,h,nx,ny));
@@ -100,9 +101,10 @@ TEST(MeshICGN, Q4_SubpixelTranslation) {
     auto def = make_img(w,h,w/2.0+du,h/2.0+dv);
 
     dic::MeshConfig cfg;
-    cfg.solver_method = dic::MeshSolverMethod::GlobalICGN;
     cfg.max_iterations = 15; cfg.convergence_threshold = 1e-5;
     cfg.regularization_alpha = 1e-6; cfg.search_radius = 8;
+    cfg.fedic_fft_initialization.window_size = 21;
+    cfg.fedic_fft_initialization.search_radius = 8;
 
     dic::MeshDIC s(cfg);
     auto r = s.compute(ref, def, make_q4_mesh(w,h,nx,ny));
@@ -125,9 +127,10 @@ TEST(MeshICGN, Q8_ZeroDisplacement) {
     auto def = make_img(w,h,w/2.0,h/2.0);
 
     dic::MeshConfig cfg;
-    cfg.solver_method = dic::MeshSolverMethod::GlobalICGN;
     cfg.max_iterations = 10; cfg.convergence_threshold = 1e-4;
     cfg.regularization_alpha = 0.0; cfg.search_radius = 4;
+    cfg.fedic_fft_initialization.window_size = 21;
+    cfg.fedic_fft_initialization.search_radius = 4;
 
     dic::MeshDIC s(cfg);
     auto r = s.compute(ref, def, make_q8_mesh(w,h,nx,ny));
@@ -144,9 +147,10 @@ TEST(MeshICGN, Q8_SubpixelTranslation) {
     auto def = make_img(w,h,w/2.0+du,h/2.0+dv);
 
     dic::MeshConfig cfg;
-    cfg.solver_method = dic::MeshSolverMethod::GlobalICGN;
     cfg.max_iterations = 20; cfg.convergence_threshold = 1e-5;
     cfg.regularization_alpha = 0.0; cfg.search_radius = 6;
+    cfg.fedic_fft_initialization.window_size = 21;
+    cfg.fedic_fft_initialization.search_radius = 6;
 
     dic::MeshDIC s(cfg);
     auto r = s.compute(ref, def, make_q8_mesh(w,h,nx,ny));

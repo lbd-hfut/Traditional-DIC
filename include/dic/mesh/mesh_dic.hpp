@@ -18,9 +18,7 @@
  * - Internal Traditional-DIC modules declared by includes.
  *
  * TODO:
- * - Route compute() to GlobalICGN or ForwardGaussNewton based on MeshConfig.
- * - Add displacement initialization before solver execution.
- * - Add input validation, edge-case handling, and regression tests.
+ * - Add input validation and broader regression coverage.
  */
 
 #ifndef TRADITIONAL_DIC_INCLUDE_DIC_MESH_MESH_DIC_HPP
@@ -43,7 +41,7 @@ public:
     std::vector<Displacement2D> compute(
         const Image& reference,
         const Image& deformed,
-        Mesh mesh
+        const Mesh& mesh
     ) const;
 
     /**

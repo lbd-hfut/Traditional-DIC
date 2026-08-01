@@ -20,15 +20,6 @@ def load_config(path: str | Path) -> dict[str, Any]:
     return data
 
 
-def _clean_solver_name(value: Any, default: str = "icgn") -> str:
-    text = str(value or default).lower()
-    if text in {"global_icgn", "icgn"}:
-        return "icgn"
-    if text in {"forward_gauss_newton", "forward_gn", "fgn"}:
-        return "forward_gauss_newton"
-    return text
-
-
 def normalize_subset_config(config: dict[str, Any] | None) -> dict[str, Any]:
     """Return a subset config dictionary accepted by the pybind subset API."""
     return deepcopy(config or {})
@@ -41,34 +32,28 @@ def normalize_mesh_config(config: dict[str, Any] | None) -> dict[str, Any]:
 
     mesh = dict(src.get("mesh", {}) or {})
     optimization = dict(src.get("optimization", {}) or {})
-    correlation = dict(src.get("correlation", {}) or {})
     initialization = dict(src.get("initialization", {}) or {})
     interpolation = dict(src.get("interpolation", {}) or {})
 
+    method = str(optimization.get("method", "fedic_element_icgn")).strip().lower()
+    if method != "fedic_element_icgn":
+        raise ValueError("Mesh optimization.method must be 'fedic_element_icgn'.")
+
     out["mesh"] = {
-        "solver": _clean_solver_name(optimization.get("method", mesh.get("solver", "icgn"))),
-        "criterion": correlation.get("criterion", mesh.get("criterion", mesh.get("objective", "ssd"))),
         "max_iterations": optimization.get("max_iterations", mesh.get("max_iterations", 30)),
         "convergence_threshold": optimization.get(
             "convergence_threshold", mesh.get("convergence_threshold", 1.0e-3)
         ),
         "regularization_alpha": optimization.get("regularization_alpha", mesh.get("regularization_alpha", 0.0)),
         "mirror_image_padding": optimization.get("mirror_image_padding", mesh.get("mirror_image_padding", False)),
-        "search_radius": initialization.get("integer_search", {}).get(
-            "search_radius", mesh.get("search_radius", 20)
-        ),
+        "search_radius": initialization.get("fedic_fft", {}).get("search_radius", mesh.get("search_radius", 30)),
     }
     out["interpolation"] = interpolation
     out["initialization"] = {
-        "method": initialization.get("method", "integer_search"),
-        "integer_search": initialization.get("integer_search", {}),
-        "subpixel_refinement": initialization.get("subpixel_refinement", {}),
+        "method": initialization.get("method", "fedic_fft"),
+        "fedic_fft": initialization.get("fedic_fft", {}),
+        "quality_control": initialization.get("quality_control", {}),
     }
-    if "sift_node_initialization" in initialization:
-        out["sift"] = initialization["sift_node_initialization"]
-    elif "sift" in src:
-        out["sift"] = src["sift"]
-
     return out
 
 

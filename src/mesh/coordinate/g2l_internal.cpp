@@ -6,6 +6,16 @@
 
 namespace dic::mesh::internal {
 
+namespace {
+
+struct Q4FedicInverse {
+    double l[4]{0.0, 0.0, 0.0, 0.0};
+    double m[4]{0.0, 0.0, 0.0, 0.0};
+    bool valid{false};
+};
+
+} // namespace
+
 // ============================================================
 
 //
@@ -223,6 +233,105 @@ bool solve_point_q4(
         if (eta >  2.0) eta =  2.0;
     }
     return false;
+}
+
+static bool solve_4x4(double A[4][4], const double b[4], double x[4])
+{
+    double aug[4][5];
+    for (int r = 0; r < 4; ++r) {
+        for (int c = 0; c < 4; ++c) aug[r][c] = A[r][c];
+        aug[r][4] = b[r];
+    }
+
+    for (int p = 0; p < 4; ++p) {
+        int pivot = p;
+        double best = std::abs(aug[p][p]);
+        for (int r = p + 1; r < 4; ++r) {
+            double v = std::abs(aug[r][p]);
+            if (v > best) {
+                best = v;
+                pivot = r;
+            }
+        }
+        if (best < 1e-12) return false;
+        if (pivot != p) {
+            for (int c = p; c < 5; ++c) std::swap(aug[p][c], aug[pivot][c]);
+        }
+
+        double diag = aug[p][p];
+        for (int c = p; c < 5; ++c) aug[p][c] /= diag;
+
+        for (int r = 0; r < 4; ++r) {
+            if (r == p) continue;
+            double factor = aug[r][p];
+            for (int c = p; c < 5; ++c) aug[r][c] -= factor * aug[p][c];
+        }
+    }
+
+    for (int r = 0; r < 4; ++r) x[r] = aug[r][4];
+    return true;
+}
+
+static Q4FedicInverse make_q4_fedic_inverse(const double* elem_nodes)
+{
+    Q4FedicInverse inv;
+    double M[4][4];
+    for (int i = 0; i < 4; ++i) {
+        const double x = elem_nodes[2 * i];
+        const double y = elem_nodes[2 * i + 1];
+        M[i][0] = x * y;
+        M[i][1] = x;
+        M[i][2] = y;
+        M[i][3] = 1.0;
+    }
+
+    double M_l[4][4], M_m[4][4];
+    for (int r = 0; r < 4; ++r) {
+        for (int c = 0; c < 4; ++c) {
+            M_l[r][c] = M[r][c];
+            M_m[r][c] = M[r][c];
+        }
+    }
+    const double lb[4] = {-1.0, 1.0, 1.0, -1.0};
+    const double mb[4] = {-1.0, -1.0, 1.0, 1.0};
+    inv.valid = solve_4x4(M_l, lb, inv.l) && solve_4x4(M_m, mb, inv.m);
+    return inv;
+}
+
+static bool eval_q4_fedic_inverse(
+    const Q4FedicInverse& inv,
+    double gx, double gy,
+    double& xi, double& eta)
+{
+    if (!inv.valid) return false;
+    const double xy = gx * gy;
+    xi  = inv.l[0] * xy + inv.l[1] * gx + inv.l[2] * gy + inv.l[3];
+    eta = inv.m[0] * xy + inv.m[1] * gx + inv.m[2] * gy + inv.m[3];
+    return std::isfinite(xi) && std::isfinite(eta);
+}
+
+bool solve_point_q4_fedic(
+    double gx, double gy,
+    const double* elem_nodes,
+    double& xi, double& eta,
+    double& J11, double& J12, double& J21, double& J22)
+{
+    const Q4FedicInverse inv = make_q4_fedic_inverse(elem_nodes);
+    if (!eval_q4_fedic_inverse(inv, gx, gy, xi, eta)) return false;
+    if (std::abs(xi) > 1.1 || std::abs(eta) > 1.1) return false;
+
+    double N[4], dN_dxi[4], dN_deta[4];
+    shape_functions_q4(xi, eta, N, dN_dxi, dN_deta);
+    J11 = 0.0; J12 = 0.0; J21 = 0.0; J22 = 0.0;
+    for (int i = 0; i < 4; ++i) {
+        J11 += dN_dxi[i]  * elem_nodes[2 * i];
+        J12 += dN_deta[i] * elem_nodes[2 * i];
+        J21 += dN_dxi[i]  * elem_nodes[2 * i + 1];
+        J22 += dN_deta[i] * elem_nodes[2 * i + 1];
+    }
+
+    return std::isfinite(J11) && std::isfinite(J12) &&
+           std::isfinite(J21) && std::isfinite(J22);
 }
 
 // ============================================================
@@ -493,12 +602,19 @@ G2LOutput compute_global_to_local(
 
     
     std::vector<std::vector<double>> elem_nodes(n_elements);
+    std::vector<Q4FedicInverse> q4_fedic_inverse;
+    if (element_type == MeshElementType::Q4 || element_type == MeshElementType::Q8) {
+        q4_fedic_inverse.resize(n_elements);
+    }
     for (int e = 0; e < n_elements; ++e) {
         elem_nodes[e].resize(2 * nn);
         for (int k = 0; k < nn; ++k) {
             int nid = elements[e * elem_stride + k] - 1;  
             elem_nodes[e][2 * k]     = nodes_coord[2 * nid];
             elem_nodes[e][2 * k + 1] = nodes_coord[2 * nid + 1];
+        }
+        if (element_type == MeshElementType::Q4 || element_type == MeshElementType::Q8) {
+            q4_fedic_inverse[e] = make_q4_fedic_inverse(elem_nodes[e].data());
         }
     }
 
@@ -507,6 +623,7 @@ G2LOutput compute_global_to_local(
         double gx  = inform[p * 3];
         double gy  = inform[p * 3 + 1];
         int    eid = static_cast<int>(inform[p * 3 + 2]) - 1;  
+        if (eid < 0 || eid >= n_elements) continue;
         int    idx = static_cast<int>(gy) * img_w + static_cast<int>(gx);
         if (idx < 0 || idx >= total) continue;
 
@@ -523,20 +640,34 @@ G2LOutput compute_global_to_local(
 
             
             case MeshElementType::Q4:
-                ok = solve_point_q4(gx, gy, elem_nodes[eid].data(),
-                                    xi, eta, J11, J12, J21, J22,
-                                    params.max_iter);
+                ok = eval_q4_fedic_inverse(q4_fedic_inverse[eid], gx, gy, xi, eta);
+                if (ok && (std::abs(xi) > 1.1 || std::abs(eta) > 1.1)) {
+                    ok = false;
+                }
+                if (ok) {
+                    double N[4], dN_dxi[4], dN_deta[4];
+                    shape_functions_q4(xi, eta, N, dN_dxi, dN_deta);
+                    J11 = 0.0; J12 = 0.0; J21 = 0.0; J22 = 0.0;
+                    for (int i = 0; i < 4; ++i) {
+                        J11 += dN_dxi[i]  * elem_nodes[eid][2 * i];
+                        J12 += dN_deta[i] * elem_nodes[eid][2 * i];
+                        J21 += dN_dxi[i]  * elem_nodes[eid][2 * i + 1];
+                        J22 += dN_deta[i] * elem_nodes[eid][2 * i + 1];
+                    }
+                }
                 break;
 
             
             case MeshElementType::Q8: {
                 
                 double xi0 = 0.0, eta0 = 0.0;
-                double q4_J11 = 0.0, q4_J12 = 0.0, q4_J21 = 0.0, q4_J22 = 0.0;
-                bool q4_seed_ok = solve_point_q4(
-                    gx, gy, elem_nodes[eid].data(),
-                    xi0, eta0, q4_J11, q4_J12, q4_J21, q4_J22,
-                    params.max_iter);
+                bool q4_seed_ok = eval_q4_fedic_inverse(
+                    q4_fedic_inverse[eid], gx, gy, xi0, eta0);
+                if (q4_seed_ok &&
+                    (std::abs(xi0) > params.q8_coarse_natural_bound ||
+                     std::abs(eta0) > params.q8_coarse_natural_bound)) {
+                    break;
+                }
                 if (!q4_seed_ok) {
                     xi0 = 0.0; eta0 = 0.0;  
                 }
@@ -568,6 +699,8 @@ G2LOutput compute_global_to_local(
             out.J22[idx]     = J22;
             out.valid[idx]   = 1;
             out.elem_id[idx] = eid + 1;  
+            out.element_samples.push_back({eid, idx, xi, eta,
+                                           J11, J12, J21, J22});
         }
     }
 

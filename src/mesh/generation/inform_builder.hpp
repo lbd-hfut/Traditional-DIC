@@ -28,4 +28,16 @@ std::vector<double> build_inform(
     int img_h, int img_w,
     const unsigned char* roi_mask = nullptr);
 
+// Pixel candidates used by the FE-DIC compatible optimizer.  T3 uses the
+// reference sign test and Q4 uses a convex-hull inclusion test with 0.1 px
+// tolerance.  Q8 intentionally retains the curved-boundary candidate path.
+std::vector<double> build_fedic_inform(
+    const double* nodes_coord,
+    int n_nodes,
+    const int* elements,
+    int n_elements,
+    MeshElementType element_type,
+    int img_h, int img_w,
+    const unsigned char* roi_mask = nullptr);
+
 } // namespace dic::mesh

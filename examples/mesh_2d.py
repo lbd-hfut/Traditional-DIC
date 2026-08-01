@@ -21,7 +21,11 @@ if str(PYTHON_ROOT) not in sys.path:
 import traditional_dic as tdic  # noqa: E402
 from traditional_dic import io as dic_io  # noqa: E402
 from traditional_dic.config import load_config, mesh_generation_config, normalize_mesh_config  # noqa: E402
-from traditional_dic.visualization import visualization_dir_for_result  # noqa: E402
+from traditional_dic.visualization import (  # noqa: E402
+    densify_2d_mesh_displacement_field,
+    plot_2d_field_overlay,
+    visualization_dir_for_result,
+)
 
 
 def read_gray(path: Path) -> np.ndarray:
@@ -78,6 +82,22 @@ def write_elements(path: Path, elements: np.ndarray) -> None:
         for i, elem in enumerate(elements, start=1):
             one_based = [str(int(v) + 1) for v in elem]
             f.write(f"{i},{','.join(one_based)}\n")
+
+
+def write_dense_displacement_csv(path: Path, dense_field: dict[str, np.ndarray]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    x = np.asarray(dense_field["x"], dtype=np.float64)
+    y = np.asarray(dense_field["y"], dtype=np.float64)
+    u = np.asarray(dense_field["u"], dtype=np.float64)
+    v = np.asarray(dense_field["v"], dtype=np.float64)
+    valid = np.asarray(dense_field.get("valid", np.ones_like(x, dtype=bool)), dtype=bool)
+    mag = np.hypot(u, v)
+    with path.open("w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(["id", "x", "y", "u", "v", "mag", "valid"])
+        for i, values in enumerate(zip(x, y, u, v, mag, valid), start=1):
+            sx, sy, su, sv, smag, ok = values
+            writer.writerow([i, sx, sy, su, sv, smag, int(bool(ok))])
 
 
 def save_mesh_preview(path: Path, nodes: np.ndarray, elements: np.ndarray, etype: str, width: int, height: int) -> None:
@@ -225,20 +245,22 @@ def write_legend(path: Path, component: str, vmin: float, vmax: float) -> None:
     )
 
 
-def save_overview(out_dir: Path, element_types: list[str]) -> None:
+def save_overview(out_dir: Path, element_types: list[str], *, dense: bool = False) -> None:
     tile_w, tile_h = 360, 390
     overview = Image.new("RGB", (tile_w * 3, tile_h * len(element_types)), "white")
     draw = ImageDraw.Draw(overview)
+    name_prefix = "dense_field" if dense else "field"
     for row, etype in enumerate(element_types):
         for col, component in enumerate(("mag", "u", "v")):
-            path = out_dir / etype / "field_visualization" / f"{etype}_field_{component}_mesh_overlay.png"
+            path = out_dir / etype / f"{etype}_{name_prefix}_{component}_mesh_overlay.png"
             image = Image.open(path).convert("RGB")
             image.thumbnail((tile_w - 24, tile_h - 50))
             x0, y0 = col * tile_w, row * tile_h
             label = "|U|" if component == "mag" else component
-            draw.text((x0 + 16, y0 + 14), f"{etype} {label}", fill=(20, 20, 20))
+            title = f"{etype} dense {label}" if dense else f"{etype} {label}"
+            draw.text((x0 + 16, y0 + 14), title, fill=(20, 20, 20))
             overview.paste(image, (x0 + (tile_w - image.width) // 2, y0 + 42))
-    overview.save(out_dir / "overview.png")
+    overview.save(out_dir / ("dense_overview.png" if dense else "overview.png"))
 
 
 def run_element(
@@ -253,8 +275,7 @@ def run_element(
 ) -> None:
     out_dir = out_root / etype
     element_visualization_dir = visualization_root / etype
-    vis_dir = element_visualization_dir / "field_visualization"
-    vis_dir.mkdir(parents=True, exist_ok=True)
+    element_visualization_dir.mkdir(parents=True, exist_ok=True)
     mesh_data = generated_meshes[etype]
     nodes = np.asarray(mesh_data["nodes"], dtype=np.float64)
     elements = np.asarray(mesh_data["elements"], dtype=np.int64)
@@ -271,16 +292,39 @@ def run_element(
         config=api_config,
     )
     dic_io.save_displacement_csv(result, out_dir / "final_U.csv")
+    dense_field = densify_2d_mesh_displacement_field(
+        nodes,
+        elements,
+        result["u"],
+        result["v"],
+        etype,
+        valid=result.get("valid"),
+        samples_per_axis=args.dense_samples_per_axis,
+    )
+    write_dense_displacement_csv(out_dir / "dense_U.csv", dense_field)
 
     height, width = reference.shape
     for component in ("mag", "u", "v"):
-        image, vmin, vmax = render_mesh_field(reference, nodes, elements, result, etype, width, height, component)
-        image.save(vis_dir / f"{etype}_field_{component}_mesh_overlay.png")
-        write_legend(vis_dir / f"{etype}_field_{component}_legend.txt", component, vmin, vmax)
+        label = "|U| px" if component == "mag" else f"{component} px"
+        plot_2d_field_overlay(
+            reference,
+            dense_field,
+            element_visualization_dir / f"{etype}_dense_field_{component}_mesh_overlay.png",
+            component=component,
+            title=f"{etype} dense {component}",
+            label=label,
+            cmap="jet",
+            alpha=0.9,
+            point_size=2.0,
+            mesh_nodes=nodes,
+            mesh_elements=elements,
+            mesh_element_type=etype,
+        )
 
     summary = {
         "nodes": int(nodes.shape[0]),
         "elements": int(elements.shape[0]),
+        "dense_samples": int(len(dense_field["x"])),
         "mag_mean": float(np.mean(result["mag"])) if len(result["mag"]) else 0.0,
         "mag_max": float(np.max(result["mag"])) if len(result["mag"]) else 0.0,
         "solver": api_config.get("mesh", {}).get("solver", ""),
@@ -288,6 +332,8 @@ def run_element(
         "initialization": api_config.get("initialization", {}).get("method", ""),
         "nodes_file": f"nodes_{etype}.txt",
         "elements_file": f"elements_{etype}.txt",
+        "nodal_displacement_file": "final_U.csv",
+        "dense_displacement_file": "dense_U.csv",
         "mesh_preview": str(element_visualization_dir / f"mesh_preview_{etype}.png"),
         "generation_summary": generated_meshes.get("summary", {}),
     }
@@ -304,13 +350,25 @@ def main() -> None:
     parser.add_argument("--out-dir", type=Path, default=ring_root / "result" / "mesh")
     parser.add_argument("--config", type=Path, default=PROJECT_ROOT / "config" / "mesh_2d.yaml")
     parser.add_argument("--element", choices=["T3", "Q4", "Q8", "all"], default="all")
-    parser.add_argument("--solver", choices=["icgn", "fgn", "forward_gn", "forward_gauss_newton"], default="icgn")
-    parser.add_argument("--initialization", choices=["integer_search", "sift"], default="sift")
+    parser.add_argument(
+        "--initialization",
+        choices=["fedic_fft"],
+        help="Override the mesh nodal-initialization route from the YAML configuration.",
+    )
     parser.add_argument("--bspline-degree", type=int, default=5)
     parser.add_argument("--max-iterations", type=int, default=5)
     parser.add_argument("--tolerance", type=float, default=1e-3)
     parser.add_argument("--search-radius", type=int, default=20)
-    parser.add_argument("--regularization-alpha", type=float, default=0.0)
+    parser.add_argument("--regularization-alpha", type=float)
+    parser.add_argument("--dense-samples-per-axis", type=int, default=25)
+    parser.add_argument("--init-quality-control", action="store_true")
+    parser.add_argument("--init-min-zncc", type=float)
+    parser.add_argument("--init-max-znssd", type=float)
+    parser.add_argument("--init-fedic-qfactor", action="store_true")
+    parser.add_argument("--init-fedic-qfactor-std-factor", type=float)
+    parser.add_argument("--init-neighbor-mad-factor", type=float)
+    parser.add_argument("--init-max-neighbor-deviation", type=float)
+    parser.add_argument("--init-interpolation-neighbors", type=int)
     args = parser.parse_args()
 
     reference = read_gray(args.reference)
@@ -318,9 +376,28 @@ def main() -> None:
     roi = read_mask(args.roi)
     raw_config = load_config(args.config) if args.config else {}
     api_config = normalize_mesh_config(raw_config)
+    if args.initialization is not None:
+        api_config.setdefault("initialization", {})["method"] = args.initialization
+    if args.regularization_alpha is not None:
+        api_config.setdefault("mesh", {})["regularization_alpha"] = float(args.regularization_alpha)
+    if args.init_quality_control:
+        qc_config = api_config.setdefault("initialization", {}).setdefault("quality_control", {})
+        qc_config["enabled"] = True
+        if args.init_min_zncc is not None:
+            qc_config["min_zncc"] = float(args.init_min_zncc)
+        if args.init_max_znssd is not None:
+            qc_config["max_znssd"] = float(args.init_max_znssd)
+        if args.init_fedic_qfactor:
+            qc_config["fedic_qfactor_enabled"] = True
+        if args.init_fedic_qfactor_std_factor is not None:
+            qc_config["fedic_qfactor_std_factor"] = float(args.init_fedic_qfactor_std_factor)
+        if args.init_neighbor_mad_factor is not None:
+            qc_config["neighbor_mad_factor"] = float(args.init_neighbor_mad_factor)
+        if args.init_max_neighbor_deviation is not None:
+            qc_config["max_neighbor_deviation"] = float(args.init_max_neighbor_deviation)
+        if args.init_interpolation_neighbors is not None:
+            qc_config["interpolation_neighbors"] = int(args.init_interpolation_neighbors)
     generation = mesh_generation_config(raw_config)
-    if api_config.get("mesh", {}).get("criterion") == "znssd":
-        print("Warning: Mesh ZNSSD global solver is not implemented; use SSD for solved mesh displacement.")
     element_types = ["T3", "Q4", "Q8"] if args.element == "all" else [args.element]
     args.out_dir.mkdir(parents=True, exist_ok=True)
     visualization_dir = visualization_dir_for_result(args.reference.parent, args.out_dir)
@@ -341,8 +418,8 @@ def main() -> None:
 
     for etype in element_types:
         run_element(reference, deformed, generated_meshes, args.out_dir, visualization_dir, etype, args, api_config)
-    save_overview(visualization_dir, element_types)
-    print(f"Wrote Mesh-DIC overview to {visualization_dir / 'overview.png'}")
+    save_overview(visualization_dir, element_types, dense=True)
+    print(f"Wrote dense Mesh-DIC overview to {visualization_dir / 'dense_overview.png'}")
 
 
 if __name__ == "__main__":
