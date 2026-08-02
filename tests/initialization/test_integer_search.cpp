@@ -201,7 +201,7 @@ TEST(SubsetInitializer, RunsIntegerSearchAndSubpixelRefinement)
     EXPECT_NEAR(initial.v, -1.45, 0.35);
 }
 
-TEST(SubsetInitializer, CanSelectForwardGaussNewtonSubpixelPlaceholder)
+TEST(SubsetInitializer, CanSelectForwardGaussNewtonSubpixel)
 {
     const auto reference = make_search_image(72, 72, 0.0, 0.0);
     const auto deformed = make_search_image(72, 72, 2.25, -1.45);
@@ -217,6 +217,6 @@ TEST(SubsetInitializer, CanSelectForwardGaussNewtonSubpixelPlaceholder)
     const auto initial = initializer.estimate(reference, deformed, Eigen::Vector2d(36.0, 36.0));
 
     EXPECT_TRUE(initial.valid);
-    EXPECT_DOUBLE_EQ(initial.u, 2.0);
-    EXPECT_DOUBLE_EQ(initial.v, -1.0);
+    EXPECT_NEAR(initial.u, 2.25, 0.35);
+    EXPECT_NEAR(initial.v, -1.45, 0.35);
 }

@@ -24,12 +24,14 @@
 #include <dic/initialization/subset_initializer.hpp>
 #include <dic/interpolation/bspline.hpp>
 #include <dic/subset/seed/reliability_propagation.hpp>
+#include <dic/subset/solver/forward_gauss_newton.hpp>
 #include <dic/subset/solver/icgn.hpp>
 
 #include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <limits>
+#include <memory>
 #include <queue>
 #include <vector>
 
@@ -173,9 +175,9 @@ PropagationResult ReliabilityPropagation::propagate(
         result.points[i].y = static_cast<double>((i / grid_w) * step);
     }
 
-    // --- Shared precomputed data for all ICGN calls ---
+    // --- Shared precomputed data for all solver calls ---
     BSplinePrecomputeConfig bspline_cfg = config_.image_precompute;
-    bspline_cfg.use_exact_prefilter = false;
+    bspline_cfg.precompute_local_blocks = false;
     BSplineImagePreprocessor preprocessor(bspline_cfg);
     const auto reference_precomputed = build_reference_gradient_cache(reference, bspline_cfg);
     const auto deformed_precomputed = preprocessor.compute(deformed);
@@ -186,7 +188,12 @@ PropagationResult ReliabilityPropagation::propagate(
 
     const double cutoff_corrcoef_propagation = config_.propagation_max_znssd;
     const double cutoff_disp = static_cast<double>(step);
-    ICGNSolver icgn_solver(config_);
+    std::unique_ptr<SubsetSolver> solver;
+    if (config_.optimizer == SubsetOptimizationMethod::ForwardGaussNewton) {
+        solver = std::make_unique<ForwardGaussNewtonSolver>(config_);
+    } else {
+        solver = std::make_unique<ICGNSolver>(config_);
+    }
 
     // -------------------------------------------------------------------
     // Process each seed
@@ -224,14 +231,14 @@ PropagationResult ReliabilityPropagation::propagate(
         Displacement2D aligned_seed = seed.displacement;
         if (seed_x != seed_x_raw || seed_y != seed_y_raw) {
             aligned_seed = config_.truncate_roi_subsets
-                ? icgn_solver.solve_with_mask(
+                ? solver->solve_with_mask(
                     reference, deformed,
                     roi,
                     Eigen::Vector2d(static_cast<double>(seed_x), static_cast<double>(seed_y)),
                     seed_initial,
                     reference_interp,
                     deformed_interp)
-                : icgn_solver.solve_with_interpolators(
+                : solver->solve_with_interpolators(
                     reference, deformed,
                     Eigen::Vector2d(static_cast<double>(seed_x), static_cast<double>(seed_y)),
                     seed_initial,
@@ -332,14 +339,14 @@ PropagationResult ReliabilityPropagation::propagate(
                 initial.valid   = true;
 
                 const auto icgn_result = config_.truncate_roi_subsets
-                    ? icgn_solver.solve_with_mask(
+                    ? solver->solve_with_mask(
                         reference, deformed,
                         roi,
                         Eigen::Vector2d(static_cast<double>(nx), static_cast<double>(ny)),
                         initial,
                         reference_interp,
                         deformed_interp)
-                    : icgn_solver.solve_with_interpolators(
+                    : solver->solve_with_interpolators(
                         reference, deformed,
                         Eigen::Vector2d(static_cast<double>(nx), static_cast<double>(ny)),
                         initial,

@@ -245,6 +245,8 @@ __marimo__/
 /case/**/*.txt
 /case/**/*.csv
 /case/**/*.json
+/case/**/*.yaml
+/case/**/*.log
 
 # Local visualization artifacts
 /visualizations/

@@ -26,15 +26,44 @@
 #define TRADITIONAL_DIC_INCLUDE_DIC_SUBSET_SOLVER_SUBSET_SOLVER_HPP
 
 #include <dic/core/image.hpp>
+#include <dic/core/mask.hpp>
 #include <dic/core/result.hpp>
 #include <dic/initialization/initializer.hpp>
 
 namespace dic {
 
+class BSplineInterpolator;
+
 class SubsetSolver {
 public:
     virtual ~SubsetSolver() = default;
     virtual Displacement2D solve(const Image& reference, const Image& deformed, const Eigen::Vector2d& point, const InitialDisplacement& initial) const = 0;
+
+    virtual Displacement2D solve_with_interpolators(const Image& reference,
+                                                     const Image& deformed,
+                                                     const Eigen::Vector2d& point,
+                                                     const InitialDisplacement& initial,
+                                                     const BSplineInterpolator& reference_interpolator,
+                                                     const BSplineInterpolator& deformed_interpolator) const
+    {
+        (void)reference_interpolator;
+        (void)deformed_interpolator;
+        return solve(reference, deformed, point, initial);
+    }
+
+    virtual Displacement2D solve_with_mask(const Image& reference,
+                                            const Image& deformed,
+                                            const Mask& roi,
+                                            const Eigen::Vector2d& point,
+                                            const InitialDisplacement& initial,
+                                            const BSplineInterpolator& reference_interpolator,
+                                            const BSplineInterpolator& deformed_interpolator) const
+    {
+        (void)roi;
+        (void)reference_interpolator;
+        (void)deformed_interpolator;
+        return solve(reference, deformed, point, initial);
+    }
 };
 
 } // namespace dic
