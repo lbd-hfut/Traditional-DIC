@@ -1,11 +1,5 @@
 mode: multiview_3d
 
-output:
-  mask_dir: result/mask
-  roi_dir: result/mask
-  calibration_dir: result/calibration
-  disp_dir: result/disp
-
 self_calibration:
   backend: cpp_colmap_like
   # COLMAP CPU SIFT/matching defaults.
@@ -58,9 +52,6 @@ pairwise_2d_dic:
   run_subset: true
   run_mesh: true
   mesh_types: [T3, Q4, Q8]
-  image_dir: images
-  reference_frame: 001.bmp
-  deformed_frame: 002.bmp
   subset_config: config/subset_2d.yaml
   mesh_config: config/mesh_2d.yaml
   mesh_target_element_size: 35.0
@@ -71,17 +62,14 @@ pairwise_2d_dic:
 
 pairwise_3d_dic:
   solver: subset
-  field_dir: result/disp
-  output_dir: result/reconstruct/pairwise
   quality_metric: znssd
   max_znssd: 2.0
   min_correlation: 0.0
   max_reprojection_error_px: 5.0
   remove_rigid_body_motion: false
+  write_surface_strain: true
 
 scale:
-  calibration_dir: result/calibration
-  chessboard_dir: calibrate_images
   output_file: calibration_scale.json
   use_meta_observations: true
   board_rows: 7
@@ -95,8 +83,6 @@ scale:
 surface_stitch:
   mode: multidic
   solver: subset
-  pairwise_3d_dir: result/reconstruct/pairwise
-  output_dir: result/reconstruct/stitched
   max_reprojection_error_px: 5.0
   max_quality: 2.0
   triangle_edge_scale: 3.0
@@ -105,6 +91,11 @@ surface_stitch:
   outlier_distance_sigma: 6.0
   outlier_displacement_sigma: 6.0
   outlier_face_edge_scale: 4.0
+
+strain:
+  enabled: true
+  method: triangular_cosserat
+  measure: green_lagrange
 
 triangulation:
   minimum_views: 2

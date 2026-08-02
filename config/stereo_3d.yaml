@@ -1,11 +1,3 @@
-case:
-  root: case/stereo_DIC/plate_center_load
-  left_reference: cam1/00_L.bmp
-  right_reference: cam2/00_R.bmp
-  left_deformed: cam1/04_L.bmp
-  right_deformed: cam2/04_R.bmp
-  roi: ROI.bmp
-
 workflow:
   calibrate: true
   compute_fields: false
@@ -21,16 +13,14 @@ configs:
   mesh: config/mesh_2d.yaml
   calibration: config/calibration.yaml
 
-output:
-  root: result
-  calibration: calibration
-  disp: disp
-  reconstruct: reconstruct
-  deformation: deformation
-
 reconstruction:
   quality_metric: znssd  # options: znssd, correlation
   max_znssd: 2.0  # used when quality_metric is znssd; lower is stricter
   min_correlation: 0.0
   max_reprojection_error_px: 5.0
   remove_rigid_body_motion: false
+
+strain:
+  enabled: true
+  method: triangular_cosserat
+  measure: green_lagrange

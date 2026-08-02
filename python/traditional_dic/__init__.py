@@ -31,6 +31,7 @@ from .multiview import (
 )
 from .config import load_config, normalize_mesh_config, normalize_subset_config
 from . import visualization
+from . import postprocess
 
 __all__ = [
     "subset",
@@ -65,4 +66,5 @@ __all__ = [
     "normalize_mesh_config",
     "normalize_subset_config",
     "visualization",
+    "postprocess",
 ]

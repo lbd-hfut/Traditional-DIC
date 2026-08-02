@@ -1,0 +1,35 @@
+# Case-specific input and output locations. All paths except case_root are relative to case_root.
+mono_2d:
+  case_root: case/mono_DIC/ring
+  # The first image is the reference, the last is the ROI mask, and every
+  # intermediate image is solved as a deformed frame.
+  images_dir: .
+  output:
+    result_root: result
+    visualization_root: visualization
+
+stereo_3d:
+  case_root: case/stereo_DIC/plate_center_load
+  left_images_dir: cam1
+  right_images_dir: cam2
+  roi: ROI.bmp
+  calibration:
+    left_dir: calibrate1
+    right_dir: calibrate2
+  output:
+    result_root: result
+    visualization_root: visualization
+
+multiview_3d:
+  case_root: case/multi_DIC/CylinderDIC
+  images:
+    root: images
+  roi:
+    # auto: generate a pair ROI from calibration/features.
+    # last_image: each camera's last image is its ROI mask.
+    mode: auto
+  calibration:
+    chessboard_dir: calibrate_images
+  output:
+    result_root: result
+    visualization_root: visualization

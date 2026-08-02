@@ -157,10 +157,10 @@ def camera_pair_dict(result: dict, board) -> dict:
 
 
 def run_calibration(paths: dict[str, Path], calibration_cfg: dict[str, Any], out_dir: Path) -> Path:
-    left_paths = sorted((paths["case_root"] / "calibrate1").glob("*.bmp"))
-    right_paths = sorted((paths["case_root"] / "calibrate2").glob("*.bmp"))
+    left_paths = sorted(paths["calibration_left"].glob("*.bmp"))
+    right_paths = sorted(paths["calibration_right"].glob("*.bmp"))
     if not left_paths or len(left_paths) != len(right_paths):
-        raise RuntimeError("calibrate1/calibrate2 must contain the same nonzero number of BMP images")
+        raise RuntimeError("Stereo calibration image directories must contain the same nonzero number of BMP images")
 
     board = calib.make_board(calibration_cfg.get("board", {}))
     stereo_cfg = dict(calibration_cfg.get("stereo_calibration", {}) or {})
@@ -466,6 +466,7 @@ def reconstruct_subset(paths: dict[str, Path], output_dirs: dict[str, Path], rec
         max_reprojection_error_px=float(recon_cfg.get("max_reprojection_error_px", 5.0)),
         world_scale=world_scale,
         remove_rigid_body_motion=bool(recon_cfg.get("remove_rigid_body_motion", False)),
+        write_surface_strain=bool(recon_cfg.get("strain_enabled", True)),
     )
     print(f"Reconstructed subset {result.valid_points}/{result.total_points} valid")
 
@@ -521,22 +522,26 @@ def reconstruct_mesh(output_dirs: dict[str, Path], recon_cfg: dict[str, Any], ca
         print(f"Reconstructed mesh {etype} {result.valid_points}/{result.total_points} valid")
 
 
-def build_paths(stereo_cfg: dict[str, Any]) -> dict[str, Path]:
-    case_cfg = stereo_cfg.get("case", {})
-    case_root = resolve_path(case_cfg.get("root", "case/stereo_DIC/plate_center_load"))
+def build_paths(case_cfg: dict[str, Any]) -> dict[str, Path]:
+    case_root = resolve_path(case_cfg["case_root"])
+    left_images = sorted(path for path in case_path(case_root, case_cfg["left_images_dir"]).iterdir() if path.is_file())
+    right_images = sorted(path for path in case_path(case_root, case_cfg["right_images_dir"]).iterdir() if path.is_file())
+    if len(left_images) < 2 or len(right_images) < 2:
+        raise ValueError("stereo_3d image directories must each contain reference and deformed images")
+    calibration_cfg = dict(case_cfg.get("calibration", {}) or {})
     return {
         "case_root": case_root,
-        "left_reference": case_path(case_root, case_cfg.get("left_reference", "cam1/00_L.bmp")),
-        "right_reference": case_path(case_root, case_cfg.get("right_reference", "cam2/00_R.bmp")),
-        "left_deformed": case_path(case_root, case_cfg.get("left_deformed", "cam1/04_L.bmp")),
-        "right_deformed": case_path(case_root, case_cfg.get("right_deformed", "cam2/04_R.bmp")),
-        "roi": case_path(case_root, case_cfg.get("roi", "ROI.bmp")),
+        "left_reference": left_images[0], "right_reference": right_images[0],
+        "left_deformed": left_images[-1], "right_deformed": right_images[-1],
+        "roi": case_path(case_root, case_cfg["roi"]),
+        "calibration_left": case_path(case_root, calibration_cfg["left_dir"]),
+        "calibration_right": case_path(case_root, calibration_cfg["right_dir"]),
     }
 
 
-def build_output_dirs(paths: dict[str, Path], stereo_cfg: dict[str, Any]) -> dict[str, Path]:
-    output = stereo_cfg.get("output", {})
-    root = case_path(paths["case_root"], output.get("root", "result"))
+def build_output_dirs(paths: dict[str, Path], case_cfg: dict[str, Any]) -> dict[str, Path]:
+    output = dict(case_cfg.get("output", {}) or {})
+    root = case_path(paths["case_root"], output.get("result_root", "result"))
     return {
         "root": root,
         "case_root": paths["case_root"],
@@ -550,6 +555,7 @@ def build_output_dirs(paths: dict[str, Path], stereo_cfg: dict[str, Any]) -> dic
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--stereo-config", type=Path, default=PROJECT_ROOT / "config" / "stereo_3d.yaml")
+    parser.add_argument("--paths-config", type=Path, default=PROJECT_ROOT / "config" / "case_paths.yaml")
     parser.add_argument("--calibration-config", type=Path)
     parser.add_argument("--solver", choices=["subset", "mesh"])
     parser.add_argument("--element", choices=["T3", "Q4", "Q8", "all"])
@@ -558,8 +564,9 @@ def main() -> None:
     args = parser.parse_args()
 
     stereo_cfg = load_config(args.stereo_config)
-    paths = build_paths(stereo_cfg)
-    output_dirs = build_output_dirs(paths, stereo_cfg)
+    case_cfg = dict(load_config(args.paths_config).get("stereo_3d", {}) or {})
+    paths = build_paths(case_cfg)
+    output_dirs = build_output_dirs(paths, case_cfg)
     calibration_cfg_path = args.calibration_config or resolve_path(
         stereo_cfg.get("configs", {}).get("calibration", "config/calibration.yaml")
     )
@@ -571,6 +578,8 @@ def main() -> None:
     compute_fields = bool(args.compute_fields or workflow.get("compute_fields", False))
     calibrate = bool(workflow.get("calibrate", True)) and not args.skip_calibration
     reconstruct = bool(workflow.get("reconstruct", True))
+    reconstruction_cfg = dict(stereo_cfg.get("reconstruction", {}) or {})
+    reconstruction_cfg["strain_enabled"] = bool(dict(stereo_cfg.get("strain", {}) or {}).get("enabled", True))
     camera_path = output_dirs["calibration"] / "camera_pair.json"
 
     if calibrate:
@@ -596,7 +605,7 @@ def main() -> None:
                 visualization_dir_for_result(paths["case_root"], subset_disp_dir),
             )
         if reconstruct:
-            reconstruct_subset(paths, output_dirs, stereo_cfg.get("reconstruction", {}), camera_path)
+            reconstruct_subset(paths, output_dirs, reconstruction_cfg, camera_path)
     elif solver == "mesh":
         if args.element and args.element != "all":
             element_types = [args.element]
@@ -614,7 +623,7 @@ def main() -> None:
                 element_types,
             )
         if reconstruct:
-            reconstruct_mesh(output_dirs, stereo_cfg.get("reconstruction", {}), camera_path, element_types)
+            reconstruct_mesh(output_dirs, reconstruction_cfg, camera_path, element_types)
     else:
         raise ValueError(f"Unsupported solver: {solver}")
 

@@ -43,5 +43,3 @@ endif()
 # pybind11 from conda site-packages
 list(APPEND CMAKE_PREFIX_PATH "$ENV{CONDA_PREFIX}/Lib/site-packages/pybind11/share/cmake/pybind11")
 find_package(pybind11 QUIET)
-
-find_package(GTest QUIET)

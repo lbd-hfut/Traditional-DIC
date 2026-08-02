@@ -143,6 +143,7 @@ class Pairwise3DOptions:
     remove_rigid_body_motion: bool = False
     write_shape_maps: bool = True
     write_deformation_maps: bool = True
+    write_surface_strain: bool = True
     max_pairs: int | None = None
 
 
@@ -490,7 +491,7 @@ def compute_pairwise_2d_dic(
     ``deformed_disparity`` fields under ``result/disp/{pair}``.
     """
 
-    from .config import load_config, mesh_generation_config, normalize_mesh_config, normalize_subset_config
+    from .config import load_config, mesh_generation_config, normalize_subset_config
     from .mesh import mesh as compute_mesh
     from .subset import subset as compute_subset
     from .visualization import visualization_dir_for_result
@@ -517,7 +518,6 @@ def compute_pairwise_2d_dic(
         loader=load_config,
         normalizer=lambda data: data or {},
     )
-    mesh_cfg = normalize_mesh_config(mesh_cfg_raw)
     generation_cfg = mesh_generation_config(mesh_cfg_raw)
     if "target_element_size" in generation_cfg:
         opts.mesh_target_element_size = float(generation_cfg["target_element_size"])
@@ -573,18 +573,23 @@ def compute_pairwise_2d_dic(
             subset_dir = pair_root / "subset"
             subset_visualization_dir = visualization_out / pair_label / "subset"
             subset_solve_roi = left_mask if str(opts.subset_solve_roi_mode).lower() == "left_mask" else roi
-            _compute_standard_subset_fields(
-                compute_subset,
-                reference,
-                paths,
-                subset_solve_roi,
-                roi,
-                subset_cfg,
-                subset_dir,
-                subset_visualization_dir,
-                width,
-                height,
+            subset_complete = all(
+                (subset_dir / filename).is_file()
+                for filename in ("reference_disparity.csv", "left_temporal.csv", "deformed_disparity.csv")
             )
+            if opts.overwrite or not subset_complete:
+                _compute_standard_subset_fields(
+                    compute_subset,
+                    reference,
+                    paths,
+                    subset_solve_roi,
+                    roi,
+                    subset_cfg,
+                    subset_dir,
+                    subset_visualization_dir,
+                    width,
+                    height,
+                )
 
         if opts.run_mesh:
             mesh_root = pair_root / "mesh"
@@ -598,19 +603,24 @@ def compute_pairwise_2d_dic(
                 _write_nodes(mesh_gen_dir / f"nodes_{etype}.txt", nodes)
                 _write_elements(mesh_gen_dir / f"elements_{etype}.txt", elements)
                 _render_mesh(mesh_visualization_gen_dir / f"mesh_{etype}.png", roi, nodes, elements, etype)
-                _compute_standard_mesh_fields(
-                    compute_mesh,
-                    reference,
-                    paths,
-                    nodes,
-                    elements,
-                    etype,
-                    mesh_cfg,
-                    mesh_dir,
-                    mesh_visualization_dir,
-                    width,
-                    height,
+                mesh_complete = all(
+                    (mesh_dir / filename).is_file()
+                    for filename in ("reference_disparity.csv", "left_temporal.csv", "deformed_disparity.csv")
                 )
+                if opts.overwrite or not mesh_complete:
+                    _compute_standard_mesh_fields(
+                        compute_mesh,
+                        reference,
+                        paths,
+                        nodes,
+                        elements,
+                        etype,
+                        mesh_cfg_raw,
+                        mesh_dir,
+                        mesh_visualization_dir,
+                        width,
+                        height,
+                    )
 
     _save_mask_overviews(mask_root, roi_overview_items, overplay_overview_items)
     return PairwiseDICRunResult(
@@ -699,7 +709,7 @@ def compute_pairwise_3d_dic(
             deformation_visualization_out_dir=pair_visualization_dir,
             write_shape_maps=bool(opts.write_shape_maps),
             write_deformation_maps=bool(opts.write_deformation_maps),
-            write_surface_strain=False,
+            write_surface_strain=bool(opts.write_surface_strain),
             min_correlation=float(opts.min_correlation),
             quality_metric=str(opts.quality_metric),
             max_znssd=float(opts.max_znssd),

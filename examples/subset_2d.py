@@ -21,6 +21,7 @@ if str(PYTHON_ROOT) not in sys.path:
 import traditional_dic as tdic  # noqa: E402
 from traditional_dic.config import load_config, normalize_subset_config  # noqa: E402
 from traditional_dic.visualization import plot_2d_field_overlay, visualization_dir_for_result  # noqa: E402
+from traditional_dic.postprocess import save_least_squares_strain_csv  # noqa: E402
 
 
 def read_gray(path: Path) -> np.ndarray:
@@ -156,11 +157,7 @@ def save_overview(out_dir: Path) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    ring_root = PROJECT_ROOT / "case" / "mono_DIC" / "ring"
-    parser.add_argument("--reference", type=Path, default=ring_root / "001.bmp")
-    parser.add_argument("--deformed", type=Path, default=ring_root / "002.bmp")
-    parser.add_argument("--roi", type=Path, default=ring_root / "003.bmp")
-    parser.add_argument("--out-dir", type=Path, default=ring_root / "result" / "subset")
+    parser.add_argument("--paths-config", type=Path, default=PROJECT_ROOT / "config" / "case_paths.yaml")
     parser.add_argument("--config", type=Path, default=PROJECT_ROOT / "config" / "subset_2d.yaml")
     parser.add_argument("--radius", type=int, default=37)
     parser.add_argument("--spacing", type=int, default=3)
@@ -169,46 +166,42 @@ def main() -> None:
     parser.add_argument("--max-iterations", type=int, default=30)
     args = parser.parse_args()
 
-    args.out_dir.mkdir(parents=True, exist_ok=True)
-    visualization_dir = visualization_dir_for_result(args.reference.parent, args.out_dir)
-    visualization_dir.mkdir(parents=True, exist_ok=True)
-    reference = read_gray(args.reference)
-    deformed = read_gray(args.deformed)
-    roi = read_mask(args.roi)
+    paths_cfg = dict(load_config(args.paths_config).get("mono_2d", {}) or {})
+    case_root = Path(paths_cfg["case_root"])
+    if not case_root.is_absolute():
+        case_root = PROJECT_ROOT / case_root
+    images = sorted((case_root / str(paths_cfg.get("images_dir", "."))).glob("*"))
+    images = [path for path in images if path.suffix.lower() in {".bmp", ".png", ".jpg", ".jpeg", ".tif", ".tiff"}]
+    if len(images) < 3:
+        raise ValueError("mono_2d.images_dir must contain reference, at least one deformed image, and ROI")
+    output_cfg = dict(paths_cfg.get("output", {}) or {})
+    result_root = case_root / str(output_cfg.get("result_root", "result")) / "subset"
+    visualization_root = case_root / str(output_cfg.get("visualization_root", "visualization")) / "subset"
+    reference = read_gray(images[0])
+    roi = read_mask(images[-1])
     config = normalize_subset_config(load_config(args.config)) if args.config else None
-
-    result = tdic.subset(
-        reference,
-        deformed,
-        config=config,
-        roi=roi,
-        radius=args.radius,
-        seed_subset_radius=args.radius,
-        search_radius=args.search_radius,
-        seed_count=args.seed_count,
-        propagation_spacing=args.spacing,
-        max_iterations=args.max_iterations,
-    )
-
-    save_subset_csv(result, args.out_dir / "displacements.csv")
-    write_stats(result, args.out_dir / "stats.json")
-    for component in ("mag", "u", "v"):
-        vmin, vmax = field_limits(result, component)
-        label = "|U| px" if component == "mag" else f"{component} px"
-        plot_2d_field_overlay(
-            reference,
-            result,
-            visualization_dir / f"subset_field_{component}.png",
-            component=component,
-            title=f"Subset {label}",
-            label=label,
-            cmap="jet",
-        )
-        write_legend(visualization_dir / f"subset_field_{component}_legend.txt", component, vmin, vmax)
-    save_overview(visualization_dir)
-
-    print(f"Wrote Subset-DIC results to {args.out_dir}")
-    print(f"Wrote Subset-DIC visualizations to {visualization_dir}")
+    for deformed_path in images[1:-1]:
+        name = deformed_path.stem
+        out_dir = result_root / name
+        visualization_dir = visualization_root / name
+        out_dir.mkdir(parents=True, exist_ok=True)
+        visualization_dir.mkdir(parents=True, exist_ok=True)
+        result = tdic.subset(reference, read_gray(deformed_path), config=config, roi=roi, radius=args.radius, seed_subset_radius=args.radius, search_radius=args.search_radius, seed_count=args.seed_count, propagation_spacing=args.spacing, max_iterations=args.max_iterations)
+        save_subset_csv(result, out_dir / "displacements.csv")
+        strain_cfg = dict((config or {}).get("strain", {}) or {})
+        if bool(strain_cfg.get("enabled", False)):
+            valid = np.asarray(result["valid"], dtype=bool)
+            points = np.column_stack((np.asarray(result["x"])[valid], np.asarray(result["y"])[valid]))
+            displacement = np.column_stack((np.asarray(result["u"])[valid], np.asarray(result["v"])[valid]))
+            save_least_squares_strain_csv(out_dir / "strain.csv", points, displacement, radius=float(strain_cfg["radius"]), min_samples=int(strain_cfg.get("min_samples", 6)), green_lagrange=str(strain_cfg.get("measure", "green_lagrange")) == "green_lagrange")
+        write_stats(result, out_dir / "stats.json")
+        for component in ("mag", "u", "v"):
+            vmin, vmax = field_limits(result, component)
+            label = "|U| px" if component == "mag" else f"{component} px"
+            plot_2d_field_overlay(reference, result, visualization_dir / f"subset_field_{component}.png", component=component, title=f"Subset {label}", label=label, cmap="jet")
+            write_legend(visualization_dir / f"subset_field_{component}_legend.txt", component, vmin, vmax)
+        save_overview(visualization_dir)
+        print(f"Wrote Subset-DIC results to {out_dir}")
 
 
 if __name__ == "__main__":

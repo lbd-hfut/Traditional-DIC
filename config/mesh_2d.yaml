@@ -79,3 +79,9 @@ initialization:
     neighbor_mad_factor: 4.0  # robust local displacement-outlier threshold from neighbor MAD
     max_neighbor_deviation: 0.0  # pixels; 0 disables the additional absolute neighbor-deviation limit
     interpolation_neighbors: 8  # positive integer; nearest valid nodes used to repair rejected initial values
+
+strain:
+  enabled: true
+  method: least_squares_nodal
+  min_samples: 3  # one-ring mesh-node fit; no subset spacing or radius is used
+  measure: green_lagrange  # options: green_lagrange, infinitesimal

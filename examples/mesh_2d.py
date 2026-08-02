@@ -21,6 +21,7 @@ if str(PYTHON_ROOT) not in sys.path:
 import traditional_dic as tdic  # noqa: E402
 from traditional_dic import io as dic_io  # noqa: E402
 from traditional_dic.config import load_config, mesh_generation_config, normalize_mesh_config  # noqa: E402
+from traditional_dic.postprocess import save_least_squares_strain_csv  # noqa: E402
 from traditional_dic.visualization import (  # noqa: E402
     densify_2d_mesh_displacement_field,
     plot_2d_field_overlay,
@@ -98,6 +99,78 @@ def write_dense_displacement_csv(path: Path, dense_field: dict[str, np.ndarray])
         for i, values in enumerate(zip(x, y, u, v, mag, valid), start=1):
             sx, sy, su, sv, smag, ok = values
             writer.writerow([i, sx, sy, su, sv, smag, int(bool(ok))])
+
+
+def generate_roi_mesh(roi: np.ndarray, element_type: str, element_size: float) -> dict[str, np.ndarray]:
+    """Generate a structured T3/Q4/Q8 mesh, retaining elements inside the ROI."""
+    ys, xs = np.nonzero(roi > 0)
+    if len(xs) == 0:
+        raise ValueError("ROI mask contains no valid pixels")
+    step = max(8, int(round(element_size)))
+    x_values = list(range(int(xs.min()), int(xs.max()) + 1, step))
+    y_values = list(range(int(ys.min()), int(ys.max()) + 1, step))
+    if x_values[-1] != int(xs.max()):
+        x_values.append(int(xs.max()))
+    if y_values[-1] != int(ys.max()):
+        y_values.append(int(ys.max()))
+
+    points: list[tuple[float, float]] = []
+    point_ids: dict[tuple[float, float], int] = {}
+    elements: list[list[int]] = []
+
+    def add_point(x: float, y: float) -> int:
+        point = (float(x), float(y))
+        if point not in point_ids:
+            point_ids[point] = len(points)
+            points.append(point)
+        return point_ids[point]
+
+    def in_roi(x: float, y: float) -> bool:
+        ix, iy = int(round(x)), int(round(y))
+        return 0 <= ix < roi.shape[1] and 0 <= iy < roi.shape[0] and roi[iy, ix] > 0
+
+    for j in range(len(y_values) - 1):
+        for i in range(len(x_values) - 1):
+            x0, x1 = x_values[i], x_values[i + 1]
+            y0, y1 = y_values[j], y_values[j + 1]
+            corners = ((x0, y0), (x1, y0), (x1, y1), (x0, y1))
+            if element_type == "T3":
+                for triangle in ((corners[0], corners[1], corners[2]), (corners[0], corners[2], corners[3])):
+                    if all(in_roi(*point) for point in triangle):
+                        elements.append([add_point(*point) for point in triangle])
+            elif element_type == "Q4":
+                if all(in_roi(*point) for point in corners):
+                    elements.append([add_point(*point) for point in corners])
+            else:
+                midsides = ((0.5 * (x0 + x1), y0), (x1, 0.5 * (y0 + y1)),
+                            (0.5 * (x0 + x1), y1), (x0, 0.5 * (y0 + y1)))
+                q8_points = corners + midsides
+                if all(in_roi(*point) for point in q8_points):
+                    elements.append([add_point(*point) for point in q8_points])
+
+    if not elements:
+        raise ValueError(f"No {element_type} elements fit inside the ROI")
+    return {"nodes": np.asarray(points, dtype=np.float64), "elements": np.asarray(elements, dtype=np.int64)}
+
+
+def generate_meshes_from_roi(roi: np.ndarray, generation: dict) -> dict:
+    """Use the annulus generator when applicable, otherwise a general ROI mesh."""
+    try:
+        return tdic.generate_annulus_meshes_from_mask(
+            roi,
+            target_element_size=float(generation.get("target_element_size", 35.0)),
+            min_element_size=float(generation.get("min_element_size", 18.0)),
+            max_element_size=float(generation.get("max_element_size", 55.0)),
+            min_element_quality=float(generation.get("min_element_quality", 0.1)),
+            config=generation,
+        )
+    except RuntimeError as error:
+        if "one hole" not in str(error):
+            raise
+    target = float(generation.get("target_element_size", 35.0))
+    meshes = {element_type: generate_roi_mesh(roi, element_type, target) for element_type in ("T3", "Q4", "Q8")}
+    meshes["summary"] = {"method": "structured_roi", "target_element_size": target}
+    return meshes
 
 
 def save_mesh_preview(path: Path, nodes: np.ndarray, elements: np.ndarray, etype: str, width: int, height: int) -> None:
@@ -271,7 +344,8 @@ def run_element(
     visualization_root: Path,
     etype: str,
     args,
-    api_config: dict,
+    solver_config: dict,
+    effective_config: dict,
 ) -> None:
     out_dir = out_root / etype
     element_visualization_dir = visualization_root / etype
@@ -289,9 +363,13 @@ def run_element(
         nodes,
         elements,
         element_type=etype,
-        config=api_config,
+        config=solver_config,
     )
     dic_io.save_displacement_csv(result, out_dir / "final_U.csv")
+    strain_cfg = dict(solver_config.get("strain", {}) or {})
+    if bool(strain_cfg.get("enabled", False)):
+        displacement = np.column_stack((np.asarray(result["u"]), np.asarray(result["v"])))
+        save_least_squares_strain_csv(out_dir / "strain.csv", nodes, displacement, elements=elements, min_samples=int(strain_cfg.get("min_samples", 3)), green_lagrange=str(strain_cfg.get("measure", "green_lagrange")) == "green_lagrange")
     dense_field = densify_2d_mesh_displacement_field(
         nodes,
         elements,
@@ -327,9 +405,9 @@ def run_element(
         "dense_samples": int(len(dense_field["x"])),
         "mag_mean": float(np.mean(result["mag"])) if len(result["mag"]) else 0.0,
         "mag_max": float(np.max(result["mag"])) if len(result["mag"]) else 0.0,
-        "solver": api_config.get("mesh", {}).get("solver", ""),
-        "criterion": api_config.get("mesh", {}).get("criterion", ""),
-        "initialization": api_config.get("initialization", {}).get("method", ""),
+        "solver": effective_config.get("mesh", {}).get("optimization_method", ""),
+        "criterion": effective_config.get("mesh", {}).get("photometric_objective", ""),
+        "initialization": effective_config.get("initialization", {}).get("method", ""),
         "nodes_file": f"nodes_{etype}.txt",
         "elements_file": f"elements_{etype}.txt",
         "nodal_displacement_file": "final_U.csv",
@@ -343,11 +421,7 @@ def run_element(
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    ring_root = PROJECT_ROOT / "case" / "mono_DIC" / "ring"
-    parser.add_argument("--reference", type=Path, default=ring_root / "001.bmp")
-    parser.add_argument("--deformed", type=Path, default=ring_root / "002.bmp")
-    parser.add_argument("--roi", type=Path, default=ring_root / "003.bmp")
-    parser.add_argument("--out-dir", type=Path, default=ring_root / "result" / "mesh")
+    parser.add_argument("--paths-config", type=Path, default=PROJECT_ROOT / "config" / "case_paths.yaml")
     parser.add_argument("--config", type=Path, default=PROJECT_ROOT / "config" / "mesh_2d.yaml")
     parser.add_argument("--element", choices=["T3", "Q4", "Q8", "all"], default="all")
     parser.add_argument(
@@ -381,21 +455,30 @@ def main() -> None:
     parser.add_argument("--init-interpolation-neighbors", type=int)
     args = parser.parse_args()
 
-    reference = read_gray(args.reference)
-    deformed = read_gray(args.deformed)
-    roi = read_mask(args.roi)
+    paths_cfg = dict(load_config(args.paths_config).get("mono_2d", {}) or {})
+    case_root = Path(paths_cfg["case_root"])
+    if not case_root.is_absolute():
+        case_root = PROJECT_ROOT / case_root
+    images = sorted((case_root / str(paths_cfg.get("images_dir", "."))).glob("*"))
+    images = [path for path in images if path.suffix.lower() in {".bmp", ".png", ".jpg", ".jpeg", ".tif", ".tiff"}]
+    if len(images) < 3:
+        raise ValueError("mono_2d.images_dir must contain reference, at least one deformed image, and ROI")
+    output_cfg = dict(paths_cfg.get("output", {}) or {})
+    result_root = case_root / str(output_cfg.get("result_root", "result")) / "mesh"
+    visualization_root = case_root / str(output_cfg.get("visualization_root", "visualization")) / "mesh"
+    reference = read_gray(images[0])
+    roi = read_mask(images[-1])
     raw_config = load_config(args.config) if args.config else {}
-    api_config = normalize_mesh_config(raw_config)
     if args.initialization is not None:
-        api_config.setdefault("initialization", {})["method"] = args.initialization
+        raw_config.setdefault("initialization", {})["method"] = args.initialization
     if args.optimization is not None:
-        api_config.setdefault("mesh", {})["optimization_method"] = args.optimization
+        raw_config.setdefault("optimization", {})["method"] = args.optimization
     if args.objective is not None:
-        api_config.setdefault("mesh", {})["photometric_objective"] = args.objective
+        raw_config.setdefault("optimization", {})["objective"] = args.objective
     if args.regularization_alpha is not None:
-        api_config.setdefault("mesh", {})["regularization_alpha"] = float(args.regularization_alpha)
+        raw_config.setdefault("optimization", {})["regularization_alpha"] = float(args.regularization_alpha)
     if args.init_quality_control:
-        qc_config = api_config.setdefault("initialization", {}).setdefault("quality_control", {})
+        qc_config = raw_config.setdefault("initialization", {}).setdefault("quality_control", {})
         qc_config["enabled"] = True
         if args.init_min_zncc is not None:
             qc_config["min_zncc"] = float(args.init_min_zncc)
@@ -411,29 +494,21 @@ def main() -> None:
             qc_config["max_neighbor_deviation"] = float(args.init_max_neighbor_deviation)
         if args.init_interpolation_neighbors is not None:
             qc_config["interpolation_neighbors"] = int(args.init_interpolation_neighbors)
+    api_config = normalize_mesh_config(raw_config)
     generation = mesh_generation_config(raw_config)
     element_types = ["T3", "Q4", "Q8"] if args.element == "all" else [args.element]
-    args.out_dir.mkdir(parents=True, exist_ok=True)
-    visualization_dir = visualization_dir_for_result(args.reference.parent, args.out_dir)
-    visualization_dir.mkdir(parents=True, exist_ok=True)
-
-    generated_meshes = tdic.generate_annulus_meshes_from_mask(
-        roi,
-        target_element_size=float(generation.get("target_element_size", 35.0)),
-        min_element_size=float(generation.get("min_element_size", 18.0)),
-        max_element_size=float(generation.get("max_element_size", 55.0)),
-        min_element_quality=float(generation.get("min_element_quality", 0.1)),
-        config=generation,
-    )
-    (args.out_dir / "mesh_generation_summary.json").write_text(
-        json.dumps(generated_meshes.get("summary", {}), indent=2),
-        encoding="utf-8",
-    )
-
-    for etype in element_types:
-        run_element(reference, deformed, generated_meshes, args.out_dir, visualization_dir, etype, args, api_config)
-    save_overview(visualization_dir, element_types, dense=True)
-    print(f"Wrote dense Mesh-DIC overview to {visualization_dir / 'dense_overview.png'}")
+    generated_meshes = generate_meshes_from_roi(roi, generation)
+    for deformed_path in images[1:-1]:
+        out_dir = result_root / deformed_path.stem
+        visualization_dir = visualization_root / deformed_path.stem
+        out_dir.mkdir(parents=True, exist_ok=True)
+        visualization_dir.mkdir(parents=True, exist_ok=True)
+        (out_dir / "mesh_generation_summary.json").write_text(json.dumps(generated_meshes.get("summary", {}), indent=2), encoding="utf-8")
+        deformed = read_gray(deformed_path)
+        for etype in element_types:
+            run_element(reference, deformed, generated_meshes, out_dir, visualization_dir, etype, args, raw_config, api_config)
+        save_overview(visualization_dir, element_types, dense=True)
+        print(f"Wrote dense Mesh-DIC overview to {visualization_dir / 'dense_overview.png'}")
 
 
 if __name__ == "__main__":

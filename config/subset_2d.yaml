@@ -56,3 +56,10 @@ seed_selection:
 reliability_propagation:
   spacing: 3  # positive integer pixels
   max_znssd: 2.0  # non-negative; lower is stricter
+
+strain:
+  enabled: true
+  method: least_squares
+  radius: 15.0  # virtual strain-gauge radius in reference-image pixels
+  min_samples: 6
+  measure: green_lagrange  # options: green_lagrange, infinitesimal

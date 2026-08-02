@@ -6,10 +6,12 @@ import argparse
 import json
 import re
 import sys
+from dataclasses import asdict
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 import numpy as np
+from PIL import Image
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -20,10 +22,13 @@ if str(PYTHON_ROOT) not in sys.path:
 from traditional_dic import calibration  # noqa: E402
 from traditional_dic.config import load_config  # noqa: E402
 from traditional_dic.multiview import (  # noqa: E402
+    compute_pairwise_2d_dic,
+    compute_pairwise_3d_dic,
     generate_pair_masks_from_calibration,
     recover_multiview_calibration_scale,
     save_pair_selection_report,
     select_camera_pairs,
+    stitch_pairwise_3d_surfaces,
 )
 from traditional_dic.visualization import visualization_dir_for_result  # noqa: E402
 
@@ -50,6 +55,35 @@ def _collect_reference_images(case_root: Path, cfg: Mapping[str, Any], image_roo
     if len(image_paths) < 2:
         raise ValueError(f"Need at least two camera reference images under {root}")
     return image_paths
+
+
+def _camera_frame_names(case_root: Path, image_root: str | Path, *, manual_roi: bool) -> tuple[str, str, str | None]:
+    root = _case_path(case_root, image_root)
+    camera_dirs = sorted((path for path in root.iterdir() if path.is_dir()), key=_natural_key)
+    if not camera_dirs:
+        raise ValueError(f"No camera directories under {root}")
+    frames = sorted((path for path in camera_dirs[0].iterdir() if path.is_file()), key=_natural_key)
+    required = 3 if manual_roi else 2
+    if len(frames) < required:
+        raise ValueError(f"Each camera directory needs at least {required} images")
+    reference = frames[0].name
+    roi = frames[-1].name if manual_roi else None
+    deformed = frames[-2].name if manual_roi else frames[-1].name
+    for camera_dir in camera_dirs[1:]:
+        names = {path.name for path in camera_dir.iterdir() if path.is_file()}
+        for name in (reference, deformed, roi):
+            if name and name not in names:
+                raise FileNotFoundError(camera_dir / name)
+    return reference, deformed, roi
+
+
+def _save_manual_camera_masks(case_root: Path, image_root: str | Path, roi_frame: str, mask_dir: Path) -> None:
+    root = _case_path(case_root, image_root)
+    target = mask_dir / "mask"
+    target.mkdir(parents=True, exist_ok=True)
+    for camera_dir in sorted((path for path in root.iterdir() if path.is_dir()), key=_natural_key):
+        mask = np.asarray(Image.open(camera_dir / roi_frame).convert("L")) > 0
+        np.save(target / f"{camera_dir.name}_mask.npy", mask)
 
 
 def _normalize_camera_labels(calibration_data: dict[str, Any], image_paths: Sequence[Path]) -> None:
@@ -331,13 +365,14 @@ def _scaled_calibration_data(
 
 
 def run_pipeline(
-    case_root: str | Path,
+    paths_config: str | Path,
     *,
     config_path: str | Path | None = None,
-    image_root: str | Path | None = None,
-    frame: str | None = None,
+    solver: str | None = None,
+    resume: bool = False,
 ) -> dict[str, Any]:
-    case_root = Path(case_root).resolve()
+    case_cfg = dict(load_config(paths_config).get("multiview_3d", {}) or {})
+    case_root = _case_path(PROJECT_ROOT, case_cfg["case_root"]).resolve()
     config_file = Path(config_path) if config_path is not None else PROJECT_ROOT / "config" / "multiview_3d.yaml"
     if not config_file.is_absolute():
         config_file = (PROJECT_ROOT / config_file).resolve()
@@ -347,18 +382,37 @@ def run_pipeline(
             config_file = legacy
     cfg = load_config(config_file) if config_file.exists() else {}
 
-    output_cfg = dict(cfg.get("output", {}) or {})
-    calibration_dir = _case_path(case_root, output_cfg.get("calibration_dir", "result/calibration"))
-    mask_dir = _case_path(case_root, output_cfg.get("mask_dir", "result/mask"))
+    image_cfg = dict(case_cfg.get("images", {}) or {})
+    roi_cfg = dict(case_cfg.get("roi", {}) or {})
+    manual_roi = str(roi_cfg.get("mode", "auto")).lower() == "last_image"
+    reference_frame, deformed_frame, roi_frame = _camera_frame_names(case_root, image_cfg["root"], manual_roi=manual_roi)
+    result_root = str(dict(case_cfg.get("output", {}) or {}).get("result_root", "result"))
+    runtime_cfg = dict(cfg)
+    runtime_cfg["output"] = {"mask_dir": f"{result_root}/mask", "roi_dir": f"{result_root}/mask", "calibration_dir": f"{result_root}/calibration", "disp_dir": f"{result_root}/disp", "reconstruct_dir": f"{result_root}/reconstruct"}
+    runtime_cfg["pairwise_2d_dic"] = dict(cfg.get("pairwise_2d_dic", {}) or {})
+    runtime_cfg["pairwise_2d_dic"].update({"image_dir": image_cfg["root"], "reference_frame": reference_frame, "deformed_frame": deformed_frame})
+    if manual_roi:
+        runtime_cfg["pairwise_2d_dic"]["pair_roi_mode"] = "left_mask"
+    runtime_cfg["scale"] = dict(cfg.get("scale", {}) or {})
+    runtime_cfg["scale"].update({"calibration_dir": f"{result_root}/calibration", "chessboard_dir": dict(case_cfg.get("calibration", {}) or {})["chessboard_dir"]})
+    runtime_cfg["pairwise_3d_dic"] = dict(cfg.get("pairwise_3d_dic", {}) or {})
+    runtime_cfg["pairwise_3d_dic"].update({"field_dir": f"{result_root}/disp", "output_dir": f"{result_root}/reconstruct/pairwise", "calibration_dir": f"{result_root}/calibration"})
+    runtime_cfg["pairwise_3d_dic"]["write_surface_strain"] = bool(dict(cfg.get("strain", {}) or {}).get("enabled", True))
+    runtime_cfg["surface_stitch"] = dict(cfg.get("surface_stitch", {}) or {})
+    runtime_cfg["surface_stitch"].update({"pairwise_3d_dir": f"{result_root}/reconstruct/pairwise", "output_dir": f"{result_root}/reconstruct/stitched", "calibration_dir": f"{result_root}/calibration"})
+    calibration_dir = case_root / result_root / "calibration"
+    mask_dir = case_root / result_root / "mask"
 
-    image_paths = _collect_reference_images(case_root, cfg, image_root, frame)
-    calibration_data = calibration.calibrate_multiview_colmap_like(image_paths, config=cfg)
+    if manual_roi:
+        _save_manual_camera_masks(case_root, image_cfg["root"], str(roi_frame), mask_dir)
+    image_paths = _collect_reference_images(case_root, runtime_cfg, image_cfg["root"], reference_frame)
+    calibration_data = calibration.calibrate_multiview_colmap_like(image_paths, config=runtime_cfg)
     _save_calibration_products(calibration_data, calibration_dir, image_paths)
 
     scale_result = recover_multiview_calibration_scale(
         case_root,
         calibration_data,
-        config=config_file,
+        config=runtime_cfg,
     )
     scale_path = calibration_dir / "calibration_scale.json"
     scaled_path = calibration_dir / "calibration_result_scaled.json"
@@ -373,15 +427,52 @@ def run_pipeline(
     visualization_outputs["coordinate_system"] = "metric_scaled"
     visualization_outputs["sfm_to_world_scale"] = str(scale_result.sfm_to_world_scale)
 
-    pair_selection = select_camera_pairs(calibration_data, cfg.get("camera_pair_selection"))
+    pair_selection = select_camera_pairs(calibration_data, runtime_cfg.get("camera_pair_selection"))
     save_pair_selection_report(pair_selection, calibration_dir / "pair_selection_report.json")
 
     mask_result = generate_pair_masks_from_calibration(
         case_root,
         calibration_data,
-        config=cfg,
+        config=runtime_cfg,
         pair_selection=pair_selection,
         output_dir=mask_dir,
+    )
+    requested_solver = (solver or "both").lower()
+    if requested_solver not in {"subset", "mesh", "both"}:
+        raise ValueError("solver must be 'subset', 'mesh', or 'both'")
+    pairwise_2d_config = dict(runtime_cfg.get("pairwise_2d_dic", {}) or {})
+    if requested_solver == "subset":
+        pairwise_2d_config["run_subset"] = True
+        pairwise_2d_config["run_mesh"] = False
+    elif requested_solver == "mesh":
+        pairwise_2d_config["run_subset"] = False
+        pairwise_2d_config["run_mesh"] = True
+    reconstruction_config = dict(runtime_cfg.get("pairwise_3d_dic", {}) or {})
+    stitch_config = dict(runtime_cfg.get("surface_stitch", {}) or {})
+    if requested_solver in {"subset", "mesh"}:
+        reconstruction_config["solver"] = requested_solver
+        stitch_config["solver"] = requested_solver
+    if resume:
+        pairwise_2d_config["overwrite"] = False
+    pairwise_2d = compute_pairwise_2d_dic(
+        case_root,
+        calibration_data,
+        config=runtime_cfg,
+        pair_selection=pair_selection,
+        options=pairwise_2d_config,
+    )
+    pairwise_3d = compute_pairwise_3d_dic(
+        case_root,
+        calibration_data,
+        config=runtime_cfg,
+        pair_selection=pair_selection,
+        options=reconstruction_config,
+    )
+    stitched_surface = stitch_pairwise_3d_surfaces(
+        case_root,
+        config=runtime_cfg,
+        pair_selection=pair_selection,
+        options=stitch_config,
     )
     summary = {
         "case_root": str(case_root),
@@ -403,8 +494,12 @@ def run_pipeline(
         "pairs": [list(pair) for pair in mask_result.pairs],
         "overview_roi": mask_result.overview_roi,
         "overview_overplay": mask_result.overview_overplay,
+        "pairwise_2d_dic": asdict(pairwise_2d),
+        "pairwise_3d_dic": asdict(pairwise_3d),
+        "surface_stitch": asdict(stitched_surface),
+        "requested_solver": requested_solver,
     }
-    (case_root / "result" / "cylinder_multiview_mask_run.json").write_text(
+    (case_root / result_root / "multiview_3d_run.json").write_text(
         json.dumps(summary, indent=2),
         encoding="utf-8",
     )
@@ -413,18 +508,13 @@ def run_pipeline(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--case-root",
-        default=PROJECT_ROOT / "case" / "multi_DIC" / "CylinderDIC",
-        type=Path,
-        help="Multiview DIC case root.",
-    )
+    parser.add_argument("--paths-config", default=PROJECT_ROOT / "config" / "case_paths.yaml", type=Path, help="Case input/output YAML config.")
     parser.add_argument("--config", default=None, type=Path, help="Multiview DIC YAML config.")
-    parser.add_argument("--image-root", default=None, type=Path, help="Reference image root relative to case root.")
-    parser.add_argument("--frame", default=None, help="Reference frame filename, e.g. 001.bmp.")
+    parser.add_argument("--solver", choices=("subset", "mesh", "both"), default="both", help="DIC branch to run after calibration.")
+    parser.add_argument("--resume", action="store_true", help="Reuse completed pairwise 2D fields.")
     args = parser.parse_args()
 
-    summary = run_pipeline(args.case_root, config_path=args.config, image_root=args.image_root, frame=args.frame)
+    summary = run_pipeline(args.paths_config, config_path=args.config, solver=args.solver, resume=args.resume)
     print(json.dumps(summary, indent=2))
 
 

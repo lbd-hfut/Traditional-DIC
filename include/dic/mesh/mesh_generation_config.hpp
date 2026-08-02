@@ -64,7 +64,7 @@ struct MeshGenerationConfig {
     //   nodes_file:    node_id, x, y
     //   elements_file: element_id, n1, n2, ...
     // Node ids in elements_file are 1-based, matching common exported mesh
-    // tables and the diagnostic tools in tools/.
+    // tables.
     std::string nodes_file{};
     std::string elements_file{};
 
