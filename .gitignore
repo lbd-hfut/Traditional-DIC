@@ -251,6 +251,11 @@ __marimo__/
 # Local visualization artifacts
 /visualizations/
 
+# Local logs
+/logs/*
+!/logs/README.md
+!/logs/.gitkeep
+
 # Python extension build outputs
 *.pyd
 
