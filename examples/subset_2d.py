@@ -19,7 +19,7 @@ if str(PYTHON_ROOT) not in sys.path:
     sys.path.insert(0, str(PYTHON_ROOT))
 
 import traditional_dic as tdic  # noqa: E402
-from traditional_dic.config import load_config, normalize_subset_config  # noqa: E402
+from traditional_dic.config import load_config, normalize_subset_config, subset_method_tag  # noqa: E402
 from traditional_dic.visualization import plot_2d_field_overlay, visualization_dir_for_result  # noqa: E402
 from traditional_dic.postprocess import save_least_squares_strain_csv  # noqa: E402
 
@@ -97,7 +97,7 @@ def render_points(result: dict[str, np.ndarray], component: str, width: int, hei
     return Image.fromarray(np.clip(image * 255.0, 0, 255).astype(np.uint8), "RGB"), float(vmin), float(vmax)
 
 
-def write_stats(result: dict[str, np.ndarray], path: Path) -> None:
+def write_stats(result: dict[str, np.ndarray], path: Path, metric: str = "znssd") -> None:
     valid = np.asarray(result["valid"], dtype=bool)
     u = np.asarray(result["u"], dtype=np.float64)[valid]
     v = np.asarray(result["v"], dtype=np.float64)[valid]
@@ -113,8 +113,8 @@ def write_stats(result: dict[str, np.ndarray], path: Path) -> None:
         "v_std": float(v.std()) if v.size else 0.0,
         "mag_mean": float(mag.mean()) if mag.size else 0.0,
         "mag_max": float(mag.max()) if mag.size else 0.0,
-        "znssd_mean": float(q.mean()) if q.size else 0.0,
-        "znssd_max": float(q.max()) if q.size else 0.0,
+        f"{metric}_mean": float(q.mean()) if q.size else 0.0,
+        f"{metric}_max": float(q.max()) if q.size else 0.0,
     }
     path.write_text(json.dumps(stats, indent=2), encoding="utf-8")
 
@@ -182,8 +182,10 @@ def main() -> None:
     config = normalize_subset_config(load_config(args.config)) if args.config else None
     for deformed_path in images[1:-1]:
         name = deformed_path.stem
-        out_dir = result_root / name
-        visualization_dir = visualization_root / name
+        method_tag = subset_method_tag(config)
+        suffix = f"_{method_tag}" if method_tag else ""
+        out_dir = result_root / f"{name}{suffix}"
+        visualization_dir = visualization_root / f"{name}{suffix}"
         out_dir.mkdir(parents=True, exist_ok=True)
         visualization_dir.mkdir(parents=True, exist_ok=True)
         result = tdic.subset(reference, read_gray(deformed_path), config=config, roi=roi, radius=args.radius, seed_subset_radius=args.radius, search_radius=args.search_radius, seed_count=args.seed_count, propagation_spacing=args.spacing, max_iterations=args.max_iterations)
@@ -194,7 +196,8 @@ def main() -> None:
             points = np.column_stack((np.asarray(result["x"])[valid], np.asarray(result["y"])[valid]))
             displacement = np.column_stack((np.asarray(result["u"])[valid], np.asarray(result["v"])[valid]))
             save_least_squares_strain_csv(out_dir / "strain.csv", points, displacement, radius=float(strain_cfg["radius"]), min_samples=int(strain_cfg.get("min_samples", 6)), green_lagrange=str(strain_cfg.get("measure", "green_lagrange")) == "green_lagrange")
-        write_stats(result, out_dir / "stats.json")
+        criterion = str((config or {}).get("correlation", {}).get("criterion", "znssd")).strip().lower()
+        write_stats(result, out_dir / "stats.json", metric="ssd" if criterion == "ssd" else "znssd")
         for component in ("mag", "u", "v"):
             vmin, vmax = field_limits(result, component)
             label = "|U| px" if component == "mag" else f"{component} px"

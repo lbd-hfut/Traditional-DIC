@@ -242,14 +242,26 @@ __marimo__/
 # Traditional-DIC local case outputs
 # Keep raw case inputs visible; ignore generated diagnostics, solver outputs,
 # temporary meshes, visualizations, and numerical scratch files under case/.
+/case/**/result/
+/case/**/visualization/
 /case/**/*.txt
 /case/**/*.csv
 /case/**/*.json
 /case/**/*.yaml
 /case/**/*.log
+/case/**/*.png
+/case/**/*.npz
+/case/**/*.npy
 
 # Local visualization artifacts
 /visualizations/
+
+# Local build products and Python bytecode caches.
+/build/
+/build_asan/
+/build_debug/
+/build_relwithdeb/
+**/__pycache__/
 
 # Python extension build outputs
 *.pyd

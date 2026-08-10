@@ -58,10 +58,64 @@ def normalize_mesh_config(config: dict[str, Any] | None) -> dict[str, Any]:
     out["interpolation"] = interpolation
     out["initialization"] = {
         "method": initialization.get("method", "fedic_fft"),
+        "boundary_interpolation_init": initialization.get("boundary_interpolation_init", True),
+        "boundary_direct_prior_seed": initialization.get("boundary_direct_prior_seed", False),
         "fedic_fft": initialization.get("fedic_fft", {}),
+        "pyramid": initialization.get("pyramid", {}),
+        "sift_prior": initialization.get("sift_prior", {}),
         "quality_control": initialization.get("quality_control", {}),
     }
     return out
+
+
+def _method_tag(value: Any, aliases: dict[str, str]) -> str:
+    """Map a config value to a compact, filesystem-safe tag token."""
+    key = str(value).strip().lower()
+    return aliases.get(key, key)
+
+
+def subset_method_tag(config: dict[str, Any] | None) -> str:
+    """Build a compact tag from the subset algorithm settings."""
+    cfg = config or {}
+    criterion = _method_tag((cfg.get("correlation", {}) or {}).get("criterion", "znssd"), {})
+    solver = _method_tag(
+        (cfg.get("optimization", {}) or {}).get("method", "icgn"),
+        {"fgn": "fgn", "forward_gauss_newton": "fgn"},
+    )
+    order = _method_tag(
+        (cfg.get("shape_function", {}) or {}).get("order", "1"),
+        {
+            "first_order": "1st", "first": "1st", "1": "1st",
+            "second_order": "2nd", "second": "2nd", "2": "2nd",
+        },
+    )
+    return f"{criterion}_{solver}_{order}"
+
+
+def mesh_method_tag(config: dict[str, Any] | None) -> str:
+    """Build a compact tag from the mesh method and enabled initializers."""
+    cfg = config or {}
+    optimization = dict(cfg.get("optimization", {}) or {})
+    objective = _method_tag(optimization.get("objective", "ssd"), {})
+    solver = _method_tag(
+        optimization.get("method", "fedic_element_icgn"),
+        {"fedic_element_icgn": "icgn", "fedic_element_fgn": "fgn", "icgn": "icgn", "fgn": "fgn"},
+    )
+    parts = [objective, solver]
+    initialization = dict(cfg.get("initialization", {}) or {})
+    pyramid = dict(initialization.get("pyramid", {}) or {})
+    sift = dict(initialization.get("sift_prior", {}) or {})
+    if pyramid.get("enabled", False):
+        parts.append("pyramid")
+    if sift.get("enabled", False):
+        parts.append("sift")
+    if len(parts) > 2:
+        fft = dict(initialization.get("fedic_fft", {}) or {})
+        if "window_size" in fft:
+            parts.append(f"w{int(fft['window_size'])}")
+        if "search_radius" in fft:
+            parts.append(f"r{int(fft['search_radius'])}")
+    return "_".join(parts)
 
 
 def mesh_generation_config(config: dict[str, Any] | None) -> dict[str, Any]:

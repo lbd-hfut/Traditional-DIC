@@ -165,6 +165,32 @@ static dic::SubsetConfig config_from_dict(py::dict d) {
         py::dict o = d["optimization"];
         cfg.max_iterations = gi(o, "max_iterations", cfg.max_iterations);
         cfg.convergence_threshold = gd(o, "convergence_threshold", cfg.convergence_threshold);
+        if (o.contains("method")) {
+            const std::string method = py::cast<std::string>(py::str(o["method"]));
+            if (method == "icgn") {
+                cfg.optimizer = dic::SubsetOptimizationMethod::ICGN;
+            } else if (method == "forward_gauss_newton" || method == "fgn") {
+                cfg.optimizer = dic::SubsetOptimizationMethod::ForwardGaussNewton;
+            } else {
+                throw std::runtime_error(
+                    "subset optimization.method must be 'icgn', 'fgn', or 'forward_gauss_newton'.");
+            }
+        }
+    }
+    if (d.contains("correlation")) {
+        py::dict o = d["correlation"];
+        if (o.contains("criterion")) {
+            const std::string criterion = py::cast<std::string>(py::str(o["criterion"]));
+            if (criterion == "ssd") {
+                cfg.objective = dic::CorrelationCriterionKind::SSD;
+            } else if (criterion == "znssd") {
+                cfg.objective = dic::CorrelationCriterionKind::ZNSSD;
+            } else {
+                throw std::runtime_error(
+                    "subset correlation.criterion must be 'ssd' or 'znssd'.");
+            }
+            cfg.seed_initialization.subpixel.objective = cfg.objective;
+        }
     }
     if (d.contains("interpolation")) {
         py::dict o = d["interpolation"];
@@ -204,6 +230,20 @@ static dic::SubsetConfig config_from_dict(py::dict d) {
     if (d.contains("reliability_propagation")) { py::dict o = d["reliability_propagation"];
         cfg.propagation_spacing = gi(o,"spacing",cfg.propagation_spacing);
         cfg.propagation_max_znssd = gd(o,"max_znssd",cfg.propagation_max_znssd); }
+    if (d.contains("shape_function")) {
+        py::dict s = d["shape_function"];
+        if (s.contains("order")) {
+            const std::string order = py::cast<std::string>(py::str(s["order"]));
+            if (order == "first_order" || order == "1") {
+                cfg.shape_function = dic::SubsetShapeFunctionMethod::FirstOrder;
+            } else if (order == "second_order" || order == "2") {
+                cfg.shape_function = dic::SubsetShapeFunctionMethod::SecondOrder;
+            } else {
+                throw std::runtime_error(
+                    "subset shape_function.order must be 'first_order'/'1' or 'second_order'/'2'.");
+            }
+        }
+    }
     return cfg;
 }
 

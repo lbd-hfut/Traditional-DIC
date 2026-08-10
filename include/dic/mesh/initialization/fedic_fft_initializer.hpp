@@ -21,7 +21,8 @@ FEDICFFTInitialDisplacement estimate_fedic_fft_initial_displacement(
     const Image& deformed,
     const Eigen::Vector2d& point,
     int search_radius,
-    int window_size);
+    int window_size,
+    const Eigen::Vector2d& initial_offset = Eigen::Vector2d::Zero());
 
 } // namespace dic::mesh
 

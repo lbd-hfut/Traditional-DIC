@@ -25,6 +25,7 @@
 #define TRADITIONAL_DIC_INCLUDE_DIC_MESH_MESH_DIC_HPP
 
 #include <dic/core/image.hpp>
+#include <dic/core/mask.hpp>
 #include <dic/core/roi.hpp>
 #include <dic/mesh/mesh_generation_config.hpp>
 #include <dic/core/result.hpp>
@@ -41,7 +42,8 @@ public:
     std::vector<Displacement2D> compute(
         const Image& reference,
         const Image& deformed,
-        const Mesh& mesh
+        const Mesh& mesh,
+        const dic::Mask* roi_mask = nullptr
     ) const;
 
     /**

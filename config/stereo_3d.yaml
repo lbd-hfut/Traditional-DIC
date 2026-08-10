@@ -2,7 +2,9 @@ workflow:
   calibrate: true
   compute_fields: false
   reconstruct: true
-  visualize_calibration: true
+  # Diagnostic calibration visualization module was removed in the unified
+  # workflow release; keep disabled so the pipeline does not hard-fail.
+  visualize_calibration: false
 
 solver:
   method: subset  # options: subset, mesh

@@ -198,6 +198,7 @@ class PairwiseSurfaceStitchOptions:
     outlier_face_edge_scale: float = 4.0
     min_valid_points: int = 3
     max_pairs: int | None = None
+    smooth_displacement_knn: int = 0
 
 
 @dataclass
@@ -620,6 +621,7 @@ def compute_pairwise_2d_dic(
                         mesh_visualization_dir,
                         width,
                         height,
+                        roi=roi,
                     )
 
     _save_mask_overviews(mask_root, roi_overview_items, overplay_overview_items)
@@ -696,42 +698,57 @@ def compute_pairwise_3d_dic(
         if left_name not in cameras_by_label or right_name not in cameras_by_label:
             raise KeyError(f"Missing camera model for pair {left_name}-{right_name}")
         pair_label = f"{left_name}-{right_name}"
-        pair_field_dir = field_root / pair_label / str(opts.solver)
-        pair_out_dir = out_root / pair_label
-        pair_visualization_dir = visualization_dir_for_result(case_root, pair_out_dir)
-        result = reconstruct_from_field_files(
-            pair_field_dir,
-            cameras_by_label[left_name],
-            cameras_by_label[right_name],
-            out_dir=pair_out_dir,
-            deformation_out_dir=pair_out_dir,
-            visualization_out_dir=pair_visualization_dir,
-            deformation_visualization_out_dir=pair_visualization_dir,
-            write_shape_maps=bool(opts.write_shape_maps),
-            write_deformation_maps=bool(opts.write_deformation_maps),
-            write_surface_strain=bool(opts.write_surface_strain),
-            min_correlation=float(opts.min_correlation),
-            quality_metric=str(opts.quality_metric),
-            max_znssd=float(opts.max_znssd),
-            max_reprojection_error_px=float(opts.max_reprojection_error_px),
-            world_scale=float(opts.world_scale),
-            remove_rigid_body_motion=bool(opts.remove_rigid_body_motion),
-        )
-        pair_dirs.append(str(pair_out_dir))
-        total_points += int(result.total_points)
-        valid_points += int(result.valid_points)
-        summaries.append(
-            {
-                "pair": pair_label,
-                "left_camera": left_name,
-                "right_camera": right_name,
-                "field_dir": str(pair_field_dir),
-                "output_dir": str(pair_out_dir),
-                "visualization_dir": str(pair_visualization_dir),
-                "total_points": int(result.total_points),
-                "valid_points": int(result.valid_points),
-            }
-        )
+        pair_field_root = field_root / pair_label / str(opts.solver)
+        # The mesh solver writes per-element 2D fields under mesh/<etype>/;
+        # reconstruct each element type independently so the downstream
+        # stitch stage can keep T3/Q4/Q8 results separate (like subset keeps
+        # per-method outputs). subset writes its fields directly at mesh-free
+        # paths, so it uses a single None element.
+        if str(opts.solver) == "mesh":
+            etype_dirs = sorted(d.name for d in pair_field_root.iterdir() if d.is_dir())
+            if not etype_dirs:
+                raise RuntimeError(f"No mesh element subdirectories under {pair_field_root}")
+            etypes: list[str | None] = list(etype_dirs)
+        else:
+            etypes = [None]
+        for etype in etypes:
+            pair_field_dir = pair_field_root if etype is None else pair_field_root / etype
+            pair_out_dir = out_root / pair_label if etype is None else out_root / pair_label / etype
+            pair_visualization_dir = visualization_dir_for_result(case_root, pair_out_dir)
+            result = reconstruct_from_field_files(
+                pair_field_dir,
+                cameras_by_label[left_name],
+                cameras_by_label[right_name],
+                out_dir=pair_out_dir,
+                deformation_out_dir=pair_out_dir,
+                visualization_out_dir=pair_visualization_dir,
+                deformation_visualization_out_dir=pair_visualization_dir,
+                write_shape_maps=bool(opts.write_shape_maps),
+                write_deformation_maps=bool(opts.write_deformation_maps),
+                write_surface_strain=bool(opts.write_surface_strain),
+                min_correlation=float(opts.min_correlation),
+                quality_metric=str(opts.quality_metric),
+                max_znssd=float(opts.max_znssd),
+                max_reprojection_error_px=float(opts.max_reprojection_error_px),
+                world_scale=float(opts.world_scale),
+                remove_rigid_body_motion=bool(opts.remove_rigid_body_motion),
+            )
+            pair_dirs.append(str(pair_out_dir))
+            total_points += int(result.total_points)
+            valid_points += int(result.valid_points)
+            summaries.append(
+                {
+                    "pair": pair_label,
+                    "element": etype,
+                    "left_camera": left_name,
+                    "right_camera": right_name,
+                    "field_dir": str(pair_field_dir),
+                    "output_dir": str(pair_out_dir),
+                    "visualization_dir": str(pair_visualization_dir),
+                    "total_points": int(result.total_points),
+                    "valid_points": int(result.valid_points),
+                }
+            )
 
     out_root.mkdir(parents=True, exist_ok=True)
     (out_root / "pairwise_3d_summary.json").write_text(
@@ -930,117 +947,206 @@ def stitch_pairwise_3d_surfaces(
     out_root = _case_path(case_root, opts.output_dir) / str(opts.solver)
     out_root.mkdir(parents=True, exist_ok=True)
 
-    meshes: list[SurfaceMesh] = []
-    source_rows: list[list[dict[str, Any]]] = []
-    pair_summaries: list[dict[str, Any]] = []
+    # The mesh solver reconstructs each element type (T3/Q4/Q8) independently
+    # under pairwise_3d_dir/pair/<etype>/ (see compute_pairwise_3d_dic), so the
+    # stitch stage also runs once per element type and writes each result to its
+    # own out_root/<etype>/ directory -- keeping mesh outputs isolated the same
+    # way subset keeps per-method outputs. subset has no element dimension, so
+    # it uses a single None element.
+    if str(opts.solver) == "mesh":
+        probe_dir = pair_root / f"{pairs[0][0]}-{pairs[0][1]}"
+        etypes: list[str | None] = sorted(d.name for d in probe_dir.iterdir() if d.is_dir())
+        if not etypes:
+            raise RuntimeError(f"No mesh element subdirectories under {probe_dir}")
+    else:
+        etypes = [None]
 
-    for pair_index, (left_name, right_name) in enumerate(pairs, start=1):
-        pair_label = f"{left_name}-{right_name}"
-        points_path = pair_root / pair_label / "stereo_3d_points.csv"
-        pair_points = _read_pair_surface_points(
-            points_path,
-            pair_label=pair_label,
-            pair_index=pair_index,
-            max_reprojection_error_px=float(opts.max_reprojection_error_px),
-            max_quality=float(opts.max_quality),
-        )
-        pair_valid_count = len(pair_points)
-        if pair_valid_count < int(opts.min_valid_points):
+    total_points = 0
+    total_faces = 0
+    element_out_roots: list[str] = []
+    element_summaries: list[dict[str, Any]] = []
+
+    for etype in etypes:
+        elem_out = out_root if etype is None else out_root / etype
+        elem_out.mkdir(parents=True, exist_ok=True)
+
+        meshes: list[SurfaceMesh] = []
+        source_rows: list[list[dict[str, Any]]] = []
+        pair_summaries: list[dict[str, Any]] = []
+
+        for pair_index, (left_name, right_name) in enumerate(pairs, start=1):
+            pair_label = f"{left_name}-{right_name}"
+            points_path = pair_root / pair_label
+            if etype is not None:
+                points_path = points_path / etype
+            points_path = points_path / "stereo_3d_points.csv"
+            pair_points = _read_pair_surface_points(
+                points_path,
+                pair_label=pair_label,
+                pair_index=pair_index,
+                max_reprojection_error_px=float(opts.max_reprojection_error_px),
+                max_quality=float(opts.max_quality),
+            )
+            pair_valid_count = len(pair_points)
+            if pair_valid_count < int(opts.min_valid_points):
+                pair_summaries.append(
+                    {
+                        "element": etype,
+                        "pair": pair_label,
+                        "points": pair_valid_count,
+                        "faces": 0,
+                        "skipped": True,
+                        "reason": "not enough valid points",
+                    }
+                )
+                continue
+
+            uv = np.asarray([[row["x_l0"], row["y_l0"]] for row in pair_points], dtype=np.float64)
+            faces = _triangulate_pair_surface_faces(uv, edge_scale=float(opts.triangle_edge_scale))
+            source_rows.append(pair_points)
+            meshes.append(
+                SurfaceMesh(
+                    reference=np.asarray([[row["X0"], row["Y0"], row["Z0"]] for row in pair_points], dtype=np.float64),
+                    deformed=np.asarray([[row["X1"], row["Y1"], row["Z1"]] for row in pair_points], dtype=np.float64),
+                    faces=faces,
+                    quality=np.asarray([row["quality"] for row in pair_points], dtype=np.float64),
+                    pair_index=pair_index,
+                    pair_name=pair_label,
+                )
+            )
             pair_summaries.append(
                 {
+                    "element": etype,
                     "pair": pair_label,
                     "points": pair_valid_count,
-                    "faces": 0,
-                    "skipped": True,
-                    "reason": "not enough valid points",
+                    "faces": int(len(faces)),
+                    "skipped": False,
                 }
             )
+
+        if not meshes:
             continue
+        stitched_raw = stitch_surfaces(meshes, min_gap_factor=float(opts.min_gap_factor))
+        cleaned = clean_stitched_surface(
+            stitched_raw,
+            neighbor_count=int(opts.outlier_neighbor_count),
+            distance_sigma=float(opts.outlier_distance_sigma),
+            displacement_sigma=float(opts.outlier_displacement_sigma),
+            face_edge_scale=float(opts.outlier_face_edge_scale),
+        )
+        stitched = cleaned.result
+        # Optional displacement-field smoothing (post-stitch). The 12 pairs are
+        # reconstructed independently, so adjacent nodes from different pairs
+        # carry each pair's systematic calibration/triangulation offset. A KNN
+        # mean over the stitched surface averages that cross-pair inconsistency
+        # out of the displacement field without touching the reference geometry.
+        smooth_k = int(opts.smooth_displacement_knn or 0)
+        smooth_U: np.ndarray | None = None
+        if smooth_k > 0:
+            from scipy.spatial import cKDTree
 
-        uv = np.asarray([[row["x_l0"], row["y_l0"]] for row in pair_points], dtype=np.float64)
-        faces = _triangulate_pair_surface_faces(uv, edge_scale=float(opts.triangle_edge_scale))
-        source_rows.append(pair_points)
-        meshes.append(
-            SurfaceMesh(
-                reference=np.asarray([[row["X0"], row["Y0"], row["Z0"]] for row in pair_points], dtype=np.float64),
-                deformed=np.asarray([[row["X1"], row["Y1"], row["Z1"]] for row in pair_points], dtype=np.float64),
-                faces=faces,
-                quality=np.asarray([row["quality"] for row in pair_points], dtype=np.float64),
-                pair_index=pair_index,
-                pair_name=pair_label,
+            # Only valid (non-outlier) points participate in the KNN mean;
+            # outlier points (cleaned.valid_points == False) keep their raw
+            # displacement and are not averaged into their neighbours.
+            valid_idx = np.flatnonzero(cleaned.valid_points)
+            sub_ref = stitched.reference[valid_idx]
+            sub_U = (stitched.deformed - stitched.reference)[valid_idx]
+            tree = cKDTree(sub_ref)
+            _, nidx = tree.query(sub_ref, k=min(smooth_k, len(sub_ref)))
+            sub_smooth = sub_U[nidx].mean(axis=1)
+            smooth_U = (stitched.deformed - stitched.reference).copy()
+            smooth_U[valid_idx] = sub_smooth
+            stitched.deformed = stitched.reference + smooth_U
+        point_rows: list[dict[str, Any]] = []
+        source_index = 0
+        for mesh_rows in source_rows:
+            for row in mesh_rows:
+                output = dict(row)
+                output["global_id"] = source_index + 1
+                if not cleaned.valid_points[source_index]:
+                    for key in ("X0", "Y0", "Z0", "X1", "Y1", "Z1", "Ux", "Uy", "Uz", "Umag"):
+                        output[key] = float("nan")
+                    output["valid"] = 0
+                else:
+                    output["valid"] = 1
+                    if smooth_U is not None:
+                        u = smooth_U[source_index]
+                        output["X1"] = output["X0"] + u[0]
+                        output["Y1"] = output["Y0"] + u[1]
+                        output["Z1"] = output["Z0"] + u[2]
+                        output["Ux"] = float(u[0])
+                        output["Uy"] = float(u[1])
+                        output["Uz"] = float(u[2])
+                        output["Umag"] = float(np.linalg.norm(u))
+                point_rows.append(output)
+                source_index += 1
+        face_rows: list[dict[str, Any]] = []
+        for face_index, face in enumerate(stitched.faces, start=1):
+            pair_index = int(stitched.face_pair_indices[face_index - 1])
+            face_rows.append(
+                {
+                    "face_id": face_index,
+                    "pair": "zipper" if pair_index < 0 else pair_summaries[pair_index - 1]["pair"],
+                    "pair_index": pair_index,
+                    "pair_face_id": face_index,
+                    "n1": int(face[0]) + 1,
+                    "n2": int(face[1]) + 1,
+                    "n3": int(face[2]) + 1,
+                    "quality": float(stitched.face_quality[face_index - 1]) if np.isfinite(stitched.face_quality[face_index - 1]) else float("nan"),
+                }
             )
+        _write_stitched_points(elem_out / "stitched_points.csv", point_rows)
+        _write_stitched_faces(elem_out / "stitched_faces.csv", face_rows)
+        visualization_root = visualization_dir_for_result(case_root, elem_out)
+        write_stitch_visualizations(stitched, visualization_root)
+        (elem_out / "stitched_summary.json").write_text(
+            json.dumps(
+                {
+                    "solver": str(opts.solver),
+                    "element": etype,
+                    "mode": "multidic",
+                    "point_count": int(len(stitched.reference)),
+                    "face_count": int(len(stitched.faces)),
+                    "raw_point_count": int(len(stitched_raw.reference)),
+                    "raw_face_count": int(len(stitched_raw.faces)),
+                    "cleaned_removed_points": int(cleaned.removed_points),
+                    "cleaned_removed_faces": int(cleaned.removed_faces),
+                    "triangle_edge_scale": float(opts.triangle_edge_scale),
+                    "min_gap_factor": float(opts.min_gap_factor),
+                    "overlap_removed_faces": int(stitched.overlap_removed_faces),
+                    "zipper_faces": int(stitched.zipper_faces),
+                    "hole_faces": int(stitched.hole_faces),
+                    "visualization_dir": str(visualization_root),
+                    "smooth_displacement_knn": int(smooth_k),
+                    "pairs": pair_summaries,
+                },
+                indent=2,
+            ),
+            encoding="utf-8",
         )
-        pair_summaries.append(
+        total_points += int(len(stitched.reference))
+        total_faces += int(len(stitched.faces))
+        element_out_roots.append(str(elem_out))
+        element_summaries.append(
             {
-                "pair": pair_label,
-                "points": pair_valid_count,
-                "faces": int(len(faces)),
-                "skipped": False,
+                "element": etype,
+                "point_count": int(len(stitched.reference)),
+                "face_count": int(len(stitched.faces)),
+                "output_dir": str(elem_out),
             }
         )
 
-    if not meshes:
+    if not element_out_roots:
         raise RuntimeError("No valid pair surfaces were available for stitching")
-    stitched_raw = stitch_surfaces(meshes, min_gap_factor=float(opts.min_gap_factor))
-    cleaned = clean_stitched_surface(
-        stitched_raw,
-        neighbor_count=int(opts.outlier_neighbor_count),
-        distance_sigma=float(opts.outlier_distance_sigma),
-        displacement_sigma=float(opts.outlier_displacement_sigma),
-        face_edge_scale=float(opts.outlier_face_edge_scale),
-    )
-    stitched = cleaned.result
-    point_rows: list[dict[str, Any]] = []
-    source_index = 0
-    for mesh_rows in source_rows:
-        for row in mesh_rows:
-            output = dict(row)
-            output["global_id"] = source_index + 1
-            if not cleaned.valid_points[source_index]:
-                for key in ("X0", "Y0", "Z0", "X1", "Y1", "Z1", "Ux", "Uy", "Uz", "Umag"):
-                    output[key] = float("nan")
-                output["valid"] = 0
-            else:
-                output["valid"] = 1
-            point_rows.append(output)
-            source_index += 1
-    face_rows: list[dict[str, Any]] = []
-    for face_index, face in enumerate(stitched.faces, start=1):
-        pair_index = int(stitched.face_pair_indices[face_index - 1])
-        face_rows.append(
-            {
-                "face_id": face_index,
-                "pair": "zipper" if pair_index < 0 else pair_summaries[pair_index - 1]["pair"],
-                "pair_index": pair_index,
-                "pair_face_id": face_index,
-                "n1": int(face[0]) + 1,
-                "n2": int(face[1]) + 1,
-                "n3": int(face[2]) + 1,
-                "quality": float(stitched.face_quality[face_index - 1]) if np.isfinite(stitched.face_quality[face_index - 1]) else float("nan"),
-            }
-        )
-    _write_stitched_points(out_root / "stitched_points.csv", point_rows)
-    _write_stitched_faces(out_root / "stitched_faces.csv", face_rows)
-    visualization_root = visualization_dir_for_result(case_root, out_root)
-    write_stitch_visualizations(stitched, visualization_root)
-    (out_root / "stitched_summary.json").write_text(
+
+    (out_root / "stitch_index.json").write_text(
         json.dumps(
             {
                 "solver": str(opts.solver),
                 "mode": "multidic",
-                "point_count": int(len(stitched.reference)),
-                "face_count": int(len(stitched.faces)),
-                "raw_point_count": int(len(stitched_raw.reference)),
-                "raw_face_count": int(len(stitched_raw.faces)),
-                "cleaned_removed_points": int(cleaned.removed_points),
-                "cleaned_removed_faces": int(cleaned.removed_faces),
-                "triangle_edge_scale": float(opts.triangle_edge_scale),
-                "min_gap_factor": float(opts.min_gap_factor),
-                "overlap_removed_faces": int(stitched.overlap_removed_faces),
-                "zipper_faces": int(stitched.zipper_faces),
-                "hole_faces": int(stitched.hole_faces),
-                "visualization_dir": str(visualization_root),
-                "pairs": pair_summaries,
+                "point_count": total_points,
+                "face_count": total_faces,
+                "elements": element_summaries,
             },
             indent=2,
         ),
@@ -1052,8 +1158,8 @@ def stitch_pairwise_3d_surfaces(
         pairs=pairs,
         solver=str(opts.solver),
         mode="multidic",
-        point_count=int(len(stitched.reference)),
-        face_count=int(len(stitched.faces)),
+        point_count=total_points,
+        face_count=total_faces,
     )
 
 
@@ -2202,11 +2308,12 @@ def _compute_standard_mesh_fields(
     visualization_dir: Path,
     width: int,
     height: int,
+    roi: np.ndarray | None = None,
 ) -> None:
     samples = _dense_mesh_samples(nodes, elements, element_type, width, height)
     for field_name, image_key, title in _PAIR_FIELD_DEFS:
         deformed = _read_gray_image(paths[image_key])
-        result = compute_mesh(reference, deformed, nodes, elements, element_type=element_type, config=dict(mesh_cfg))
+        result = compute_mesh(reference, deformed, nodes, elements, element_type=element_type, config=dict(mesh_cfg), roi=roi)
         uv = np.column_stack([np.asarray(result["u"], dtype=np.float64), np.asarray(result["v"], dtype=np.float64)])
         corr = np.asarray(result.get("correlation", np.ones(len(uv))), dtype=np.float64)
         valid = np.asarray(result.get("valid", np.ones(len(uv), dtype=bool)), dtype=bool)

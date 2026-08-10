@@ -416,6 +416,7 @@ def compute_mesh_fields(
     images = {key: read_gray(path) for _, key, _ in FIELD_DEFS for path in [paths[key]]}
     config = normalize_mesh_config(mesh_cfg)
     data_by_type, width, height = mesh_data_by_type(paths, mesh_cfg)
+    roi = read_mask(paths["roi"])
 
     for etype in element_types:
         disp_dir = disp_root / etype
@@ -430,7 +431,7 @@ def compute_mesh_fields(
 
         for field_name, image_key, title in FIELD_DEFS:
             print(f"Computing mesh {etype} {title}")
-            result = tdic.mesh(reference, images[image_key], nodes, elements, element_type=etype, config=config)
+            result = tdic.mesh(reference, images[image_key], nodes, elements, element_type=etype, config=config, roi=roi)
             uv = np.column_stack([np.asarray(result["u"], dtype=np.float64), np.asarray(result["v"], dtype=np.float64)])
             corr = np.asarray(result.get("correlation", np.ones(len(uv))), dtype=np.float64)
             valid = np.asarray(result.get("valid", np.ones(len(uv), dtype=bool)), dtype=bool)
@@ -585,12 +586,21 @@ def main() -> None:
     if calibrate:
         camera_path = run_calibration(paths, calibration_cfg, output_dirs["calibration"])
         if workflow.get("visualize_calibration", False):
-            from case.visualize_calibration_results import visualize_saved_stereo_calibration_result
-
-            visualize_saved_stereo_calibration_result(
-                output_dirs["calibration"] / "stereo_calibration.json",
-                visualization_dir_for_result(paths["case_root"], output_dirs["calibration"]),
-            )
+            # The diagnostic calibration visualization module was removed in the
+            # unified workflow release; tolerate its absence instead of crashing.
+            try:
+                from case.visualize_calibration_results import visualize_saved_stereo_calibration_result
+            except ModuleNotFoundError:
+                print(
+                    "warning: case.visualize_calibration_results unavailable; "
+                    "skipping calibration visualization",
+                    file=sys.stderr,
+                )
+            else:
+                visualize_saved_stereo_calibration_result(
+                    output_dirs["calibration"] / "stereo_calibration.json",
+                    visualization_dir_for_result(paths["case_root"], output_dirs["calibration"]),
+                )
     elif not camera_path.exists():
         raise FileNotFoundError(camera_path)
 
