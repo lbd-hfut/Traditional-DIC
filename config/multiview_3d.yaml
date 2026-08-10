@@ -91,6 +91,10 @@ surface_stitch:
   outlier_distance_sigma: 6.0
   outlier_displacement_sigma: 6.0
   outlier_face_edge_scale: 4.0
+  # Post-stitch KNN smoothing of the displacement field (valid nodes only;
+  # k=0 disables). Q8 dense meshes expose per-pair low-frequency bias that this
+  # removes (|dU| 0.151 -> 0.080 at k=9); default off for backward compatibility.
+  smooth_displacement_knn: 0
 
 strain:
   enabled: true

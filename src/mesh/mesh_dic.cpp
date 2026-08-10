@@ -1,9 +1,13 @@
 #include <dic/mesh/mesh_dic.hpp>
 #include <dic/mesh/generation/roi_mesh_generator.hpp>
 #include <dic/core/image.hpp>
+#include <dic/core/mask.hpp>
 #include <dic/interpolation/bspline.hpp>
 #include <dic/mesh/postprocess/strain.hpp>
 #include <dic/mesh/initialization/fedic_fft_initializer.hpp>
+#include <dic/mesh/initialization/pyramid_initializer.hpp>
+#include <dic/initialization/feature_matcher.hpp>
+#include <dic/initialization/sift_initializer.hpp>
 #include <dic/subset/padding.hpp>
 
 #include "coordinate/g2l_internal.hpp"
@@ -30,6 +34,35 @@ using mesh::internal::assemble_stiffness;
 using mesh::internal::global_fgn;
 using mesh::internal::global_icgn;
 using mesh::internal::compute_global_to_local;
+
+// Does the FFT correlation window (window_size x window_size centered on the
+// node) lie entirely inside the ROI mask? The FFT initializer only checks the
+// image boundary, so a node whose window crosses the ROI edge matches against
+// background content and locks onto a wrong peak (disp right boundary: u
+// underestimated ~20 px). Nodes failing this check skip the FFT lock and get
+// their seed interpolated from interior nodes via
+// fill_missing_nodal_initialization.
+static bool fft_window_fully_inside_roi(const dic::Mask& roi_mask,
+                                        double x, double y,
+                                        int window_size)
+{
+    const int half = window_size / 2;
+    const int x0 = static_cast<int>(std::ceil(x - half));
+    const int x1 = static_cast<int>(std::floor(x + half));
+    const int y0 = static_cast<int>(std::ceil(y - half));
+    const int y1 = static_cast<int>(std::floor(y + half));
+    if (x0 < 0 || y0 < 0 || x1 >= roi_mask.width() || y1 >= roi_mask.height()) {
+        return false;
+    }
+    for (int yy = y0; yy <= y1; ++yy) {
+        for (int xx = x0; xx <= x1; ++xx) {
+            if (!roi_mask.valid(xx, yy)) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
 
 static void mesh_to_flat(const Mesh& mesh,
                          std::vector<double>& nodes_coord,
@@ -404,13 +437,18 @@ static void solve_global_mesh_displacement(
 MeshDIC::MeshDIC(MeshConfig config) : config_(config) {}
 
 std::vector<Displacement2D> MeshDIC::compute(
-    const Image& reference, const Image& deformed, const Mesh& mesh) const
+    const Image& reference, const Image& deformed, const Mesh& mesh,
+    const dic::Mask* roi_mask) const
 {
     if (reference.empty() || deformed.empty()) {
         return {};
     }
     if (reference.width() != deformed.width() || reference.height() != deformed.height()) {
         throw std::invalid_argument("MeshDIC requires reference and deformed images with matching dimensions.");
+    }
+    if (roi_mask != nullptr &&
+        (roi_mask->width() != reference.width() || roi_mask->height() != reference.height())) {
+        throw std::invalid_argument("MeshDIC ROI mask must match the reference image dimensions.");
     }
 
     const int pad = config_.mirror_image_padding ? recommended_mesh_padding(config_) : 0;
@@ -490,28 +528,128 @@ std::vector<Displacement2D> MeshDIC::compute(
         config_.photometric_objective);
 
     // ---- 7. Displacement init ----
+    // In-image node points, collected once and shared by the pyramid and SIFT
+    // seed stages (indexed the same way as the per-node loop below).
+    std::vector<Eigen::Vector2d> node_points;
+    node_points.reserve(static_cast<std::size_t>(n_nodes));
+    for (int i = 0; i < n_nodes; ++i) {
+        const Eigen::Vector2d pt(nodes_coord[2 * i], nodes_coord[2 * i + 1]);
+        if (pt.x() < 0 || pt.x() >= reference.width() ||
+            pt.y() < 0 || pt.y() >= reference.height()) continue;
+        node_points.push_back(pt);
+    }
+
+    // 7a. Optional: true pyramid coarse-to-fine registration -> per-node seeds
+    // that shift the FFT search center away from a blind (0,0) search. Runs on
+    // the unpadded images, matching the plain FFT path below.
+    std::vector<InitialDisplacement> pyramid_seed;
+    if (config_.pyramid_initialization.enabled && !node_points.empty()) {
+        pyramid_seed = mesh::estimate_pyramid_initial_displacements(
+            reference, deformed, node_points, config_.pyramid_initialization);
+    }
+
+    // 7a2. Optional: SIFT feature prior -> per-node seeds. SIFT matches are
+    // rotation/scale invariant, so on perspective/distorted cases this is a
+    // far more reliable FFT search center than the rigid pyramid NCC. Takes
+    // priority over the pyramid seed in the per-node FFT search below.
+    std::vector<InitialDisplacement> sift_seed;
+    if (config_.sift_prior_initialization.enabled && !node_points.empty()) {
+        dic::FeatureMatcherConfig matcher_cfg;
+        matcher_cfg.max_features = config_.sift_prior_initialization.max_features;
+        matcher_cfg.ratio_threshold = config_.sift_prior_initialization.ratio_threshold;
+        matcher_cfg.robust_mad_factor = config_.sift_prior_initialization.robust_mad_factor;
+        const dic::FeatureMatcher matcher(matcher_cfg);
+        const auto matches = matcher.match(reference, deformed);
+        dic::SIFTInitializerConfig sift_cfg;
+        sift_cfg.matcher = matcher_cfg;
+        sift_cfg.interpolation_neighbors = config_.sift_prior_initialization.interpolation_neighbors;
+        sift_cfg.interpolation_radius = config_.sift_prior_initialization.interpolation_radius;
+        const dic::SIFTInitializer initializer(sift_cfg);
+        sift_seed.reserve(node_points.size());
+        for (const auto& pt : node_points) {
+            sift_seed.push_back(initializer.estimate_from_matches(matches, pt));
+        }
+    }
+
     Eigen::VectorXd U = Eigen::VectorXd::Zero(2 * n_nodes);
     std::vector<unsigned char> init_valid(static_cast<std::size_t>(n_nodes), 0);
     std::vector<double> init_zncc(static_cast<std::size_t>(n_nodes), -std::numeric_limits<double>::infinity());
     std::vector<double> init_znssd(static_cast<std::size_t>(n_nodes), std::numeric_limits<double>::infinity());
     std::vector<double> init_pce(static_cast<std::size_t>(n_nodes), std::numeric_limits<double>::quiet_NaN());
     std::vector<double> init_ppe(static_cast<std::size_t>(n_nodes), std::numeric_limits<double>::quiet_NaN());
+    // pyramid_seed is indexed by the consecutive in-image nodes collected
+    // above; map back to the node loop with a running counter.
+    std::size_t seed_index = 0;
     for (int i = 0; i < n_nodes; ++i) {
         Eigen::Vector2d pt(nodes_coord[2 * i], nodes_coord[2 * i + 1]);
         if (pt.x() < 0 || pt.x() >= reference.width() || pt.y() < 0 || pt.y() >= reference.height()) continue;
-        const auto fedic_initial = mesh::estimate_fedic_fft_initial_displacement(
-            reference, deformed, pt,
-            config_.fedic_fft_initialization.search_radius,
-            config_.fedic_fft_initialization.window_size);
-        auto selected_initial = fedic_initial;
-        if (!selected_initial.initial.valid &&
-            config_.fedic_fft_initialization.mirror_boundary_fallback && pad > 0) {
-            const Eigen::Vector2d padded_point(
-                solver_nodes_coord[2 * i], solver_nodes_coord[2 * i + 1]);
-            selected_initial = mesh::estimate_fedic_fft_initial_displacement(
-                solver_reference, solver_deformed, padded_point,
-                config_.fedic_fft_initialization.search_radius,
+        Eigen::Vector2d offset = Eigen::Vector2d::Zero();
+        bool has_prior_offset = false;
+        if (seed_index < sift_seed.size() && sift_seed[seed_index].valid) {
+            offset = Eigen::Vector2d(sift_seed[seed_index].u, sift_seed[seed_index].v);
+            has_prior_offset = true;
+        } else if (seed_index < pyramid_seed.size() && pyramid_seed[seed_index].valid) {
+            offset = Eigen::Vector2d(pyramid_seed[seed_index].u, pyramid_seed[seed_index].v);
+            has_prior_offset = true;
+        }
+        ++seed_index;
+        // Boundary-interpolation init: nodes whose FFT correlation window
+        // crosses the ROI boundary skip the FFT lock entirely and stay invalid,
+        // so fill_missing_nodal_initialization below inherits a seed from the
+        // interior (reliability propagation). The plain FFT initializer only
+        // checks the image boundary, so a window spanning outside the ROI locks
+        // onto a wrong peak (disp right boundary: u underestimated ~20 px).
+        //
+        // Exception: when a SIFT/pyramid prior supplied a valid offset for this
+        // node, keep the FFT path — the offset is a global match unaffected by
+        // the ROI-mask crop, so FFT searches around the true peak and locks it.
+        // Skipping FFT there would discard that accurate offset and seed the
+        // boundary from interior interpolation, which on a strong displacement
+        // gradient is off by the interior-to-boundary field delta (disp: ~22 px)
+        // and the global solver cannot pull it back (A/B verified: right-edge
+        // >5px 32% -> 92%).
+        const bool window_crosses_roi = roi_mask != nullptr &&
+            !fft_window_fully_inside_roi(
+                *roi_mask, pt.x(), pt.y(),
                 config_.fedic_fft_initialization.window_size);
+        const bool boundary_skip = config_.boundary_interpolation_init &&
+            roi_mask != nullptr &&
+            !has_prior_offset &&
+            window_crosses_roi;
+        // Direction A: boundary node with a valid prior offset -> seed directly
+        // with that offset, skipping the FFT lock. The prior is a global match
+        // (rotation/scale-invariant SIFT or pyramid NCC) unaffected by the ROI
+        // crop, while the FFT window spanning outside the ROI has no valid
+        // content and re-locks 5-10 px off even with a good center (disp right
+        // edge). Interior nodes are untouched.
+        const bool direct_prior_seed = config_.boundary_interpolation_init &&
+            config_.boundary_direct_prior_seed &&
+            has_prior_offset &&
+            window_crosses_roi;
+        mesh::FEDICFFTInitialDisplacement selected_initial;
+        if (direct_prior_seed) {
+            selected_initial.initial.u = offset.x();
+            selected_initial.initial.v = offset.y();
+            selected_initial.initial.valid = true;
+            // zncc/znssd stay at their defaults; QC skips them because they are
+            // not finite, and the global solver refines the seed below.
+        } else if (!boundary_skip) {
+            const auto fedic_initial = mesh::estimate_fedic_fft_initial_displacement(
+                reference, deformed, pt,
+                config_.fedic_fft_initialization.search_radius,
+                config_.fedic_fft_initialization.window_size,
+                offset);
+            selected_initial = fedic_initial;
+            if (!selected_initial.initial.valid &&
+                config_.fedic_fft_initialization.mirror_boundary_fallback && pad > 0) {
+                const Eigen::Vector2d padded_point(
+                    solver_nodes_coord[2 * i], solver_nodes_coord[2 * i + 1]);
+                selected_initial = mesh::estimate_fedic_fft_initial_displacement(
+                    solver_reference, solver_deformed, padded_point,
+                    config_.fedic_fft_initialization.search_radius,
+                    config_.fedic_fft_initialization.window_size,
+                    offset);
+            }
         }
         const InitialDisplacement& init = selected_initial.initial;
         if (init.valid) {

@@ -20,7 +20,7 @@ if str(PYTHON_ROOT) not in sys.path:
 
 import traditional_dic as tdic  # noqa: E402
 from traditional_dic import io as dic_io  # noqa: E402
-from traditional_dic.config import load_config, mesh_generation_config, normalize_mesh_config  # noqa: E402
+from traditional_dic.config import load_config, mesh_generation_config, mesh_method_tag, normalize_mesh_config  # noqa: E402
 from traditional_dic.postprocess import save_least_squares_strain_csv  # noqa: E402
 from traditional_dic.visualization import (  # noqa: E402
     densify_2d_mesh_displacement_field,
@@ -346,6 +346,7 @@ def run_element(
     args,
     solver_config: dict,
     effective_config: dict,
+    roi: np.ndarray | None = None,
 ) -> None:
     out_dir = out_root / etype
     element_visualization_dir = visualization_root / etype
@@ -364,6 +365,7 @@ def run_element(
         elements,
         element_type=etype,
         config=solver_config,
+        roi=roi,
     )
     dic_io.save_displacement_csv(result, out_dir / "final_U.csv")
     strain_cfg = dict(solver_config.get("strain", {}) or {})
@@ -499,14 +501,16 @@ def main() -> None:
     element_types = ["T3", "Q4", "Q8"] if args.element == "all" else [args.element]
     generated_meshes = generate_meshes_from_roi(roi, generation)
     for deformed_path in images[1:-1]:
-        out_dir = result_root / deformed_path.stem
-        visualization_dir = visualization_root / deformed_path.stem
+        method_tag = mesh_method_tag(raw_config)
+        suffix = f"_{method_tag}" if method_tag else ""
+        out_dir = result_root / f"{deformed_path.stem}{suffix}"
+        visualization_dir = visualization_root / f"{deformed_path.stem}{suffix}"
         out_dir.mkdir(parents=True, exist_ok=True)
         visualization_dir.mkdir(parents=True, exist_ok=True)
         (out_dir / "mesh_generation_summary.json").write_text(json.dumps(generated_meshes.get("summary", {}), indent=2), encoding="utf-8")
         deformed = read_gray(deformed_path)
         for etype in element_types:
-            run_element(reference, deformed, generated_meshes, out_dir, visualization_dir, etype, args, raw_config, api_config)
+            run_element(reference, deformed, generated_meshes, out_dir, visualization_dir, etype, args, raw_config, api_config, roi=roi)
         save_overview(visualization_dir, element_types, dense=True)
         print(f"Wrote dense Mesh-DIC overview to {visualization_dir / 'dense_overview.png'}")
 

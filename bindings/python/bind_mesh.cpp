@@ -284,6 +284,17 @@ dic::MeshConfig mesh_config_from_dict(py::dict d)
                 throw std::runtime_error("Mesh-DIC initialization.method must be 'fedic_fft'.");
             }
         }
+        if (init.contains("boundary_interpolation_init")) {
+            cfg.boundary_interpolation_init =
+                get_bool(init, "boundary_interpolation_init", cfg.boundary_interpolation_init);
+        }
+        if (init.contains("boundary_direct_prior_seed")) {
+            cfg.boundary_direct_prior_seed =
+                get_bool(init, "boundary_direct_prior_seed", cfg.boundary_direct_prior_seed);
+        }
+        // Config default lives in the C++ MeshConfig (false since 2026-08-08);
+        // no separate default here. get_bool falls back to cfg's value when the
+        // key is absent.
         if (init.contains("fedic_fft")) {
             py::dict fft = py::cast<py::dict>(init["fedic_fft"]);
             cfg.fedic_fft_initialization.window_size =
@@ -293,6 +304,36 @@ dic::MeshConfig mesh_config_from_dict(py::dict d)
             cfg.fedic_fft_initialization.mirror_boundary_fallback =
                 get_bool(fft, "mirror_boundary_fallback",
                          cfg.fedic_fft_initialization.mirror_boundary_fallback);
+        }
+        if (init.contains("pyramid")) {
+            py::dict pyr = py::cast<py::dict>(init["pyramid"]);
+            cfg.pyramid_initialization.enabled =
+                get_bool(pyr, "enabled", cfg.pyramid_initialization.enabled);
+            cfg.pyramid_initialization.num_levels =
+                get_int(pyr, "num_levels", cfg.pyramid_initialization.num_levels);
+            cfg.pyramid_initialization.scale_factor =
+                get_double(pyr, "scale_factor", cfg.pyramid_initialization.scale_factor);
+            cfg.pyramid_initialization.coarse_search_radius =
+                get_int(pyr, "coarse_search_radius", cfg.pyramid_initialization.coarse_search_radius);
+            cfg.pyramid_initialization.refinement_radius =
+                get_int(pyr, "refinement_radius", cfg.pyramid_initialization.refinement_radius);
+            cfg.pyramid_initialization.window_size =
+                get_int(pyr, "window_size", cfg.pyramid_initialization.window_size);
+        }
+        if (init.contains("sift_prior")) {
+            py::dict sp = py::cast<py::dict>(init["sift_prior"]);
+            cfg.sift_prior_initialization.enabled =
+                get_bool(sp, "enabled", cfg.sift_prior_initialization.enabled);
+            cfg.sift_prior_initialization.max_features =
+                get_int(sp, "max_features", cfg.sift_prior_initialization.max_features);
+            cfg.sift_prior_initialization.ratio_threshold =
+                get_double(sp, "ratio_threshold", cfg.sift_prior_initialization.ratio_threshold);
+            cfg.sift_prior_initialization.robust_mad_factor =
+                get_double(sp, "robust_mad_factor", cfg.sift_prior_initialization.robust_mad_factor);
+            cfg.sift_prior_initialization.interpolation_neighbors =
+                get_int(sp, "interpolation_neighbors", cfg.sift_prior_initialization.interpolation_neighbors);
+            cfg.sift_prior_initialization.interpolation_radius =
+                get_double(sp, "interpolation_radius", cfg.sift_prior_initialization.interpolation_radius);
         }
         if (init.contains("quality_control")) {
             py::dict qc = py::cast<py::dict>(init["quality_control"]);
@@ -325,7 +366,8 @@ py::dict mesh_compute(
     py::array_t<std::int64_t, py::array::c_style | py::array::forcecast> elements,
     const std::string& element_type,
     py::object config_arg,
-    bool one_based)
+    bool one_based,
+    py::object roi_arg)
 {
     dic::MeshConfig cfg;
     if (!config_arg.is_none()) {
@@ -337,8 +379,19 @@ py::dict mesh_compute(
 
     auto type = parse_element_type(element_type);
     dic::Mesh mesh = mesh_from_numpy(nodes, elements, type, one_based);
+
+    // Optional ROI mask (uint8 2D numpy array) enables the mask-aware
+    // boundary-interpolation initialization. None keeps the legacy behavior.
+    dic::Mask roi_storage;
+    const dic::Mask* roi_ptr = nullptr;
+    if (!roi_arg.is_none()) {
+        roi_storage = mesh_mask_from_object(roi_arg);
+        roi_ptr = &roi_storage;
+    }
+
     dic::MeshDIC solver(cfg);
-    return results_to_dict(solver.compute(mesh_image_from_object(reference), mesh_image_from_object(deformed), mesh));
+    return results_to_dict(solver.compute(
+        mesh_image_from_object(reference), mesh_image_from_object(deformed), mesh, roi_ptr));
 }
 
 py::dict make_mesh(
@@ -407,7 +460,8 @@ void bind_mesh(py::module_& m)
         py::arg("elements"),
         py::arg("element_type") = "Q4",
         py::arg("config") = py::none(),
-        py::arg("one_based") = false);
+        py::arg("one_based") = false,
+        py::arg("roi") = py::none());
 
     sub.def("make_mesh", &make_mesh,
         py::arg("nodes"),

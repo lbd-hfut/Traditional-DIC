@@ -58,10 +58,59 @@ def normalize_mesh_config(config: dict[str, Any] | None) -> dict[str, Any]:
     out["interpolation"] = interpolation
     out["initialization"] = {
         "method": initialization.get("method", "fedic_fft"),
+        "boundary_interpolation_init": initialization.get("boundary_interpolation_init", True),
+        "boundary_direct_prior_seed": initialization.get("boundary_direct_prior_seed", False),
         "fedic_fft": initialization.get("fedic_fft", {}),
+        "pyramid": initialization.get("pyramid", {}),
+        "sift_prior": initialization.get("sift_prior", {}),
         "quality_control": initialization.get("quality_control", {}),
     }
     return out
+
+
+def _method_tag(value: Any, aliases: dict[str, str]) -> str:
+    """Map a config value to a compact, filesystem-safe tag token."""
+    key = str(value).strip().lower()
+    return aliases.get(key, key)
+
+
+def subset_method_tag(config: dict[str, Any] | None) -> str:
+    """Build a compact tag from the subset algorithm settings.
+
+    Encodes correlation criterion + optimizer + shape-function order so that
+    runs with different methods land in separate output directories instead of
+    overwriting one another, e.g. ``znssd_icgn_1st``.
+    """
+    # The algorithm keys live at the top level of subset_2d.yaml, not nested
+    # under "subset".
+    cfg = config or {}
+    criterion = _method_tag((cfg.get("correlation", {}) or {}).get("criterion", "znssd"), {})
+    solver = _method_tag(
+        (cfg.get("optimization", {}) or {}).get("method", "icgn"),
+        {"fgn": "fgn", "forward_gauss_newton": "fgn"},
+    )
+    order = _method_tag(
+        (cfg.get("shape_function", {}) or {}).get("order", "1"),
+        {
+            "first_order": "1st", "first": "1st", "1": "1st",
+            "second_order": "2nd", "second": "2nd", "2": "2nd",
+        },
+    )
+    return f"{criterion}_{solver}_{order}"
+
+
+def mesh_method_tag(config: dict[str, Any] | None) -> str:
+    """Build a compact tag from the mesh algorithm settings.
+
+    Encodes photometric objective + optimizer, e.g. ``ssd_icgn``.
+    """
+    optimization = dict((config or {}).get("optimization", {}) or {})
+    objective = _method_tag(optimization.get("objective", "ssd"), {})
+    solver = _method_tag(
+        optimization.get("method", "fedic_element_icgn"),
+        {"fedic_element_icgn": "icgn", "fedic_element_fgn": "fgn", "icgn": "icgn", "fgn": "fgn"},
+    )
+    return f"{objective}_{solver}"
 
 
 def mesh_generation_config(config: dict[str, Any] | None) -> dict[str, Any]:

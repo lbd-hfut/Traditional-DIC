@@ -44,8 +44,15 @@ def mesh(
     pyramid_refinement_radius: int = 4,
     regularization_alpha: float = 0.0,
     one_based: bool = False,
+    roi: Optional[np.ndarray] = None,
 ):
-    """Run 2D Mesh-DIC from numpy images and mesh arrays."""
+    """Run 2D Mesh-DIC from numpy images and mesh arrays.
+
+    roi: optional 2D uint8 ROI mask (nonzero = inside the region of interest).
+    When supplied together with initialization.boundary_interpolation_init=True,
+    mesh nodes whose FFT window crosses the ROI boundary skip the FFT lock and
+    get their seed interpolated from interior nodes instead.
+    """
     if not _has_backend:
         raise ImportError(
             "C++ backend _traditional_dic not found. "
@@ -91,6 +98,10 @@ def mesh(
             },
         }
 
+    roi_array = None
+    if roi is not None:
+        roi_array = np.ascontiguousarray(roi, dtype=np.uint8)
+
     return _backend.mesh.compute(
         reference,
         deformed,
@@ -99,6 +110,7 @@ def mesh(
         element_type,
         config_dict,
         one_based,
+        roi_array,
     )
 
 

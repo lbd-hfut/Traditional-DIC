@@ -1,4 +1,8 @@
 # This file configures only the Mesh-DIC route; it does not change subset DIC.
+#
+# disk-40px (2026-08-09): 将 mono_DIC/disp 用例验证的 40px 配置固化为单目 mesh 默认。
+# 大位移 (~230px) 散斑用例：40px 网格 (target40/min24/max60) + FGN + FFT search_radius50
+# + SIFT prior + 方向A (boundary_direct_prior_seed) + QC (mad2.0/dev12)，objective 保持 ssd。
 solver: mesh  # options: subset, mesh
 
 mesh:
@@ -17,11 +21,11 @@ mesh_generation:
   # Q8 adds midside nodes and supports curved element edges generated from the ROI boundary.
   element_type: q4  # options: t3, q4, q8
 
-  target_element_size: 75.0  # positive pixels; target element edge scale
+  target_element_size: 40.0  # positive pixels; target element edge scale
 
-  min_element_size: 45.0  # 0 disables this lower size preference
+  min_element_size: 24.0  # 0 disables this lower size preference
 
-  max_element_size: 110.0  # 0 disables this upper size preference
+  max_element_size: 60.0  # 0 disables this upper size preference
 
   fit_roi_boundary: true  # preserve the ROI boundary; useful for annular and other non-rectangular domains
 
@@ -40,7 +44,7 @@ mesh_generation:
 optimization:
   # fedic_element_icgn: reference-gradient, constant Hessian; default and lower cost.
   # fedic_element_fgn: deformed-gradient, reassembled Hessian each iteration; more expensive but useful for comparison.
-  method: fedic_element_icgn  # options: fedic_element_icgn, fedic_element_fgn
+  method: fedic_element_fgn  # options: fedic_element_icgn, fedic_element_fgn
   # ssd: f - g(x+u). znssd: per-element affine photometric SSD, f - (a*g(x+u)+b).
   # The znssd name is compatibility-oriented: a and b are re-estimated per element at every iteration.
   # Both ICGN and FGN support it; they differ only in their reference/deformed image gradient linearization.
@@ -56,28 +60,80 @@ interpolation:
   # Shared B-spline interpolation used for warped intensities; FGN also samples its gradient at the warped point.
   method: bspline  # options: bspline
   degree: 5  # options: 1, 3, 5; higher degree is smoother but costs more per sample
+  border: 3  # non-negative pixels; B-spline border fill width
+  use_exact_prefilter: true  # options: true, false; exact spline prefilter
+  precompute_local_blocks: true  # options: true, false; precompute local spline blocks
 
 initialization:
   # Mesh-only nodal initialization. It is independent of subset initialization.
   method: fedic_fft  # options: fedic_fft
 
+  # When true (and a ROI mask is supplied), nodes whose FFT correlation window
+  # would span outside the ROI skip the FFT lock and are marked invalid, so the
+  # seed is interpolated from interior nodes. Fixes ROI-edge FFT wrong-peak locks
+  # (disp right edge underestimated u by ~20 px). boundary_direct_prior_seed is
+  # only consulted when this is also true; interior nodes are unaffected.
+  boundary_interpolation_init: true  # options: true, false
+
+  # Direction A: boundary mesh nodes that already have a SIFT/pyramid prior
+  # offset use it directly as the displacement seed and skip the FFT lock
+  # (FFT windows that cross the ROI edge re-lock to a shifted peak). ON for the
+  # disk-40px default: it is a clear win on mono_DIC/disp-style single-direction
+  # large-gradient cases (right-edge >5px 32% -> 0.1%). It regresses multiview
+  # (ComplexCylinder T3/Q4 dist +0.3 mm), so multi-view runs override it back to
+  # false explicitly. Only read when boundary_interpolation_init is true;
+  # interior nodes are unaffected.
+  boundary_direct_prior_seed: true  # options: true, false
+
   fedic_fft:
     # FE-DIC-style independent square FFT correlation window on each mesh node.
     # Use a window smaller than the local deformation scale but large enough to contain speckle texture.
     window_size: 75  # positive pixels; normally choose an odd size
-    search_radius: 30  # non-negative pixels; integer displacement search range around each node
+    search_radius: 50  # non-negative pixels; integer displacement search range around each node
     # With optimization.mirror_image_padding=true, retry only invalid edge windows on the padded images.
     mirror_boundary_fallback: true  # options: true, false
 
+  pyramid:
+    # True coarse-to-fine image-pyramid initialization. Coarse levels shrink
+    # large disparities into small pixel shifts, so a small radius covers the
+    # whole disparity range; per-node coarse displacements then seed the FFT
+    # search center instead of a blind (0,0) search. Default off (backward
+    # compatible); enable per case that needs large-disparity coverage.
+    enabled: false  # options: true, false
+    num_levels: 4  # positive integer; truncated adaptively to image size
+    scale_factor: 0.5  # (0,1); downsample ratio per level
+    coarse_search_radius: 32  # search radius at the coarsest level (px); must cover
+                              # max_disparity * scale_factor^(num_levels-1)
+    refinement_radius: 4  # per-level refinement radius (px)
+    window_size: 75  # FFT correlation window at full resolution
+
+  sift_prior:
+    # SIFT feature-prior initialization (mesh-only; independent of subset).
+    # SIFT matches are rotation/scale invariant, so a per-node IDW-interpolated
+    # SIFT displacement gives a far more reliable FFT search center than the
+    # rigid pyramid NCC on perspective/distorted cases. When enabled, the SIFT
+    # seed takes priority over the pyramid seed as the FFT search center.
+    # Required for the disk-40px default (large in-plane displacement ~230px).
+    enabled: true  # options: true, false
+    max_features: 4000  # positive integer; FeatureMatcher SIFT feature budget
+    ratio_threshold: 0.75  # (0,1); SIFT Lowe ratio test threshold
+    robust_mad_factor: 5.0  # positive float; MAD gate for robust inliers
+    interpolation_neighbors: 8  # positive integer; SIFTInitializer IDW neighbors
+    interpolation_radius: 180.0  # positive pixels; IDW search radius
+
   quality_control:
     # Optional mesh-only rejection and neighbor repair after FFT initialization, before the global solver.
-    enabled: false  # options: true, false
+    # Enabled for the disk-40px default: detects and repairs isolated outlier
+    # nodes (ROI-edge FFT misses). max_neighbor_deviation caps the MAD threshold
+    # in pixels; without it two adjacent outliers can shield each other (seen on
+    # Q8 midside nodes near the ROI boundary).
+    enabled: true  # options: true, false
     min_zncc: -1.0  # lower normalized-correlation reliability threshold; -1 disables rejection by ZNCC
     max_znssd: .inf  # upper ZNSSD reliability threshold; .inf disables rejection by ZNSSD
     fedic_qfactor_enabled: false  # enable FE-DIC PCE/PPE correlation-surface reliability filtering
     fedic_qfactor_std_factor: 1.25  # reject q-factors below mean - factor * standard deviation
-    neighbor_mad_factor: 4.0  # robust local displacement-outlier threshold from neighbor MAD
-    max_neighbor_deviation: 0.0  # pixels; 0 disables the additional absolute neighbor-deviation limit
+    neighbor_mad_factor: 2.0  # robust local displacement-outlier threshold from neighbor MAD
+    max_neighbor_deviation: 12.0  # pixels; 0 disables the additional absolute neighbor-deviation limit
     interpolation_neighbors: 8  # positive integer; nearest valid nodes used to repair rejected initial values
 
 strain:

@@ -60,7 +60,8 @@ FEDICFFTInitialDisplacement estimate_fedic_fft_initial_displacement(
     const Image& deformed,
     const Eigen::Vector2d& point,
     int search_radius,
-    int window_size)
+    int window_size,
+    const Eigen::Vector2d& initial_offset)
 {
     FEDICFFTInitialDisplacement result;
     if (reference.empty() || deformed.empty() ||
@@ -77,8 +78,17 @@ FEDICFFTInitialDisplacement estimate_fedic_fft_initial_displacement(
     const int x1 = static_cast<int>(std::floor(point.x() + 0.5 * window_size));
     const int y0 = static_cast<int>(std::ceil(point.y() - 0.5 * window_size));
     const int y1 = static_cast<int>(std::floor(point.y() + 0.5 * window_size));
-    if (x0 - search_radius < 0 || y0 - search_radius < 0 ||
-        x1 + search_radius >= reference.width() || y1 + search_radius >= reference.height()) {
+    // Search-window origin shifted by the coarse pyramid seed so large
+    // disparities are covered by a small radius around (u0, v0) instead of
+    // a blind (0,0) search.
+    const int u0 = static_cast<int>(std::llround(initial_offset.x()));
+    const int v0 = static_cast<int>(std::llround(initial_offset.y()));
+    const int sx0 = x0 + u0;
+    const int sy0 = y0 + v0;
+    const int sx1 = x1 + u0;
+    const int sy1 = y1 + v0;
+    if (sx0 - search_radius < 0 || sy0 - search_radius < 0 ||
+        sx1 + search_radius >= reference.width() || sy1 + search_radius >= reference.height()) {
         return result;
     }
 
@@ -98,7 +108,7 @@ FEDICFFTInitialDisplacement estimate_fedic_fft_initial_displacement(
     for (int row = 0; row < search_height; ++row) {
         for (int col = 0; col < search_width; ++col) {
             deformed_search.at<float>(row, col) = static_cast<float>(
-                deformed.at(x0 - search_radius + col, y0 - search_radius + row));
+                deformed.at(sx0 - search_radius + col, sy0 - search_radius + row));
         }
     }
 
@@ -147,8 +157,10 @@ FEDICFFTInitialDisplacement estimate_fedic_fft_initial_displacement(
         result.peak_to_entropy = entropy > 1.0e-12 ? 1.0 / entropy : 0.0;
     }
 
-    result.initial.u = static_cast<double>(peak_location.x - search_radius) + peak_offset_x;
-    result.initial.v = static_cast<double>(peak_location.y - search_radius) + peak_offset_y;
+    result.initial.u = initial_offset.x() +
+        static_cast<double>(peak_location.x - search_radius) + peak_offset_x;
+    result.initial.v = initial_offset.y() +
+        static_cast<double>(peak_location.y - search_radius) + peak_offset_y;
     result.initial.zncc = peak;
     result.initial.znssd = std::max(0.0, 2.0 * (1.0 - std::clamp(peak, -1.0, 1.0)));
     result.initial.confidence = result.initial.znssd;
@@ -157,6 +169,7 @@ FEDICFFTInitialDisplacement estimate_fedic_fft_initial_displacement(
 #else
     (void)search_radius;
     (void)window_size;
+    (void)initial_offset;
     return result;
 #endif
 }

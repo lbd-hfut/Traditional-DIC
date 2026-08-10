@@ -181,8 +181,8 @@ Eigen::Vector2d warp_second_order(
     };
 }
 
-// Build the 6¡Á6 invertible second-order warp matrix G'(p) used in
-// Bai et al. (2017) Eq (20¨C22).  The matrix maps the augmented
+// Build the 6ï¿½ï¿½6 invertible second-order warp matrix G'(p) used in
+// Bai et al. (2017) Eq (20ï¿½C22).  The matrix maps the augmented
 // homogeneous coordinate  [1, x, y, x2, xy, y2]?  to
 // [x', y', 1, x'2, x'y', y'2]?  up to  o(x2+y2).
 //
@@ -211,7 +211,7 @@ Eigen::Matrix<double, 6, 6> build_second_order_warp_matrix(
 
     Eigen::Matrix<double, 6, 6> G = Eigen::Matrix<double, 6, 6>::Zero();
 
-    // ---- Row 0:  x' = u + (1+ux)¡¤x + uy¡¤y + ?uxx¡¤x2 + uxy¡¤xy + ?uyy¡¤y2 ----
+    // ---- Row 0:  x' = u + (1+ux)ï¿½ï¿½x + uyï¿½ï¿½y + ?uxxï¿½ï¿½x2 + uxyï¿½ï¿½xy + ?uyyï¿½ï¿½y2 ----
     G(0, 0) = u;
     G(0, 1) = 1.0 + ux;
     G(0, 2) = uy;
@@ -219,7 +219,7 @@ Eigen::Matrix<double, 6, 6> build_second_order_warp_matrix(
     G(0, 4) = uxy;
     G(0, 5) = 0.5 * uyy;
 
-    // ---- Row 1:  y' = v + vx¡¤x + (1+vy)¡¤y + ?vxx¡¤x2 + vxy¡¤xy + ?vyy¡¤y2 ----
+    // ---- Row 1:  y' = v + vxï¿½ï¿½x + (1+vy)ï¿½ï¿½y + ?vxxï¿½ï¿½x2 + vxyï¿½ï¿½xy + ?vyyï¿½ï¿½y2 ----
     G(1, 0) = v;
     G(1, 1) = vx;
     G(1, 2) = 1.0 + vy;
@@ -230,8 +230,8 @@ Eigen::Matrix<double, 6, 6> build_second_order_warp_matrix(
     // ---- Row 2:  1  = 1 -------------------------------------------------------
     G(2, 0) = 1.0;
 
-    // ---- Row 3:  x'2 = (x + ¨±)2  (¨± = u-displacement) ------------------------
-    // Derived from:  x'2 = x2 + 2x¡¤¨± + ¨±2,  keeping terms ¡Ü O(x2, y2).
+    // ---- Row 3:  x'2 = (x + ï¿½ï¿½)2  (ï¿½ï¿½ = u-displacement) ------------------------
+    // Derived from:  x'2 = x2 + 2xï¿½ï¿½ï¿½ï¿½ + ï¿½ï¿½2,  keeping terms ï¿½ï¿½ O(x2, y2).
     G(3, 0) = u * u;
     G(3, 1) = 2.0 * u * (1.0 + ux);
     G(3, 2) = 2.0 * u * uy;
@@ -239,8 +239,8 @@ Eigen::Matrix<double, 6, 6> build_second_order_warp_matrix(
     G(3, 4) = 2.0 * (uy + ux * uy + u * uxy);
     G(3, 5) = uy * uy + u * uyy;
 
-    // ---- Row 4:  x'y' = (x + ¨±)(y + v?)  (v? = v-displacement) ----------------
-    // Derived from:  x'y' = xy + x¡¤v? + y¡¤¨± + ¨±¡¤v?,  keeping terms ¡Ü O(x2, y2).
+    // ---- Row 4:  x'y' = (x + ï¿½ï¿½)(y + v?)  (v? = v-displacement) ----------------
+    // Derived from:  x'y' = xy + xï¿½ï¿½v? + yï¿½ï¿½ï¿½ï¿½ + ï¿½ï¿½ï¿½ï¿½v?,  keeping terms ï¿½ï¿½ O(x2, y2).
     G(4, 0) = u * v;
     G(4, 1) = v + u * vx + v * ux;
     G(4, 2) = u + u * vy + v * uy;
@@ -249,7 +249,7 @@ Eigen::Matrix<double, 6, 6> build_second_order_warp_matrix(
     G(4, 5) = uy + uy * vy + 0.5 * (u * vyy + v * uyy);
 
     // ---- Row 5:  y'2 = (y + v?)2 -----------------------------------------------
-    // Derived from:  y'2 = y2 + 2y¡¤v? + v?2,  keeping terms ¡Ü O(x2, y2).
+    // Derived from:  y'2 = y2 + 2yï¿½ï¿½v? + v?2,  keeping terms ï¿½ï¿½ O(x2, y2).
     G(5, 0) = v * v;
     G(5, 1) = 2.0 * v * vx;
     G(5, 2) = 2.0 * v * (1.0 + vy);
@@ -260,14 +260,14 @@ Eigen::Matrix<double, 6, 6> build_second_order_warp_matrix(
     return G;
 }
 
-// Extract the 12 deformation parameters from the 6¡Á6 warp matrix G'(p).
+// Extract the 12 deformation parameters from the 6ï¿½ï¿½6 warp matrix G'(p).
 // This is the inverse of build_second_order_warp_matrix().
 Eigen::Matrix<double, 12, 1> extract_from_warp_matrix(
     const Eigen::Matrix<double, 6, 6>& G)
 {
     Eigen::Matrix<double, 12, 1> p;
 
-    // From Row 0:  x' = u + (1+ux)¡¤x + uy¡¤y + ?uxx¡¤x2 + uxy¡¤xy + ?uyy¡¤y2
+    // From Row 0:  x' = u + (1+ux)ï¿½ï¿½x + uyï¿½ï¿½y + ?uxxï¿½ï¿½x2 + uxyï¿½ï¿½xy + ?uyyï¿½ï¿½y2
     p(0) = G(0, 0);                  // u
     p(2) = G(0, 1) - 1.0;            // ux
     p(3) = G(0, 2);                  // uy
@@ -275,7 +275,7 @@ Eigen::Matrix<double, 12, 1> extract_from_warp_matrix(
     p(7) = G(0, 4);                  // uxy
     p(8) = 2.0 * G(0, 5);            // uyy
 
-    // From Row 1:  y' = v + vx¡¤x + (1+vy)¡¤y + ?vxx¡¤x2 + vxy¡¤xy + ?vyy¡¤y2
+    // From Row 1:  y' = v + vxï¿½ï¿½x + (1+vy)ï¿½ï¿½y + ?vxxï¿½ï¿½x2 + vxyï¿½ï¿½xy + ?vyyï¿½ï¿½y2
     p(1)  = G(1, 0);                 // v
     p(4)  = G(1, 1);                 // vx
     p(5)  = G(1, 2) - 1.0;           // vy
@@ -290,17 +290,17 @@ Eigen::Matrix<double, 12, 1> extract_from_warp_matrix(
 //
 // Reference:  Bai, Jiang, Lei & Li (2017), "A novel 2nd-order shape function
 // based digital image correlation method for large deformation measurements",
-// Optics and Lasers in Engineering, 90, 48¨C58.  Eq (23) + Appendix A.
+// Optics and Lasers in Engineering, 90, 48ï¿½C58.  Eq (23) + Appendix A.
 //
 // The update composes the current warp with the inverse of the incremental
-// warp through a 6¡Á6 invertible matrix:
+// warp through a 6ï¿½ï¿½6 invertible matrix:
 //
-//      G'(p_new) = G'(p_old) ¡¤ [G'(¦¤p)]?1 ¡¤ P?1
+//      G'(p_new) = G'(p_old) ï¿½ï¿½ [G'(ï¿½ï¿½p)]?1 ï¿½ï¿½ P?1
 //
 // where G'(p) maps INPUT  v = [1, x, y,  x2,  xy,  y2 ]?
 //                    to OUTPUT w = [x', y', 1, x'2, x'y', y'2]?.
-// P?1 is the permutation that restores the w-convention (v ¡ú w)
-// so that G'(¦¤p)?1 : w ¡ú v can be composed with G'(p_old) : v ¡ú w.
+// P?1 is the permutation that restores the w-convention (v ï¿½ï¿½ w)
+// so that G'(ï¿½ï¿½p)?1 : w ï¿½ï¿½ v can be composed with G'(p_old) : v ï¿½ï¿½ w.
 //
 // This captures the full nonlinear coupling between first-order and
 // second-order parameters during warp composition, achieving stable
@@ -314,7 +314,7 @@ Eigen::Matrix<double, 12, 1> inverse_compositional_second_order_update(
     Eigen::Matrix<double, 6, 6> G_delta = build_second_order_warp_matrix(delta);
 
     // Invert the incremental warp matrix.
-    // The paper proves G'(¦¤p) is invertible for physically realisable
+    // The paper proves G'(ï¿½ï¿½p) is invertible for physically realisable
     // deformations.  A singular / near-singular inverse indicates a
     // numerical issue; fall back to additive update in that case.
     Eigen::Matrix<double, 6, 6> G_delta_inv;
@@ -336,24 +336,91 @@ Eigen::Matrix<double, 12, 1> inverse_compositional_second_order_update(
         return updated;
     }
 
-    // Compose:  G'(p_new) = G'(p_old) ¡¤ [G'(¦¤p)]?1 ¡¤ P?1
+    // Compose:  G'(p_new) = G'(p_old) ï¿½ï¿½ [G'(ï¿½ï¿½p)]?1 ï¿½ï¿½ P?1
     //
-    // G'(¡¤) maps input convention  v = [1, x, y, x2, xy, y2]?
+    // G'(ï¿½ï¿½) maps input convention  v = [1, x, y, x2, xy, y2]?
     //                     to output w = [x', y', 1, x'2, x'y', y'2]?.
-    // G'(¦¤p)?1 : w ¡ú v.  To feed its output into G'(p_old) : v ¡ú w
+    // G'(ï¿½ï¿½p)?1 : w ï¿½ï¿½ v.  To feed its output into G'(p_old) : v ï¿½ï¿½ w
     // we must first restore the w-convention with the permutation
-    // P?1 that sends v ¡ú w (i.e. cycles [1,x,y] ¡ú [x,y,1]).
+    // P?1 that sends v ï¿½ï¿½ w (i.e. cycles [1,x,y] ï¿½ï¿½ [x,y,1]).
     Eigen::Matrix<double, 6, 6> P_inv = Eigen::Matrix<double, 6, 6>::Zero();
-    P_inv(0, 1) = 1.0;   // v[1] = x  ¡ú w[0]
-    P_inv(1, 2) = 1.0;   // v[2] = y  ¡ú w[1]
-    P_inv(2, 0) = 1.0;   // v[0] = 1  ¡ú w[2]
-    P_inv(3, 3) = 1.0;   //   x2 ¡ú x'2
-    P_inv(4, 4) = 1.0;   //   xy ¡ú x'y'
-    P_inv(5, 5) = 1.0;   //   y2 ¡ú y'2
+    P_inv(0, 1) = 1.0;   // v[1] = x  ï¿½ï¿½ w[0]
+    P_inv(1, 2) = 1.0;   // v[2] = y  ï¿½ï¿½ w[1]
+    P_inv(2, 0) = 1.0;   // v[0] = 1  ï¿½ï¿½ w[2]
+    P_inv(3, 3) = 1.0;   //   x2 ï¿½ï¿½ x'2
+    P_inv(4, 4) = 1.0;   //   xy ï¿½ï¿½ x'y'
+    P_inv(5, 5) = 1.0;   //   y2 ï¿½ï¿½ y'2
 
     Eigen::Matrix<double, 6, 6> G_new = G_p * G_delta_inv * P_inv;
 
     return extract_from_warp_matrix(G_new);
+}
+
+// Compute the normalized ZNSSD of a converged SSD displacement.
+//
+// The SSD solvers minimize the raw intensity residual, whose magnitude is a
+// function of the subset area, intensity scale and illumination offset - it is
+// NOT comparable to the ZNSSD in [0, 2] that every downstream quality gate
+// (seed selection `max_znssd`, propagation `max_znssd`, 3D `max_znssd`) is
+// tuned for.  On noisy stereo pairs the raw residual easily exceeds 2.0 even
+// for a correct match, silently rejecting every seed (e.g. CylinderDIC ssd ->
+// empty fields).  Re-deriving the ZNSSD of the final warp restores a
+// criterion-independent quality value without changing the SSD optimization.
+//
+// `warp(local_x, local_y)` maps a reference-subset sample to its deformed
+// coordinates using the converged parameters.  Returns +inf when the final
+// warp leaves the image or the intensity statistics degenerate.
+template <typename SampleT, typename WarpFn>
+double normalized_znssd_of_final_warp(
+    const std::vector<SampleT>& samples,
+    const WarpFn& warp,
+    const Image& deformed,
+    const BSplineInterpolator& deformed_interpolator)
+{
+    double reference_mean = 0.0;
+    for (const auto& sample : samples) {
+        reference_mean += sample.reference_value;
+    }
+    reference_mean /= static_cast<double>(samples.size());
+
+    double reference_norm = 0.0;
+    for (const auto& sample : samples) {
+        const double diff = sample.reference_value - reference_mean;
+        reference_norm += diff * diff;
+    }
+    reference_norm = std::sqrt(reference_norm);
+    if (reference_norm <= kEpsilon) {
+        return std::numeric_limits<double>::infinity();
+    }
+
+    std::vector<double> deformed_values;
+    deformed_values.reserve(samples.size());
+    double deformed_mean = 0.0;
+    for (const auto& sample : samples) {
+        const auto warped = warp(sample.local_x, sample.local_y);
+        if (!warped_point_in_bounds(warped.x(), warped.y(), deformed)) {
+            return std::numeric_limits<double>::infinity();
+        }
+        const double value = deformed_interpolator.value(warped.x(), warped.y());
+        deformed_values.push_back(value);
+        deformed_mean += value;
+    }
+    deformed_mean /= static_cast<double>(deformed_values.size());
+    const double deformed_norm = vector_norm(deformed_values, deformed_mean);
+    if (deformed_norm <= kEpsilon) {
+        return std::numeric_limits<double>::infinity();
+    }
+
+    double corrcoef = 0.0;
+    for (std::size_t i = 0; i < samples.size(); ++i) {
+        const double reference_normalized =
+            (samples[i].reference_value - reference_mean) / reference_norm;
+        const double deformed_normalized =
+            (deformed_values[i] - deformed_mean) / deformed_norm;
+        const double diff = reference_normalized - deformed_normalized;
+        corrcoef += diff * diff;
+    }
+    return corrcoef;
 }
 
 } // namespace
@@ -899,7 +966,7 @@ Displacement2D ICGNSolver::solve_first_order_ssd(
         return result;
     }
 
-    // --- Hessian: H = J^T * J (no 2/¦Ò2 scaling) ---
+    // --- Hessian: H = J^T * J (no 2/ï¿½ï¿½2 scaling) ---
     Eigen::Matrix<double, 6, 6> hessian = Eigen::Matrix<double, 6, 6>::Zero();
     for (const auto& sample : samples) {
         hessian += sample.steepest_descent * sample.steepest_descent.transpose();
@@ -943,7 +1010,7 @@ Displacement2D ICGNSolver::solve_first_order_ssd(
             return result;
         }
 
-        // --- Gradient: ¦²[(ref - def) * J]  (no 2/¦Ò scaling) ---
+        // --- Gradient: ï¿½ï¿½[(ref - def) * J]  (no 2/ï¿½ï¿½ scaling) ---
         Eigen::Matrix<double, 6, 1> gradient = Eigen::Matrix<double, 6, 1>::Zero();
         ssd_corrcoef = 0.0;
         for (std::size_t i = 0; i < samples.size(); ++i) {
@@ -977,8 +1044,19 @@ Displacement2D ICGNSolver::solve_first_order_ssd(
     result.du_dy = parameters(3);
     result.dv_dx = parameters(4);
     result.dv_dy = parameters(5);
-    result.correlation = ssd_corrcoef;
-    if (!converged && std::isfinite(ssd_corrcoef)) {
+    // Report the normalized ZNSSD of the converged SSD warp so downstream
+    // quality gates (tuned for ZNSSD in [0,2]) work criterion-independently.
+    const double reported_corr = normalized_znssd_of_final_warp(
+        samples,
+        [&](double lx, double ly) {
+            return Eigen::Vector2d(
+                static_cast<double>(center_x) + lx + parameters(0) + parameters(2) * lx + parameters(3) * ly,
+                static_cast<double>(center_y) + ly + parameters(1) + parameters(4) * lx + parameters(5) * ly);
+        },
+        deformed,
+        deformed_interpolator);
+    result.correlation = reported_corr;
+    if (!converged && std::isfinite(reported_corr)) {
         converged = true;
     }
 
@@ -1109,7 +1187,7 @@ Displacement2D ICGNSolver::solve_first_order_ssd_masked(
             return result;
         }
 
-        // --- Gradient: ¦²[(ref - def) * J] ---
+        // --- Gradient: ï¿½ï¿½[(ref - def) * J] ---
         Eigen::Matrix<double, 6, 1> gradient = Eigen::Matrix<double, 6, 1>::Zero();
         ssd_corrcoef = 0.0;
         for (std::size_t i = 0; i < samples.size(); ++i) {
@@ -1143,8 +1221,19 @@ Displacement2D ICGNSolver::solve_first_order_ssd_masked(
     result.du_dy = parameters(3);
     result.dv_dx = parameters(4);
     result.dv_dy = parameters(5);
-    result.correlation = ssd_corrcoef;
-    if (!converged && std::isfinite(ssd_corrcoef)) {
+    // Report the normalized ZNSSD of the converged SSD warp so downstream
+    // quality gates (tuned for ZNSSD in [0,2]) work criterion-independently.
+    const double reported_corr = normalized_znssd_of_final_warp(
+        samples,
+        [&](double lx, double ly) {
+            return Eigen::Vector2d(
+                static_cast<double>(center_x) + lx + parameters(0) + parameters(2) * lx + parameters(3) * ly,
+                static_cast<double>(center_y) + ly + parameters(1) + parameters(4) * lx + parameters(5) * ly);
+        },
+        deformed,
+        deformed_interpolator);
+    result.correlation = reported_corr;
+    if (!converged && std::isfinite(reported_corr)) {
         converged = true;
     }
 
@@ -1249,7 +1338,7 @@ Displacement2D ICGNSolver::solve_second_order_znssd(
         sample.reference_normalized = (sample.reference_value - reference_mean) / reference_norm;
     }
 
-    // --- Hessian: 12¡Á12, H = (2/¦Ò2)¡¤¦²[J¡¤J?] ---
+    // --- Hessian: 12ï¿½ï¿½12, H = (2/ï¿½ï¿½2)ï¿½ï¿½ï¿½ï¿½[Jï¿½ï¿½J?] ---
     Eigen::Matrix<double, 12, 12> hessian = Eigen::Matrix<double, 12, 12>::Zero();
     for (const auto& sample : samples) {
         hessian += sample.steepest_descent * sample.steepest_descent.transpose();
@@ -1308,7 +1397,7 @@ Displacement2D ICGNSolver::solve_second_order_znssd(
             return result;
         }
 
-        // --- Gradient: (2/¦Ò)¡¤¦²[normalized_diff ¡¤ J] ---
+        // --- Gradient: (2/ï¿½ï¿½)ï¿½ï¿½ï¿½ï¿½[normalized_diff ï¿½ï¿½ J] ---
         Eigen::Matrix<double, 12, 1> gradient = Eigen::Matrix<double, 12, 1>::Zero();
         corrcoef = 0.0;
         for (std::size_t i = 0; i < samples.size(); ++i) {
@@ -1319,7 +1408,7 @@ Displacement2D ICGNSolver::solve_second_order_znssd(
         }
         gradient *= 2.0 / reference_norm;
 
-        // --- Solve: ¦¤p = -H?1¡¤g ---
+        // --- Solve: ï¿½ï¿½p = -H?1ï¿½ï¿½g ---
         Eigen::Matrix<double, 12, 1> delta = -decomposition.solve(gradient);
         if (!finite_12_params(delta)) {
             result.status = SolverStatus::NumericalFailure;
@@ -1453,7 +1542,7 @@ Displacement2D ICGNSolver::solve_second_order_znssd_masked(
         sample.reference_normalized = (sample.reference_value - reference_mean) / reference_norm;
     }
 
-    // --- Hessian: 12¡Á12 ---
+    // --- Hessian: 12ï¿½ï¿½12 ---
     Eigen::Matrix<double, 12, 12> hessian = Eigen::Matrix<double, 12, 12>::Zero();
     for (const auto& sample : samples) {
         hessian += sample.steepest_descent * sample.steepest_descent.transpose();
@@ -1639,7 +1728,7 @@ Displacement2D ICGNSolver::solve_second_order_ssd(
         return result;
     }
 
-    // --- Hessian: 12¡Á12, H = J^T * J (no 2/¦Ò2 scaling for SSD) ---
+    // --- Hessian: 12ï¿½ï¿½12, H = J^T * J (no 2/ï¿½ï¿½2 scaling for SSD) ---
     Eigen::Matrix<double, 12, 12> hessian = Eigen::Matrix<double, 12, 12>::Zero();
     for (const auto& sample : samples) {
         hessian += sample.steepest_descent * sample.steepest_descent.transpose();
@@ -1687,7 +1776,7 @@ Displacement2D ICGNSolver::solve_second_order_ssd(
             return result;
         }
 
-        // --- Gradient: ¦²[(ref - def) * J] (no 2/¦Ò scaling for SSD) ---
+        // --- Gradient: ï¿½ï¿½[(ref - def) * J] (no 2/ï¿½ï¿½ scaling for SSD) ---
         Eigen::Matrix<double, 12, 1> gradient = Eigen::Matrix<double, 12, 1>::Zero();
         ssd_corrcoef = 0.0;
         for (std::size_t i = 0; i < samples.size(); ++i) {
@@ -1696,7 +1785,7 @@ Displacement2D ICGNSolver::solve_second_order_ssd(
             ssd_corrcoef += residual * residual;
         }
 
-        // --- Solve: ¦¤p = -H?1¡¤g ---
+        // --- Solve: ï¿½ï¿½p = -H?1ï¿½ï¿½g ---
         Eigen::Matrix<double, 12, 1> delta = -decomposition.solve(gradient);
         if (!finite_12_params(delta)) {
             result.status = SolverStatus::NumericalFailure;
@@ -1728,8 +1817,17 @@ Displacement2D ICGNSolver::solve_second_order_ssd(
     result.d2v_dx2 = parameters(9);
     result.d2v_dxdy = parameters(10);
     result.d2v_dy2 = parameters(11);
-    result.correlation = ssd_corrcoef;
-    if (!converged && std::isfinite(ssd_corrcoef)) {
+    // Report the normalized ZNSSD of the converged SSD warp so downstream
+    // quality gates (tuned for ZNSSD in [0,2]) work criterion-independently.
+    const double reported_corr = normalized_znssd_of_final_warp(
+        samples,
+        [&](double lx, double ly) {
+            return warp_second_order(static_cast<double>(center_x), static_cast<double>(center_y), lx, ly, parameters);
+        },
+        deformed,
+        deformed_interpolator);
+    result.correlation = reported_corr;
+    if (!converged && std::isfinite(reported_corr)) {
         converged = true;
     }
 
@@ -1812,7 +1910,7 @@ Displacement2D ICGNSolver::solve_second_order_ssd_masked(
         return result;
     }
 
-    // --- Hessian: 12¡Á12, H = J^T * J (no 2/¦Ò2 scaling for SSD) ---
+    // --- Hessian: 12ï¿½ï¿½12, H = J^T * J (no 2/ï¿½ï¿½2 scaling for SSD) ---
     Eigen::Matrix<double, 12, 12> hessian = Eigen::Matrix<double, 12, 12>::Zero();
     for (const auto& sample : samples) {
         hessian += sample.steepest_descent * sample.steepest_descent.transpose();
@@ -1860,7 +1958,7 @@ Displacement2D ICGNSolver::solve_second_order_ssd_masked(
             return result;
         }
 
-        // --- Gradient: ¦²[(ref - def) * J] (no 2/¦Ò scaling for SSD) ---
+        // --- Gradient: ï¿½ï¿½[(ref - def) * J] (no 2/ï¿½ï¿½ scaling for SSD) ---
         Eigen::Matrix<double, 12, 1> gradient = Eigen::Matrix<double, 12, 1>::Zero();
         ssd_corrcoef = 0.0;
         for (std::size_t i = 0; i < samples.size(); ++i) {
@@ -1869,7 +1967,7 @@ Displacement2D ICGNSolver::solve_second_order_ssd_masked(
             ssd_corrcoef += residual * residual;
         }
 
-        // --- Solve: ¦¤p = -H?1¡¤g ---
+        // --- Solve: ï¿½ï¿½p = -H?1ï¿½ï¿½g ---
         Eigen::Matrix<double, 12, 1> delta = -decomposition.solve(gradient);
         if (!finite_12_params(delta)) {
             result.status = SolverStatus::NumericalFailure;
@@ -1901,8 +1999,17 @@ Displacement2D ICGNSolver::solve_second_order_ssd_masked(
     result.d2v_dx2 = parameters(9);
     result.d2v_dxdy = parameters(10);
     result.d2v_dy2 = parameters(11);
-    result.correlation = ssd_corrcoef;
-    if (!converged && std::isfinite(ssd_corrcoef)) {
+    // Report the normalized ZNSSD of the converged SSD warp so downstream
+    // quality gates (tuned for ZNSSD in [0,2]) work criterion-independently.
+    const double reported_corr = normalized_znssd_of_final_warp(
+        samples,
+        [&](double lx, double ly) {
+            return warp_second_order(static_cast<double>(center_x), static_cast<double>(center_y), lx, ly, parameters);
+        },
+        deformed,
+        deformed_interpolator);
+    result.correlation = reported_corr;
+    if (!converged && std::isfinite(reported_corr)) {
         converged = true;
     }
 

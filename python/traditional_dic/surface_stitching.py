@@ -206,8 +206,20 @@ def _zip_boundaries(
         tri_points = points[tri]
         edges = np.linalg.norm(tri_points - np.roll(tri_points, 1, axis=0), axis=1)
         if np.all(edges <= max_edge):
-            tri = np.where(tri < split, tri, tri + len(vertices1))
-            faces.append(tri.tolist())
+            # tri indexes `points` = [vertices1[loop1]; vertices2[loop2]], so it
+            # must be mapped back to the merged-surface vertex ids: positions
+            # below `split` are loop1's ids into vertices1; positions at/above
+            # it are loop2's ids into vertices2 offset by the vertex1 count.
+            # Mapping tri + len(vertices1) directly (positions, not loop2 ids)
+            # silently shifts bridge vertices on dense meshes and overflows the
+            # vertex buffer on sparse ones.
+            tri = tri.astype(np.int64)
+            mapped = tri.copy()
+            below = tri < split
+            above = ~below
+            mapped[below] = loop1[tri[below]]
+            mapped[above] = loop2[tri[above] - split] + len(vertices1)
+            faces.append(mapped.tolist())
     return np.asarray(faces, dtype=np.int64).reshape((-1, 3))
 
 

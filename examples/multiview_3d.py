@@ -360,7 +360,19 @@ def _scaled_calibration_data(
     if not scaled["cameras"]:
         raise RuntimeError("Scale recovery produced no scaled cameras")
     if not scaled["points3d"]:
-        raise RuntimeError("Scale recovery produced no scaled sparse points")
+        # The metric-meta fallback path (cameras taken from chessboard_meta.json,
+        # scale 1.0) emits scaled_cameras but no scaled sparse points. Rebuild
+        # them from the raw SfM points so the exported visualization and the
+        # sparse-point count stay populated.
+        factor = float(scale_data.get("sfm_to_world_scale", 1.0))
+        rebuilt: list[dict[str, Any]] = []
+        for raw in calibration_data.get("points3d", []) or []:
+            pt = dict(raw)
+            xyz = pt.get("xyz", pt.get("point"))
+            if xyz is not None:
+                pt["xyz"] = [float(v) * factor for v in xyz]
+            rebuilt.append(pt)
+        scaled["points3d"] = rebuilt
     return scaled
 
 

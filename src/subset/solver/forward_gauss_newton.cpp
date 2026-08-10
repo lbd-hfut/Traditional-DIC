@@ -38,9 +38,9 @@ double vector_norm(const std::vector<double>& values, double mean)
     return std::sqrt(sum);
 }
 
-// Forward-compositional 6¡Á1 steepest descent from deformed image gradient at warped position.
+// Forward-compositional 6ï¿½ï¿½1 steepest descent from deformed image gradient at warped position.
 // ?g_at_point comes from BSplineInterpolator::gradient() evaluated at (warped_x, warped_y).
-// Chain rule:  SD = ?g(W(x;p)) ¡¤ ?W(z;p)/?z|_{z=(lx,ly)} ¡¤ ?W(x;¦¤p)/?¦¤p|?
+// Chain rule:  SD = ?g(W(x;p)) ï¿½ï¿½ ?W(z;p)/?z|_{z=(lx,ly)} ï¿½ï¿½ ?W(x;ï¿½ï¿½p)/?ï¿½ï¿½p|?
 Eigen::Matrix<double, 6, 1> forward_steepest_descent(
     double gx, double gy,
     double local_x, double local_y,
@@ -59,7 +59,7 @@ Eigen::Matrix<double, 6, 1> forward_steepest_descent(
     return sd;
 }
 
-// Forward-compositional warp update:  W(x;p_new) = W(x;p) ¡ã W(x;¦¤p).
+// Forward-compositional warp update:  W(x;p_new) = W(x;p) ï¿½ï¿½ W(x;ï¿½ï¿½p).
 // Exact for first-order (affine) warps.
 Eigen::Matrix<double, 6, 1> compose_warp(
     const Eigen::Matrix<double, 6, 1>& p,
@@ -73,6 +73,73 @@ Eigen::Matrix<double, 6, 1> compose_warp(
     pn(4) = dp(4) + p(4) * (1.0 + dp(2)) + p(5) * dp(4);
     pn(5) = dp(5) + p(4) * dp(3) + p(5) * (1.0 + dp(5));
     return pn;
+}
+
+// Compute the normalized ZNSSD of a converged SSD displacement.
+//
+// The SSD solvers minimize the raw intensity residual, whose magnitude is a
+// function of the subset area, intensity scale and illumination offset - it is
+// NOT comparable to the ZNSSD in [0, 2] that every downstream quality gate
+// (seed selection `max_znssd`, propagation `max_znssd`, 3D `max_znssd`) is
+// tuned for.  On noisy stereo pairs the raw residual easily exceeds 2.0 even
+// for a correct match, silently rejecting every seed (e.g. CylinderDIC ssd ->
+// empty fields).  Re-deriving the ZNSSD of the final warp restores a
+// criterion-independent quality value without changing the SSD optimization.
+//
+// `warp(local_x, local_y)` maps a reference-subset sample to its deformed
+// coordinates using the converged parameters.  Returns +inf when the final
+// warp leaves the image or the intensity statistics degenerate.
+template <typename SampleT, typename WarpFn>
+double normalized_znssd_of_final_warp(
+    const std::vector<SampleT>& samples,
+    const WarpFn& warp,
+    const Image& deformed,
+    const BSplineInterpolator& deformed_interpolator)
+{
+    double reference_mean = 0.0;
+    for (const auto& sample : samples) {
+        reference_mean += sample.reference_value;
+    }
+    reference_mean /= static_cast<double>(samples.size());
+
+    double reference_norm = 0.0;
+    for (const auto& sample : samples) {
+        const double diff = sample.reference_value - reference_mean;
+        reference_norm += diff * diff;
+    }
+    reference_norm = std::sqrt(reference_norm);
+    if (reference_norm <= kEpsilon) {
+        return std::numeric_limits<double>::infinity();
+    }
+
+    std::vector<double> deformed_values;
+    deformed_values.reserve(samples.size());
+    double deformed_mean = 0.0;
+    for (const auto& sample : samples) {
+        const auto warped = warp(sample.local_x, sample.local_y);
+        if (!warped_point_in_bounds(warped.x(), warped.y(), deformed)) {
+            return std::numeric_limits<double>::infinity();
+        }
+        const double value = deformed_interpolator.value(warped.x(), warped.y());
+        deformed_values.push_back(value);
+        deformed_mean += value;
+    }
+    deformed_mean /= static_cast<double>(deformed_values.size());
+    const double deformed_norm = vector_norm(deformed_values, deformed_mean);
+    if (deformed_norm <= kEpsilon) {
+        return std::numeric_limits<double>::infinity();
+    }
+
+    double corrcoef = 0.0;
+    for (std::size_t i = 0; i < samples.size(); ++i) {
+        const double reference_normalized =
+            (samples[i].reference_value - reference_mean) / reference_norm;
+        const double deformed_normalized =
+            (deformed_values[i] - deformed_mean) / deformed_norm;
+        const double diff = reference_normalized - deformed_normalized;
+        corrcoef += diff * diff;
+    }
+    return corrcoef;
 }
 
 } // namespace
@@ -332,7 +399,7 @@ Displacement2D ForwardGaussNewtonSolver::solve_first_order_znssd(
             // Deformed image gradient at the warped position
             const auto def_gradient = deformed_interpolator.gradient(warped_x, warped_y);
 
-            // Steepest descent:  ?g ¡¤ ?W/?p  (evaluated at current warp)
+            // Steepest descent:  ?g ï¿½ï¿½ ?W/?p  (evaluated at current warp)
             const Eigen::Matrix<double, 6, 1> sd = forward_steepest_descent(
                 def_gradient.x(), def_gradient.y(),
                 samples[i].local_x, samples[i].local_y, parameters);
@@ -347,7 +414,7 @@ Displacement2D ForwardGaussNewtonSolver::solve_first_order_znssd(
         hessian *= 2.0 / (reference_norm * reference_norm);
         gradient *= 2.0 / reference_norm;
 
-        // --- Solve: Forward-compositional  ¦¤p = H?1¡¤g  (no minus sign) ---
+        // --- Solve: Forward-compositional  ï¿½ï¿½p = H?1ï¿½ï¿½g  (no minus sign) ---
         Eigen::LDLT<Eigen::Matrix<double, 6, 6>> decomposition(hessian);
         if (decomposition.info() != Eigen::Success || !decomposition.isPositive()) {
             result.status = SolverStatus::NumericalFailure;
@@ -369,7 +436,7 @@ Displacement2D ForwardGaussNewtonSolver::solve_first_order_znssd(
             delta *= kMaxStep / delta_norm;
             delta_norm = kMaxStep;
         }
-        // Forward-compositional update  W(x;p_new) = W(x;p) ¡ã W(x;¦¤p)
+        // Forward-compositional update  W(x;p_new) = W(x;p) ï¿½ï¿½ W(x;ï¿½ï¿½p)
         parameters = compose_warp(parameters, delta);
         if (!finite_6_params(parameters)) {
             result.status = SolverStatus::NumericalFailure;
@@ -721,7 +788,7 @@ Displacement2D ForwardGaussNewtonSolver::solve_first_order_ssd(
         }
 
         // --- Build Hessian & gradient using raw residuals ---
-        // SSD: H = ¦²[SD¡¤SD?],  g = ¦²[(f - g_raw)¡¤SD]
+        // SSD: H = ï¿½ï¿½[SDï¿½ï¿½SD?],  g = ï¿½ï¿½[(f - g_raw)ï¿½ï¿½SD]
         Eigen::Matrix<double, 6, 6> hessian = Eigen::Matrix<double, 6, 6>::Zero();
         Eigen::Matrix<double, 6, 1> gradient = Eigen::Matrix<double, 6, 1>::Zero();
         corrcoef = 0.0;
@@ -744,7 +811,7 @@ Displacement2D ForwardGaussNewtonSolver::solve_first_order_ssd(
             corrcoef += residual * residual;
         }
 
-        // --- Solve: Forward-compositional  ¦¤p = H?1¡¤g  ---
+        // --- Solve: Forward-compositional  ï¿½ï¿½p = H?1ï¿½ï¿½g  ---
         Eigen::LDLT<Eigen::Matrix<double, 6, 6>> decomposition(hessian);
         if (decomposition.info() != Eigen::Success || !decomposition.isPositive()) {
             result.status = SolverStatus::NumericalFailure;
@@ -783,8 +850,19 @@ Displacement2D ForwardGaussNewtonSolver::solve_first_order_ssd(
     result.du_dy = parameters(3);
     result.dv_dx = parameters(4);
     result.dv_dy = parameters(5);
-    result.correlation = corrcoef;
-    if (!converged && std::isfinite(corrcoef)) {
+    // Report the normalized ZNSSD of the converged SSD warp so downstream
+    // quality gates (tuned for ZNSSD in [0,2]) work criterion-independently.
+    const double reported_corr = normalized_znssd_of_final_warp(
+        samples,
+        [&](double lx, double ly) {
+            return Eigen::Vector2d(
+                static_cast<double>(center_x) + lx + parameters(0) + parameters(2) * lx + parameters(3) * ly,
+                static_cast<double>(center_y) + ly + parameters(1) + parameters(4) * lx + parameters(5) * ly);
+        },
+        deformed,
+        deformed_interpolator);
+    result.correlation = reported_corr;
+    if (!converged && std::isfinite(reported_corr)) {
         converged = true;
     }
 
@@ -957,8 +1035,19 @@ Displacement2D ForwardGaussNewtonSolver::solve_first_order_ssd_masked(
     result.du_dy = parameters(3);
     result.dv_dx = parameters(4);
     result.dv_dy = parameters(5);
-    result.correlation = corrcoef;
-    if (!converged && std::isfinite(corrcoef)) {
+    // Report the normalized ZNSSD of the converged SSD warp so downstream
+    // quality gates (tuned for ZNSSD in [0,2]) work criterion-independently.
+    const double reported_corr = normalized_znssd_of_final_warp(
+        samples,
+        [&](double lx, double ly) {
+            return Eigen::Vector2d(
+                static_cast<double>(center_x) + lx + parameters(0) + parameters(2) * lx + parameters(3) * ly,
+                static_cast<double>(center_y) + ly + parameters(1) + parameters(4) * lx + parameters(5) * ly);
+        },
+        deformed,
+        deformed_interpolator);
+    result.correlation = reported_corr;
+    if (!converged && std::isfinite(reported_corr)) {
         converged = true;
     }
 
@@ -1019,8 +1108,8 @@ Eigen::Matrix<double, 12, 1> forward_second_order_steepest_descent(
 }
 
 // Forward-compositional warp update for the second-order shape function:
-// W(x;p_new) = W(x;p) ¡ã W(x;¦¤p), expanded up to second order in (lx,ly) and
-// first order in ¦¤p (products ¦¤p?¡¤¦¤p? dropped), consistent with the GN
+// W(x;p_new) = W(x;p) ï¿½ï¿½ W(x;ï¿½ï¿½p), expanded up to second order in (lx,ly) and
+// first order in ï¿½ï¿½p (products ï¿½ï¿½p?ï¿½ï¿½ï¿½ï¿½p? dropped), consistent with the GN
 // linearisation.
 Eigen::Matrix<double, 12, 1> compose_warp(
     const Eigen::Matrix<double, 12, 1>& p,
@@ -1206,7 +1295,7 @@ Displacement2D ForwardGaussNewtonSolver::solve_second_order_znssd(
             return result;
         }
 
-        // --- Build 12¡Á12 Hessian & 12¡Á1 gradient ---
+        // --- Build 12ï¿½ï¿½12 Hessian & 12ï¿½ï¿½1 gradient ---
         Eigen::Matrix<double, 12, 12> hessian = Eigen::Matrix<double, 12, 12>::Zero();
         Eigen::Matrix<double, 12, 1> gradient = Eigen::Matrix<double, 12, 1>::Zero();
         corrcoef = 0.0;
@@ -1238,13 +1327,13 @@ Displacement2D ForwardGaussNewtonSolver::solve_second_order_znssd(
         hessian *= 2.0 / (reference_norm * reference_norm);
         gradient *= 2.0 / reference_norm;
 
-        // LM regularization for 12¡Á12 conditioning
+        // LM regularization for 12ï¿½ï¿½12 conditioning
         const double lambda = 1e-4 * hessian.diagonal().maxCoeff();
         for (int i = 0; i < 12; ++i) {
             hessian(i, i) += lambda;
         }
 
-        // --- Solve: Forward-compositional  ¦¤p = H?1¡¤g ---
+        // --- Solve: Forward-compositional  ï¿½ï¿½p = H?1ï¿½ï¿½g ---
         Eigen::LDLT<Eigen::Matrix<double, 12, 12>> decomposition(hessian);
         if (decomposition.info() != Eigen::Success || !decomposition.isPositive()) {
             result.status = SolverStatus::NumericalFailure;
@@ -1648,7 +1737,7 @@ Displacement2D ForwardGaussNewtonSolver::solve_second_order_ssd(
             return result;
         }
 
-        // --- Build 12¡Á12 Hessian & 12¡Á1 gradient (SSD: no normalization) ---
+        // --- Build 12ï¿½ï¿½12 Hessian & 12ï¿½ï¿½1 gradient (SSD: no normalization) ---
         Eigen::Matrix<double, 12, 12> hessian = Eigen::Matrix<double, 12, 12>::Zero();
         Eigen::Matrix<double, 12, 1> gradient = Eigen::Matrix<double, 12, 1>::Zero();
         corrcoef = 0.0;
@@ -1672,19 +1761,19 @@ Displacement2D ForwardGaussNewtonSolver::solve_second_order_ssd(
 
             const double residual = samples[i].reference_value - deformed_values[i];
 
-            // SSD: H = ¦²[J¡¤J?], g = ¦²[(ref-def)¡¤J]
+            // SSD: H = ï¿½ï¿½[Jï¿½ï¿½J?], g = ï¿½ï¿½[(ref-def)ï¿½ï¿½J]
             hessian += sd * sd.transpose();
             gradient += residual * sd;
             corrcoef += residual * residual;
         }
 
-        // LM regularization for 12¡Á12 conditioning
+        // LM regularization for 12ï¿½ï¿½12 conditioning
         const double lambda = 1e-4 * hessian.diagonal().maxCoeff();
         for (int i = 0; i < 12; ++i) {
             hessian(i, i) += lambda;
         }
 
-        // --- Solve: Forward-compositional  ¦¤p = H?1¡¤g ---
+        // --- Solve: Forward-compositional  ï¿½ï¿½p = H?1ï¿½ï¿½g ---
         Eigen::LDLT<Eigen::Matrix<double, 12, 12>> decomposition(hessian);
         if (decomposition.info() != Eigen::Success || !decomposition.isPositive()) {
             result.status = SolverStatus::NumericalFailure;
@@ -1728,8 +1817,24 @@ Displacement2D ForwardGaussNewtonSolver::solve_second_order_ssd(
     result.d2v_dx2 = parameters(9);
     result.d2v_dxdy = parameters(10);
     result.d2v_dy2 = parameters(11);
-    result.correlation = corrcoef;
-    if (!converged && std::isfinite(corrcoef)) {
+    // Report the normalized ZNSSD of the converged SSD warp so downstream
+    // quality gates (tuned for ZNSSD in [0,2]) work criterion-independently.
+    const double reported_corr = normalized_znssd_of_final_warp(
+        samples,
+        [&](double lx, double ly) {
+            const double dx2_2 = lx * lx * 0.5;
+            const double dy2_2 = ly * ly * 0.5;
+            const double dxy = lx * ly;
+            return Eigen::Vector2d(
+                static_cast<double>(center_x) + lx + parameters(0) + parameters(2) * lx + parameters(3) * ly
+                    + parameters(6) * dx2_2 + parameters(7) * dxy + parameters(8) * dy2_2,
+                static_cast<double>(center_y) + ly + parameters(1) + parameters(4) * lx + parameters(5) * ly
+                    + parameters(9) * dx2_2 + parameters(10) * dxy + parameters(11) * dy2_2);
+        },
+        deformed,
+        deformed_interpolator);
+    result.correlation = reported_corr;
+    if (!converged && std::isfinite(reported_corr)) {
         converged = true;
     }
 
@@ -1930,8 +2035,24 @@ Displacement2D ForwardGaussNewtonSolver::solve_second_order_ssd_masked(
     result.d2v_dx2 = parameters(9);
     result.d2v_dxdy = parameters(10);
     result.d2v_dy2 = parameters(11);
-    result.correlation = corrcoef;
-    if (!converged && std::isfinite(corrcoef)) {
+    // Report the normalized ZNSSD of the converged SSD warp so downstream
+    // quality gates (tuned for ZNSSD in [0,2]) work criterion-independently.
+    const double reported_corr = normalized_znssd_of_final_warp(
+        samples,
+        [&](double lx, double ly) {
+            const double dx2_2 = lx * lx * 0.5;
+            const double dy2_2 = ly * ly * 0.5;
+            const double dxy = lx * ly;
+            return Eigen::Vector2d(
+                static_cast<double>(center_x) + lx + parameters(0) + parameters(2) * lx + parameters(3) * ly
+                    + parameters(6) * dx2_2 + parameters(7) * dxy + parameters(8) * dy2_2,
+                static_cast<double>(center_y) + ly + parameters(1) + parameters(4) * lx + parameters(5) * ly
+                    + parameters(9) * dx2_2 + parameters(10) * dxy + parameters(11) * dy2_2);
+        },
+        deformed,
+        deformed_interpolator);
+    result.correlation = reported_corr;
+    if (!converged && std::isfinite(reported_corr)) {
         converged = true;
     }
 
