@@ -242,6 +242,9 @@ __marimo__/
 # Traditional-DIC local case outputs
 # Keep raw case inputs visible; ignore generated diagnostics, solver outputs,
 # temporary meshes, visualizations, and numerical scratch files under case/.
+/case/mono_DIC/0[1-9]/
+/case/mono_DIC/1[0-9]/
+/case/mono_DIC/20/
 /case/**/result/
 /case/**/visualization/
 /case/**/*.txt
@@ -256,6 +259,9 @@ __marimo__/
 # Local visualization artifacts
 /visualizations/
 
+# Local scratch/temporary files
+/tmp/
+
 # Local build products and Python bytecode caches.
 /build/
 /build_asan/
@@ -268,5 +274,6 @@ __marimo__/
 
 # .agents of claude chatgpt deepcode opencode
 /.agents/
+AGENTS.md
 
 reference_code_lib/
