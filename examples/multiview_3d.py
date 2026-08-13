@@ -409,7 +409,9 @@ def run_pipeline(
     runtime_cfg["scale"].update({"calibration_dir": f"{result_root}/calibration", "chessboard_dir": dict(case_cfg.get("calibration", {}) or {})["chessboard_dir"]})
     runtime_cfg["pairwise_3d_dic"] = dict(cfg.get("pairwise_3d_dic", {}) or {})
     runtime_cfg["pairwise_3d_dic"].update({"field_dir": f"{result_root}/disp", "output_dir": f"{result_root}/reconstruct/pairwise", "calibration_dir": f"{result_root}/calibration"})
-    runtime_cfg["pairwise_3d_dic"]["write_surface_strain"] = bool(dict(cfg.get("strain", {}) or {}).get("enabled", True))
+    # Pairwise 3D reconstructions are intermediate inputs to stitching.  Strain
+    # is evaluated only once on the fused surface below.
+    runtime_cfg["pairwise_3d_dic"]["write_surface_strain"] = False
     runtime_cfg["surface_stitch"] = dict(cfg.get("surface_stitch", {}) or {})
     runtime_cfg["surface_stitch"].update({"pairwise_3d_dir": f"{result_root}/reconstruct/pairwise", "output_dir": f"{result_root}/reconstruct/stitched", "calibration_dir": f"{result_root}/calibration"})
     calibration_dir = case_root / result_root / "calibration"

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(TraditionalDIC VERSION 0.1.0 LANGUAGES CXX)
+project(TraditionalDIC VERSION 0.1.0 LANGUAGES C CXX)
 
 option(TRADITIONAL_DIC_BUILD_PYTHON "Build pybind11 Python module" OFF)
 option(TRADITIONAL_DIC_BUILD_BENCHMARKS "Build benchmark executables" OFF)

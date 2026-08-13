@@ -98,8 +98,9 @@ surface_stitch:
 
 strain:
   enabled: true
-  method: triangular_cosserat
-  measure: green_lagrange
+  method: triangular_cosserat  # computed after surface stitching only
+  measure: green_lagrange  # CSV also reports Euler-Almansi invariants
+  min_face_area: 0.0  # world-unit²; faces below this reference area are excluded
 
 triangulation:
   minimum_views: 2

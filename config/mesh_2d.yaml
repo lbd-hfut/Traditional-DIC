@@ -138,6 +138,7 @@ initialization:
 
 strain:
   enabled: true
-  method: least_squares_nodal
-  min_samples: 3  # one-ring mesh-node fit; no subset spacing or radius is used
+  method: least_squares
+  radius: 40.0  # virtual strain-gauge radius on the densified displacement field (pixels)
+  min_samples: 6
   measure: green_lagrange  # options: green_lagrange, infinitesimal

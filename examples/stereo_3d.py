@@ -451,10 +451,10 @@ def compute_mesh_fields(
 
 def reconstruct_subset(paths: dict[str, Path], output_dirs: dict[str, Path], recon_cfg: dict[str, Any], camera_path: Path) -> None:
     left_camera, right_camera, world_scale = load_camera_pair(camera_path)
-    reconstruct_dir = output_dirs["reconstruct"] / "subset"
-    deformation_dir = output_dirs["deformation"] / "subset"
+    reconstruct_dir = output_dirs["reconstruct"]
+    deformation_dir = output_dirs["deformation"]
     result = reconstruct_from_field_files(
-        output_dirs["disp"] / "subset",
+        output_dirs["disp"],
         left_camera,
         right_camera,
         out_dir=reconstruct_dir,
@@ -475,13 +475,13 @@ def reconstruct_subset(paths: dict[str, Path], output_dirs: dict[str, Path], rec
 def reconstruct_mesh(output_dirs: dict[str, Path], recon_cfg: dict[str, Any], camera_path: Path, element_types: list[str]) -> None:
     left_camera, right_camera, world_scale = load_camera_pair(camera_path)
     for etype in element_types:
-        disp_dir = output_dirs["disp"] / "mesh" / etype
+        disp_dir = output_dirs["disp"] / etype
         elements_path = disp_dir / "meshGen" / f"elements_{etype}.txt"
         if not elements_path.exists():
             elements_path = disp_dir / f"elements_{etype}.txt"
         elements = read_elements(elements_path)
-        reconstruct_dir = output_dirs["reconstruct"] / "mesh" / etype
-        deformation_dir = output_dirs["deformation"] / "mesh" / etype
+        reconstruct_dir = output_dirs["reconstruct"] / etype
+        deformation_dir = output_dirs["deformation"] / etype
         result = reconstruct_from_field_files(
             disp_dir,
             left_camera,
@@ -540,9 +540,10 @@ def build_paths(case_cfg: dict[str, Any]) -> dict[str, Path]:
     }
 
 
-def build_output_dirs(paths: dict[str, Path], case_cfg: dict[str, Any]) -> dict[str, Path]:
+def build_output_dirs(paths: dict[str, Path], case_cfg: dict[str, Any], solver: str) -> dict[str, Path]:
     output = dict(case_cfg.get("output", {}) or {})
-    root = case_path(paths["case_root"], output.get("result_root", "result"))
+    solver_output = dict(dict(output.get("solver_roots", {}) or {}).get(solver, {}) or {})
+    root = case_path(paths["case_root"], solver_output.get("result_root", f"result/{solver}"))
     return {
         "root": root,
         "case_root": paths["case_root"],
@@ -567,7 +568,6 @@ def main() -> None:
     stereo_cfg = load_config(args.stereo_config)
     case_cfg = dict(load_config(args.paths_config).get("stereo_3d", {}) or {})
     paths = build_paths(case_cfg)
-    output_dirs = build_output_dirs(paths, case_cfg)
     calibration_cfg_path = args.calibration_config or resolve_path(
         stereo_cfg.get("configs", {}).get("calibration", "config/calibration.yaml")
     )
@@ -576,11 +576,17 @@ def main() -> None:
     workflow = stereo_cfg.get("workflow", {})
     solver_cfg = stereo_cfg.get("solver", {})
     solver = args.solver or str(solver_cfg.get("method", "subset")).lower()
+    output_dirs = build_output_dirs(paths, case_cfg, solver)
     compute_fields = bool(args.compute_fields or workflow.get("compute_fields", False))
     calibrate = bool(workflow.get("calibrate", True)) and not args.skip_calibration
     reconstruct = bool(workflow.get("reconstruct", True))
     reconstruction_cfg = dict(stereo_cfg.get("reconstruction", {}) or {})
-    reconstruction_cfg["strain_enabled"] = bool(dict(stereo_cfg.get("strain", {}) or {}).get("enabled", True))
+    strain_cfg = dict(stereo_cfg.get("strain", {}) or {})
+    if str(strain_cfg.get("method", "triangular_cosserat")) != "triangular_cosserat":
+        raise ValueError("stereo_3d.strain.method must be triangular_cosserat")
+    if str(strain_cfg.get("measure", "green_lagrange")) not in {"green_lagrange", "euler_almansi"}:
+        raise ValueError("stereo_3d.strain.measure must be green_lagrange or euler_almansi")
+    reconstruction_cfg["strain_enabled"] = bool(strain_cfg.get("enabled", True))
     camera_path = output_dirs["calibration"] / "camera_pair.json"
 
     if calibrate:
@@ -607,7 +613,7 @@ def main() -> None:
     if solver == "subset":
         if compute_fields:
             subset_cfg = load_config(resolve_path(stereo_cfg.get("configs", {}).get("subset", "config/subset_2d.yaml")))
-            subset_disp_dir = output_dirs["disp"] / "subset"
+            subset_disp_dir = output_dirs["disp"]
             compute_subset_fields(
                 paths,
                 subset_cfg,
@@ -624,7 +630,7 @@ def main() -> None:
             element_types = [str(v).upper() for v in element_values]
         if compute_fields:
             mesh_cfg = load_config(resolve_path(stereo_cfg.get("configs", {}).get("mesh", "config/mesh_2d.yaml")))
-            mesh_disp_dir = output_dirs["disp"] / "mesh"
+            mesh_disp_dir = output_dirs["disp"]
             compute_mesh_fields(
                 paths,
                 mesh_cfg,

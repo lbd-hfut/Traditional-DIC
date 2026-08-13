@@ -1097,6 +1097,14 @@ def stitch_pairwise_3d_surfaces(
             )
         _write_stitched_points(elem_out / "stitched_points.csv", point_rows)
         _write_stitched_faces(elem_out / "stitched_faces.csv", face_rows)
+        strain_cfg = dict(mv_cfg.get("strain", {}) or {})
+        if bool(strain_cfg.get("enabled", True)):
+            from .postprocess import save_surface_strain_csv
+            save_surface_strain_csv(
+                elem_out / "stitched_3d_strain_faces.csv", stitched.faces,
+                stitched.reference, stitched.deformed, cleaned.valid_faces,
+                min_face_area=float(strain_cfg.get("min_face_area", 0.0)),
+            )
         visualization_root = visualization_dir_for_result(case_root, elem_out)
         write_stitch_visualizations(stitched, visualization_root)
         (elem_out / "stitched_summary.json").write_text(

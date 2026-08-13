@@ -5,8 +5,13 @@ mono_2d:
   # intermediate image is solved as a deformed frame.
   images_dir: .
   output:
-    result_root: result
-    visualization_root: visualization
+    solver_roots:
+      subset:
+        result_root: result/subset
+        visualization_root: visualization/subset
+      mesh:
+        result_root: result/mesh
+        visualization_root: visualization/mesh
 
 stereo_3d:
   case_root: case/stereo_DIC/plate_center_load
@@ -17,8 +22,13 @@ stereo_3d:
     left_dir: calibrate1
     right_dir: calibrate2
   output:
-    result_root: result
-    visualization_root: visualization
+    solver_roots:
+      subset:
+        result_root: result/subset
+        visualization_root: visualization/subset
+      mesh:
+        result_root: result/mesh
+        visualization_root: visualization/mesh
 
 multiview_3d:
   case_root: case/multi_DIC/CylinderDIC
@@ -31,5 +41,10 @@ multiview_3d:
   calibration:
     chessboard_dir: calibrate_images
   output:
-    result_root: result
-    visualization_root: visualization
+    solver_roots:
+      subset:
+        result_root: result/subset
+        visualization_root: visualization/subset
+      mesh:
+        result_root: result/mesh
+        visualization_root: visualization/mesh

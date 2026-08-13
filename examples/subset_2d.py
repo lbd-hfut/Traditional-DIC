@@ -175,8 +175,9 @@ def main() -> None:
     if len(images) < 3:
         raise ValueError("mono_2d.images_dir must contain reference, at least one deformed image, and ROI")
     output_cfg = dict(paths_cfg.get("output", {}) or {})
-    result_root = case_root / str(output_cfg.get("result_root", "result")) / "subset"
-    visualization_root = case_root / str(output_cfg.get("visualization_root", "visualization")) / "subset"
+    solver_output = dict(dict(output_cfg.get("solver_roots", {}) or {}).get("subset", {}) or {})
+    result_root = case_root / str(solver_output.get("result_root", "result/subset"))
+    visualization_root = case_root / str(solver_output.get("visualization_root", "visualization/subset"))
     reference = read_gray(images[0])
     roi = read_mask(images[-1])
     config = normalize_subset_config(load_config(args.config)) if args.config else None

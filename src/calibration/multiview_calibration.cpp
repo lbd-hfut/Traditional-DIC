@@ -599,7 +599,13 @@ PairGeometry estimate_pair_geometry(const int i,
     cv::Mat inlier_mask;
     const double threshold = options.ransac_reprojection_threshold /
                              std::max(cameras[static_cast<size_t>(i)].K(0, 0), 1.0);
-    cv::Mat E = cv::findEssentialMat(points_i, points_j, 1.0, {0.0, 0.0}, cv::RANSAC, 0.999, threshold, inlier_mask);
+#if CV_VERSION_MAJOR >= 5
+    cv::Mat E = cv::findEssentialMat(
+        points_i, points_j, 1.0, {0.0, 0.0}, cv::RANSAC, 0.999, threshold, 1000, inlier_mask);
+#else
+    cv::Mat E = cv::findEssentialMat(
+        points_i, points_j, 1.0, {0.0, 0.0}, cv::RANSAC, 0.999, threshold, inlier_mask);
+#endif
     if (E.empty()) {
         return geometry;
     }
@@ -822,6 +828,16 @@ PairGeometry estimate_sift_pair_geometry(const int i,
 
     cv::Mat inlier_mask;
     const cv::Mat K = eigen_intrinsics_to_cv(cameras[static_cast<size_t>(i)].K);
+#if CV_VERSION_MAJOR >= 5
+    cv::Mat E = cv::findEssentialMat(points_i,
+                                     points_j,
+                                     K,
+                                     cv::RANSAC,
+                                     0.999,
+                                     options.ransac_reprojection_threshold,
+                                     1000,
+                                     inlier_mask);
+#else
     cv::Mat E = cv::findEssentialMat(points_i,
                                      points_j,
                                      K,
@@ -829,6 +845,7 @@ PairGeometry estimate_sift_pair_geometry(const int i,
                                      0.999,
                                      options.ransac_reprojection_threshold,
                                      inlier_mask);
+#endif
     if (E.empty()) {
         return geometry;
     }

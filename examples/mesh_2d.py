@@ -368,10 +368,6 @@ def run_element(
         roi=roi,
     )
     dic_io.save_displacement_csv(result, out_dir / "final_U.csv")
-    strain_cfg = dict(solver_config.get("strain", {}) or {})
-    if bool(strain_cfg.get("enabled", False)):
-        displacement = np.column_stack((np.asarray(result["u"]), np.asarray(result["v"])))
-        save_least_squares_strain_csv(out_dir / "strain.csv", nodes, displacement, elements=elements, min_samples=int(strain_cfg.get("min_samples", 3)), green_lagrange=str(strain_cfg.get("measure", "green_lagrange")) == "green_lagrange")
     dense_field = densify_2d_mesh_displacement_field(
         nodes,
         elements,
@@ -382,6 +378,15 @@ def run_element(
         samples_per_axis=args.dense_samples_per_axis,
     )
     write_dense_displacement_csv(out_dir / "dense_U.csv", dense_field)
+    strain_cfg = dict(solver_config.get("strain", {}) or {})
+    if bool(strain_cfg.get("enabled", True)):
+        valid = np.asarray(dense_field.get("valid", np.ones_like(dense_field["x"], dtype=bool)), dtype=bool)
+        points = np.column_stack((np.asarray(dense_field["x"])[valid], np.asarray(dense_field["y"])[valid]))
+        displacement = np.column_stack((np.asarray(dense_field["u"])[valid], np.asarray(dense_field["v"])[valid]))
+        save_least_squares_strain_csv(out_dir / "dense_strain.csv", points, displacement,
+                                      radius=float(strain_cfg["radius"]),
+                                      min_samples=int(strain_cfg.get("min_samples", 6)),
+                                      green_lagrange=str(strain_cfg.get("measure", "green_lagrange")) == "green_lagrange")
 
     height, width = reference.shape
     for component in ("mag", "u", "v"):
@@ -466,8 +471,9 @@ def main() -> None:
     if len(images) < 3:
         raise ValueError("mono_2d.images_dir must contain reference, at least one deformed image, and ROI")
     output_cfg = dict(paths_cfg.get("output", {}) or {})
-    result_root = case_root / str(output_cfg.get("result_root", "result")) / "mesh"
-    visualization_root = case_root / str(output_cfg.get("visualization_root", "visualization")) / "mesh"
+    solver_output = dict(dict(output_cfg.get("solver_roots", {}) or {}).get("mesh", {}) or {})
+    result_root = case_root / str(solver_output.get("result_root", "result/mesh"))
+    visualization_root = case_root / str(solver_output.get("visualization_root", "visualization/mesh"))
     reference = read_gray(images[0])
     roi = read_mask(images[-1])
     raw_config = load_config(args.config) if args.config else {}
