@@ -12,8 +12,12 @@ if(pybind11_FOUND)
         bindings/python/bind_surface_outlier_cleaning.cpp
         bindings/python/bind_visualization.cpp)
     target_link_libraries(_traditional_dic PRIVATE traditional_dic_core)
-    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" AND MINGW)
         # Keep the extension independent of the MSYS2 libstdc++ runtime used by OpenCV.
+        # Linux only: static libstdc++ duplicates the locale facet-id registry inside the
+        # extension while OpenCV still pulls the shared libstdc++, so iostream formatting
+        # (e.g. io.save_displacement_csv) crashes with a wrong facet (segfault). Link the
+        # shared runtime there like every other library in the process.
         target_link_options(_traditional_dic PRIVATE -static-libstdc++ -static-libgcc)
     endif()
     add_custom_command(TARGET _traditional_dic POST_BUILD

@@ -1,8 +1,12 @@
 # This file configures only the Mesh-DIC route; it does not change subset DIC.
 #
-# disk-40px (2026-08-09): 将 mono_DIC/disp 用例验证的 40px 配置固化为单目 mesh 默认。
-# 大位移 (~230px) 散斑用例：40px 网格 (target40/min24/max60) + FGN + FFT search_radius50
-# + SIFT prior + 方向A (boundary_direct_prior_seed) + QC (mad2.0/dev12)，objective 保持 ssd。
+# Step/radius settings aligned with the subset solver settings derived from the
+# Ncorr reference (case/mono_DIC/01/result/ncorr/test1_config.csv, see also
+# subset_2d.yaml): element size 41 (dispinfo/radius), 50 iterations
+# (cutoff_iteration), 1e-6 tolerance (cutoff_diffnorm), strain radius 15
+# (straininfo/radius). Solver route and initialization keep the disk-40px
+# tuning: FGN + SSD + FFT search_radius50 + SIFT prior + direction A
+# (boundary_direct_prior_seed) + QC (mad2.0/dev12).
 solver: mesh  # options: subset, mesh
 
 mesh:
@@ -21,7 +25,7 @@ mesh_generation:
   # Q8 adds midside nodes and supports curved element edges generated from the ROI boundary.
   element_type: q4  # options: t3, q4, q8
 
-  target_element_size: 40.0  # positive pixels; target element edge scale
+  target_element_size: 41.0  # positive pixels; target element edge scale (matches subset radius 41)
 
   min_element_size: 24.0  # 0 disables this lower size preference
 
@@ -49,8 +53,8 @@ optimization:
   # The znssd name is compatibility-oriented: a and b are re-estimated per element at every iteration.
   # Both ICGN and FGN support it; they differ only in their reference/deformed image gradient linearization.
   objective: ssd  # options: ssd, znssd
-  max_iterations: 30  # positive integer; cap for the selected global solver
-  convergence_threshold: 1.0e-3  # normalized global nodal-update tolerance in pixels
+  max_iterations: 50  # positive integer; cap for the selected global solver (cutoff_iteration = 50)
+  convergence_threshold: 1.0e-6  # normalized global nodal-update tolerance in pixels (cutoff_diffnorm = 1e-6)
   regularization_alpha: 0.0  # non-negative displacement-gradient energy weight; 0 leaves the data term unregularized
   # Required for reliable FFT initialization/interpolation at nodes near an image edge.
   # Padding width is derived from FFT window/search radii and B-spline border; reported coordinates remain unpadded.
@@ -139,6 +143,6 @@ initialization:
 strain:
   enabled: true
   method: least_squares
-  radius: 40.0  # virtual strain-gauge radius on the densified displacement field (pixels)
+  radius: 15.0  # virtual strain-gauge radius on the densified displacement field (pixels; straininfo/radius = 15)
   min_samples: 6
   measure: green_lagrange  # options: green_lagrange, infinitesimal

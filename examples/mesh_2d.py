@@ -430,6 +430,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--paths-config", type=Path, default=PROJECT_ROOT / "config" / "case_paths.yaml")
     parser.add_argument("--config", type=Path, default=PROJECT_ROOT / "config" / "mesh_2d.yaml")
+    parser.add_argument("--case", default="mono_2d", help="case key in the paths config (e.g. mono_2d, mono_2d_01)")
     parser.add_argument("--element", choices=["T3", "Q4", "Q8", "all"], default="all")
     parser.add_argument(
         "--initialization",
@@ -462,7 +463,7 @@ def main() -> None:
     parser.add_argument("--init-interpolation-neighbors", type=int)
     args = parser.parse_args()
 
-    paths_cfg = dict(load_config(args.paths_config).get("mono_2d", {}) or {})
+    paths_cfg = dict(load_config(args.paths_config).get(args.case, {}) or {})
     case_root = Path(paths_cfg["case_root"])
     if not case_root.is_absolute():
         case_root = PROJECT_ROOT / case_root

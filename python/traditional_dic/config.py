@@ -93,7 +93,7 @@ def subset_method_tag(config: dict[str, Any] | None) -> str:
 
 
 def mesh_method_tag(config: dict[str, Any] | None) -> str:
-    """Build a compact tag from the mesh method and enabled initializers."""
+    """Build a compact tag from the mesh objective and solver method."""
     cfg = config or {}
     optimization = dict(cfg.get("optimization", {}) or {})
     objective = _method_tag(optimization.get("objective", "ssd"), {})
@@ -101,21 +101,7 @@ def mesh_method_tag(config: dict[str, Any] | None) -> str:
         optimization.get("method", "fedic_element_icgn"),
         {"fedic_element_icgn": "icgn", "fedic_element_fgn": "fgn", "icgn": "icgn", "fgn": "fgn"},
     )
-    parts = [objective, solver]
-    initialization = dict(cfg.get("initialization", {}) or {})
-    pyramid = dict(initialization.get("pyramid", {}) or {})
-    sift = dict(initialization.get("sift_prior", {}) or {})
-    if pyramid.get("enabled", False):
-        parts.append("pyramid")
-    if sift.get("enabled", False):
-        parts.append("sift")
-    if len(parts) > 2:
-        fft = dict(initialization.get("fedic_fft", {}) or {})
-        if "window_size" in fft:
-            parts.append(f"w{int(fft['window_size'])}")
-        if "search_radius" in fft:
-            parts.append(f"r{int(fft['search_radius'])}")
-    return "_".join(parts)
+    return "_".join([objective, solver])
 
 
 def mesh_generation_config(config: dict[str, Any] | None) -> dict[str, Any]:

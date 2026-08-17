@@ -1,8 +1,11 @@
+# Subset-DIC solver configuration.
+# Current values follow the Ncorr reference settings for the mono_DIC test
+# cases (read from case/mono_DIC/01/result/ncorr/test1_config.csv).
 solver: subset  # options: subset, mesh
 
 subset:
-  radius: 15  # positive integer pixels
-  truncate_roi_subsets: true  # options: true, false; true clips subset samples by ROI mask
+  radius: 41  # positive integer pixels; dispinfo/radius = 41
+  truncate_roi_subsets: false  # dispinfo/subsettrunc = 0 (full circular subsets)
   min_valid_sample_ratio: 0.5  # range: 0.0 to 1.0; minimum retained circular samples
   min_valid_samples: 12  # positive integer; hard lower bound for retained samples
 
@@ -11,8 +14,8 @@ shape_function:
 
 optimization:
   method: icgn  # options: icgn, forward_gauss_newton
-  max_iterations: 30  # positive integer
-  convergence_threshold: 1.0e-3  # positive floating point tolerance
+  max_iterations: 50  # positive integer; dispinfo/cutoff_iteration = 50
+  convergence_threshold: 1.0e-6  # dispinfo/cutoff_diffnorm = 1e-6
 
 correlation:
   criterion: znssd  # options: znssd, ssd
@@ -36,14 +39,14 @@ initialization:
     enabled: true  # options: true, false
     shape_function: first_order  # options: first_order, second_order, 1, 2
     optimizer: icgn  # options: icgn, forward_gauss_newton
-    subset_radius: 15  # positive integer pixels
-    max_iterations: 30  # positive integer
-    convergence_threshold: 1.0e-3  # positive floating point tolerance
+    subset_radius: 41  # dispinfo/radius = 41
+    max_iterations: 50  # dispinfo/cutoff_iteration = 50
+    convergence_threshold: 1.0e-6  # dispinfo/cutoff_diffnorm = 1e-6
 
 seed_selection:
   method: roi_kmeans  # options: roi_kmeans
   seed_count: 16  # positive integer
-  threads: 1  # positive integer
+  threads: 1  # positive integer; dispinfo/total_threads = 1
   quality_metric: znssd  # options: znssd, zncc, ssd
   max_znssd: 2.0  # non-negative; lower is stricter
   min_zncc: 0.7  # range: -1.0 to 1.0; higher is stricter
@@ -54,12 +57,12 @@ seed_selection:
   kmeans_sample_limit: 20000  # positive integer
 
 reliability_propagation:
-  spacing: 3  # positive integer pixels
+  spacing: 3  # positive integer pixels; dispinfo/spacing = 3
   max_znssd: 2.0  # non-negative; lower is stricter
 
 strain:
   enabled: true
   method: least_squares
-  radius: 15.0  # virtual strain-gauge radius in reference-image pixels
+  radius: 15.0  # virtual strain-gauge radius in reference-image pixels; straininfo/radius = 15
   min_samples: 6
   measure: green_lagrange  # options: green_lagrange, infinitesimal

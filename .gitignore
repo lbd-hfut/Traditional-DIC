@@ -277,3 +277,6 @@ __marimo__/
 AGENTS.md
 
 reference_code_lib/
+
+# Session scratch files (debug scripts, logs, temp outputs)
+tmp/

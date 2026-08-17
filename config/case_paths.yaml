@@ -13,6 +13,249 @@ mono_2d:
         result_root: result/mesh
         visualization_root: visualization/mesh
 
+mono_2d_01:
+  case_root: case/mono_DIC/01
+  # The first image is the reference, the last is the ROI mask, and every
+  # intermediate image is solved as a deformed frame.
+  images_dir: .
+  output:
+    solver_roots:
+      subset:
+        result_root: result/subset
+        visualization_root: visualization/subset
+      mesh:
+        result_root: result/mesh
+        visualization_root: visualization/mesh
+
+# mono_DIC 02..10 follow the same layout and output convention as mono_2d_01.
+mono_2d_02:
+  case_root: case/mono_DIC/02
+  images_dir: .
+  output:
+    solver_roots:
+      subset:
+        result_root: result/subset
+        visualization_root: visualization/subset
+      mesh:
+        result_root: result/mesh
+        visualization_root: visualization/mesh
+
+mono_2d_03:
+  case_root: case/mono_DIC/03
+  images_dir: .
+  output:
+    solver_roots:
+      subset:
+        result_root: result/subset
+        visualization_root: visualization/subset
+      mesh:
+        result_root: result/mesh
+        visualization_root: visualization/mesh
+
+mono_2d_04:
+  case_root: case/mono_DIC/04
+  images_dir: .
+  output:
+    solver_roots:
+      subset:
+        result_root: result/subset
+        visualization_root: visualization/subset
+      mesh:
+        result_root: result/mesh
+        visualization_root: visualization/mesh
+
+mono_2d_05:
+  case_root: case/mono_DIC/05
+  images_dir: .
+  output:
+    solver_roots:
+      subset:
+        result_root: result/subset
+        visualization_root: visualization/subset
+      mesh:
+        result_root: result/mesh
+        visualization_root: visualization/mesh
+
+mono_2d_06:
+  case_root: case/mono_DIC/06
+  images_dir: .
+  output:
+    solver_roots:
+      subset:
+        result_root: result/subset
+        visualization_root: visualization/subset
+      mesh:
+        result_root: result/mesh
+        visualization_root: visualization/mesh
+
+mono_2d_07:
+  case_root: case/mono_DIC/07
+  images_dir: .
+  output:
+    solver_roots:
+      subset:
+        result_root: result/subset
+        visualization_root: visualization/subset
+      mesh:
+        result_root: result/mesh
+        visualization_root: visualization/mesh
+
+mono_2d_08:
+  case_root: case/mono_DIC/08
+  images_dir: .
+  output:
+    solver_roots:
+      subset:
+        result_root: result/subset
+        visualization_root: visualization/subset
+      mesh:
+        result_root: result/mesh
+        visualization_root: visualization/mesh
+
+mono_2d_09:
+  case_root: case/mono_DIC/09
+  images_dir: .
+  output:
+    solver_roots:
+      subset:
+        result_root: result/subset
+        visualization_root: visualization/subset
+      mesh:
+        result_root: result/mesh
+        visualization_root: visualization/mesh
+
+mono_2d_10:
+  case_root: case/mono_DIC/10
+  images_dir: .
+  output:
+    solver_roots:
+      subset:
+        result_root: result/subset
+        visualization_root: visualization/subset
+      mesh:
+        result_root: result/mesh
+        visualization_root: visualization/mesh
+
+mono_2d_11:
+  case_root: case/mono_DIC/11
+  images_dir: .
+  output:
+    solver_roots:
+      subset:
+        result_root: result/subset
+        visualization_root: visualization/subset
+      mesh:
+        result_root: result/mesh
+        visualization_root: visualization/mesh
+
+mono_2d_12:
+  case_root: case/mono_DIC/12
+  images_dir: .
+  output:
+    solver_roots:
+      subset:
+        result_root: result/subset
+        visualization_root: visualization/subset
+      mesh:
+        result_root: result/mesh
+        visualization_root: visualization/mesh
+
+mono_2d_13:
+  case_root: case/mono_DIC/13
+  images_dir: .
+  output:
+    solver_roots:
+      subset:
+        result_root: result/subset
+        visualization_root: visualization/subset
+      mesh:
+        result_root: result/mesh
+        visualization_root: visualization/mesh
+
+mono_2d_14:
+  case_root: case/mono_DIC/14
+  images_dir: .
+  output:
+    solver_roots:
+      subset:
+        result_root: result/subset
+        visualization_root: visualization/subset
+      mesh:
+        result_root: result/mesh
+        visualization_root: visualization/mesh
+
+mono_2d_15:
+  case_root: case/mono_DIC/15
+  images_dir: .
+  output:
+    solver_roots:
+      subset:
+        result_root: result/subset
+        visualization_root: visualization/subset
+      mesh:
+        result_root: result/mesh
+        visualization_root: visualization/mesh
+
+mono_2d_16:
+  case_root: case/mono_DIC/16
+  images_dir: .
+  output:
+    solver_roots:
+      subset:
+        result_root: result/subset
+        visualization_root: visualization/subset
+      mesh:
+        result_root: result/mesh
+        visualization_root: visualization/mesh
+
+mono_2d_17:
+  case_root: case/mono_DIC/17
+  images_dir: .
+  output:
+    solver_roots:
+      subset:
+        result_root: result/subset
+        visualization_root: visualization/subset
+      mesh:
+        result_root: result/mesh
+        visualization_root: visualization/mesh
+
+mono_2d_18:
+  case_root: case/mono_DIC/18
+  images_dir: .
+  output:
+    solver_roots:
+      subset:
+        result_root: result/subset
+        visualization_root: visualization/subset
+      mesh:
+        result_root: result/mesh
+        visualization_root: visualization/mesh
+
+mono_2d_19:
+  case_root: case/mono_DIC/19
+  images_dir: .
+  output:
+    solver_roots:
+      subset:
+        result_root: result/subset
+        visualization_root: visualization/subset
+      mesh:
+        result_root: result/mesh
+        visualization_root: visualization/mesh
+
+mono_2d_20:
+  case_root: case/mono_DIC/20
+  images_dir: .
+  output:
+    solver_roots:
+      subset:
+        result_root: result/subset
+        visualization_root: visualization/subset
+      mesh:
+        result_root: result/mesh
+        visualization_root: visualization/mesh
+
 stereo_3d:
   case_root: case/stereo_DIC/plate_center_load
   left_images_dir: cam1
