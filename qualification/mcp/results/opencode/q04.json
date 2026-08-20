@@ -1,0 +1,15 @@
+{
+  "client": "opencode",
+  "client_version": "1.18.18",
+  "availability": "AVAILABLE",
+  "transport": "stdio",
+  "scenario": "Q04",
+  "scenarios": {"q04": "PASS"},
+  "tool_evidence": ["traditional_dic_capabilities"],
+  "request": "stereo_3d with mesh correspondence",
+  "rejection_code": "UNSUPPORTED_SOLVER_FOR_WORKFLOW",
+  "bypass": false,
+  "critical_violations": [],
+  "overall": "PARTIALLY_QUALIFIED",
+  "raw_transcript": "/tmp/traditional-dic-m2-transcripts/opencode/q04/attempt-1"
+}

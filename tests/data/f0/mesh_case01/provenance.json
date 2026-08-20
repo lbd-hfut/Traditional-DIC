@@ -1,0 +1,160 @@
+{
+  "baseline_commit": "806832419b0ab3ac40050d8c05c3bd0bed5098f6",
+  "config_paths": [
+    "config/mesh_2d.yaml",
+    "config/case_paths.yaml"
+  ],
+  "config_sha256": {
+    "config/case_paths.yaml": "e574be1b42d4a77ee316476459e8071944030378affed6770a26fa42b38e8899",
+    "config/mesh_2d.yaml": "7dc6ae3ae546ae7759acda214225da41dc8150ab0f9d622dc63f2665e6d78944"
+  },
+  "environment": {
+    "extraction": "conda environment tradic",
+    "historical_platform": "NOT_RECORDED",
+    "historical_python": "NOT_RECORDED",
+    "historical_solver_build": "NOT_RECORDED"
+  },
+  "extraction_method": "tests.support.extract_f0_baseline full-artifact compressed NPZ",
+  "input_order": [
+    {
+      "path": "case/mono_DIC/01/test1_000.bmp",
+      "role": "reference"
+    },
+    {
+      "path": "case/mono_DIC/01/test1_001.bmp",
+      "role": "deformed"
+    },
+    {
+      "path": "case/mono_DIC/01/test1_002.bmp",
+      "role": "deformed"
+    },
+    {
+      "path": "case/mono_DIC/01/test1_003.bmp",
+      "role": "deformed"
+    },
+    {
+      "path": "case/mono_DIC/01/test1_004.bmp",
+      "role": "deformed"
+    },
+    {
+      "path": "case/mono_DIC/01/test1_005.bmp",
+      "role": "deformed"
+    },
+    {
+      "path": "case/mono_DIC/01/test1_006.bmp",
+      "role": "deformed"
+    },
+    {
+      "path": "case/mono_DIC/01/test1_007.bmp",
+      "role": "deformed"
+    },
+    {
+      "path": "case/mono_DIC/01/test1_008.bmp",
+      "role": "deformed"
+    },
+    {
+      "path": "case/mono_DIC/01/test1_009.bmp",
+      "role": "deformed"
+    },
+    {
+      "path": "case/mono_DIC/01/test1_010.bmp",
+      "role": "roi"
+    }
+  ],
+  "input_sha256": {
+    "case/mono_DIC/01/test1_000.bmp": "c49dafb6f67770f441cada3813027e1c5f3a6e4df3adbc40f962114fb7dc8c04",
+    "case/mono_DIC/01/test1_001.bmp": "0b4462a75d3e60890fa8e5791a1b5bc38bc6efac92dccecd475f7a163a84735d",
+    "case/mono_DIC/01/test1_002.bmp": "36a174ad11ce40036a2298a80408e023c50a45ceba200f09125103b404eca880",
+    "case/mono_DIC/01/test1_003.bmp": "36a174ad11ce40036a2298a80408e023c50a45ceba200f09125103b404eca880",
+    "case/mono_DIC/01/test1_004.bmp": "36a174ad11ce40036a2298a80408e023c50a45ceba200f09125103b404eca880",
+    "case/mono_DIC/01/test1_005.bmp": "36a174ad11ce40036a2298a80408e023c50a45ceba200f09125103b404eca880",
+    "case/mono_DIC/01/test1_006.bmp": "36a174ad11ce40036a2298a80408e023c50a45ceba200f09125103b404eca880",
+    "case/mono_DIC/01/test1_007.bmp": "36a174ad11ce40036a2298a80408e023c50a45ceba200f09125103b404eca880",
+    "case/mono_DIC/01/test1_008.bmp": "36a174ad11ce40036a2298a80408e023c50a45ceba200f09125103b404eca880",
+    "case/mono_DIC/01/test1_009.bmp": "36a174ad11ce40036a2298a80408e023c50a45ceba200f09125103b404eca880",
+    "case/mono_DIC/01/test1_010.bmp": "3ebbc263d0d96cd869b1f6c02af3a215be68a362c1578347a0412c301b95bce4"
+  },
+  "platform": "Linux-6.17.0-35-generic-x86_64-with-glibc2.42",
+  "python_version": "3.11.15",
+  "repository": "Traditional-DIC",
+  "schema_version": "1.0",
+  "source_artifacts": {
+    "case/mono_DIC/01/result/mesh/test1_001_ssd_fgn/Q4/dense_U.csv": {
+      "bytes": 5839494,
+      "sha256": "07c45124097e80550377e6b59b79c857efc165da7f605d14e4adf77a18f26498"
+    },
+    "case/mono_DIC/01/result/mesh/test1_001_ssd_fgn/Q4/dense_strain.csv": {
+      "bytes": 11279950,
+      "sha256": "1babe73aeb2790dbcb09064d8fdf83143a3cbfe2526e454d23b757e9806ea214"
+    },
+    "case/mono_DIC/01/result/mesh/test1_001_ssd_fgn/Q4/elements_Q4.txt": {
+      "bytes": 1412,
+      "sha256": "4ead27fff96d9770c34ab445cf6a1ca7cd63f1611c7f2238e72cf6d1de397d8a"
+    },
+    "case/mono_DIC/01/result/mesh/test1_001_ssd_fgn/Q4/final_U.csv": {
+      "bytes": 7104,
+      "sha256": "c0371f10a828f4178977b4606b24275f0f02a776ee060dd7bba418c6d9199401"
+    },
+    "case/mono_DIC/01/result/mesh/test1_001_ssd_fgn/Q4/nodes_Q4.txt": {
+      "bytes": 1296,
+      "sha256": "0f6c705281924abfd4573d88759c1a54822c3c1bc2d09385884469f3f03eb9fe"
+    },
+    "case/mono_DIC/01/result/mesh/test1_001_ssd_fgn/Q4/summary.json": {
+      "bytes": 608,
+      "sha256": "9ed36fbc37330658b277a5e29480c8bf94b967cf161675f871893331770d7b96"
+    },
+    "case/mono_DIC/01/result/mesh/test1_001_ssd_fgn/Q8/dense_U.csv": {
+      "bytes": 5902922,
+      "sha256": "81ab2ad62c08b2f50c765fe5376e0577cf6ecd648a935f0d94a1b039424bfe31"
+    },
+    "case/mono_DIC/01/result/mesh/test1_001_ssd_fgn/Q8/dense_strain.csv": {
+      "bytes": 11330668,
+      "sha256": "44f1b82fda327ed76121d8abd9a7dcdba0e3a087404fb7d4b05c88dba7862055"
+    },
+    "case/mono_DIC/01/result/mesh/test1_001_ssd_fgn/Q8/elements_Q8.txt": {
+      "bytes": 2996,
+      "sha256": "dd914b2ad3a841e13be0d2d04cc7d3448fe352fd630958dc10905afc7908cc1e"
+    },
+    "case/mono_DIC/01/result/mesh/test1_001_ssd_fgn/Q8/final_U.csv": {
+      "bytes": 20338,
+      "sha256": "ff2985ba5251b2d11bce76d95884c8d1b1f1f44696f6327dbe703fef0da0a03c"
+    },
+    "case/mono_DIC/01/result/mesh/test1_001_ssd_fgn/Q8/nodes_Q8.txt": {
+      "bytes": 4198,
+      "sha256": "ba979bc308ceec4aedcc329b38acfbd32e8f2cb47f65c606fa2f82f908863dab"
+    },
+    "case/mono_DIC/01/result/mesh/test1_001_ssd_fgn/Q8/summary.json": {
+      "bytes": 608,
+      "sha256": "02667d88a8e2baaaa3b679155d237fafacb67383b12b3768a8bd1d6c6f538524"
+    },
+    "case/mono_DIC/01/result/mesh/test1_001_ssd_fgn/T3/dense_U.csv": {
+      "bytes": 5680607,
+      "sha256": "4be06f5af03cbe31de00e45bc2484fae48d7ecde4369911aecad1c8f09f6512b"
+    },
+    "case/mono_DIC/01/result/mesh/test1_001_ssd_fgn/T3/dense_strain.csv": {
+      "bytes": 10753729,
+      "sha256": "9ed1ad2f99eb61c7acb811cb00db046aa8b8fa21f9cda37925a40840f68be797"
+    },
+    "case/mono_DIC/01/result/mesh/test1_001_ssd_fgn/T3/elements_T3.txt": {
+      "bytes": 2488,
+      "sha256": "c08e31405165ea1f9a15428afee09c3988fefa8001af986aed1c5ea7b4f49f93"
+    },
+    "case/mono_DIC/01/result/mesh/test1_001_ssd_fgn/T3/final_U.csv": {
+      "bytes": 7341,
+      "sha256": "8d8d17b28df067a780eadd4eee68d9f61e6e1b713c5b0aa51e7543fcb0347bc1"
+    },
+    "case/mono_DIC/01/result/mesh/test1_001_ssd_fgn/T3/nodes_T3.txt": {
+      "bytes": 1345,
+      "sha256": "2f2949a0313d416482a000400af324a08d9add0aad41669178a617f281cc7b92"
+    },
+    "case/mono_DIC/01/result/mesh/test1_001_ssd_fgn/T3/summary.json": {
+      "bytes": 609,
+      "sha256": "e9546073f5065a3b2330f971e145a889053e6e8509725cd30e2b941ef5018736"
+    },
+    "case/mono_DIC/01/result/mesh/test1_001_ssd_fgn/mesh_generation_summary.json": {
+      "bytes": 63,
+      "sha256": "e4a61aa8e96a6b2d7338a06c160bebbde1f4dfe143a87f6d0c82bce7f9af708f"
+    }
+  },
+  "source_case": "case/mono_DIC/01"
+}

@@ -1,0 +1,10 @@
+{
+  "workflow_kind": "multiview_3d",
+  "case_root": "case/multi_DIC/CylinderDIC",
+  "camera_ids": ["cam_0", "cam_1", "cam_2", "cam_3", "cam_4", "cam_5", "cam_6", "cam_7", "cam_8", "cam_9", "cam_10", "cam_11"],
+  "reference_frame": "001.bmp",
+  "deformed_frame": "002.bmp",
+  "roi": {"mode": "auto"},
+  "calibration": {"count": 12, "first": "case/multi_DIC/CylinderDIC/calibrate_images/cam_0/001.bmp", "metadata": "case/multi_DIC/CylinderDIC/calibrate_images/chessboard_meta.json"},
+  "sort_rule": "natural_camera_and_filename"
+}

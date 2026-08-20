@@ -1,0 +1,205 @@
+{
+  "baseline_commit": "806832419b0ab3ac40050d8c05c3bd0bed5098f6",
+  "calibration_input_sha256": {
+    "case/multi_DIC/CylinderDIC/calibrate_images/cam_0/001.bmp": "7e3655d7e96ae3ded7bc7ce0ab92125daec6adb68f356b2f731286a1ad34dfcb",
+    "case/multi_DIC/CylinderDIC/calibrate_images/cam_1/001.bmp": "265fc95c5727794c02450a9141deecac37551e0ded7420b5e0da86f68ec33721",
+    "case/multi_DIC/CylinderDIC/calibrate_images/cam_10/001.bmp": "e8c8988e77b9c3589743bd31bd85e7c83042c9a3c0ef1b2b4fda77c8dabc3fa1",
+    "case/multi_DIC/CylinderDIC/calibrate_images/cam_11/001.bmp": "e9d6179d3478069f5a300ad5ce04839307258d81d95b90d19f846a3aca78550d",
+    "case/multi_DIC/CylinderDIC/calibrate_images/cam_2/001.bmp": "c2c0ec3b431d2d07e5a688005daec93ad2caeca2c46f68d7a8e17e7b6627dc7d",
+    "case/multi_DIC/CylinderDIC/calibrate_images/cam_3/001.bmp": "7db778ec21aa3337e34021ebca56d53630dea36ac4b0b1196242d9154d007afa",
+    "case/multi_DIC/CylinderDIC/calibrate_images/cam_4/001.bmp": "7db778ec21aa3337e34021ebca56d53630dea36ac4b0b1196242d9154d007afa",
+    "case/multi_DIC/CylinderDIC/calibrate_images/cam_5/001.bmp": "7db778ec21aa3337e34021ebca56d53630dea36ac4b0b1196242d9154d007afa",
+    "case/multi_DIC/CylinderDIC/calibrate_images/cam_6/001.bmp": "7db778ec21aa3337e34021ebca56d53630dea36ac4b0b1196242d9154d007afa",
+    "case/multi_DIC/CylinderDIC/calibrate_images/cam_7/001.bmp": "7db778ec21aa3337e34021ebca56d53630dea36ac4b0b1196242d9154d007afa",
+    "case/multi_DIC/CylinderDIC/calibrate_images/cam_8/001.bmp": "7db778ec21aa3337e34021ebca56d53630dea36ac4b0b1196242d9154d007afa",
+    "case/multi_DIC/CylinderDIC/calibrate_images/cam_9/001.bmp": "7db778ec21aa3337e34021ebca56d53630dea36ac4b0b1196242d9154d007afa",
+    "case/multi_DIC/CylinderDIC/calibrate_images/chessboard_meta.json": "60d93d8099d2c0212977f28c1a079b14dda7d9f2f8bef6603cca558b53b40d32"
+  },
+  "calibration_order": [
+    "case/multi_DIC/CylinderDIC/images/cam_0/001.bmp",
+    "case/multi_DIC/CylinderDIC/images/cam_1/001.bmp",
+    "case/multi_DIC/CylinderDIC/images/cam_2/001.bmp",
+    "case/multi_DIC/CylinderDIC/images/cam_3/001.bmp",
+    "case/multi_DIC/CylinderDIC/images/cam_4/001.bmp",
+    "case/multi_DIC/CylinderDIC/images/cam_5/001.bmp",
+    "case/multi_DIC/CylinderDIC/images/cam_6/001.bmp",
+    "case/multi_DIC/CylinderDIC/images/cam_7/001.bmp",
+    "case/multi_DIC/CylinderDIC/images/cam_8/001.bmp",
+    "case/multi_DIC/CylinderDIC/images/cam_9/001.bmp",
+    "case/multi_DIC/CylinderDIC/images/cam_10/001.bmp",
+    "case/multi_DIC/CylinderDIC/images/cam_11/001.bmp"
+  ],
+  "config_paths": [
+    "config/case_paths.yaml",
+    "config/multiview_3d.yaml",
+    "config/subset_2d.yaml"
+  ],
+  "config_sha256": {
+    "config/case_paths.yaml": "e574be1b42d4a77ee316476459e8071944030378affed6770a26fa42b38e8899",
+    "config/multiview_3d.yaml": "7f2bc26875b320aeca16af7797ed980d3ca872507d289df30a9e5c0e3f2eb653",
+    "config/subset_2d.yaml": "409ab1ae3b6d474bcbd5b26a5231d0d3957896c8d5666fb24c63de30b0879f2b"
+  },
+  "environment": {
+    "numpy": "2.4.6",
+    "platform": "Linux-6.17.0-35-generic-x86_64-with-glibc2.42",
+    "python": "3.11.15 | packaged by conda-forge | (main, Jun 11 2026, 03:34:02) [GCC 14.3.0]"
+  },
+  "extraction_method": "tests/support/extract_f0c_baseline.py reads explicit /tmp staging artifacts; no solver execution; deterministic linspace numeric samples; no random sampling",
+  "input_sha256": {
+    "case/multi_DIC/CylinderDIC/images/cam_0/001.bmp": "522b94adf6d1375d9f11e55e4e420cdbb4f78b965f5c99f9a945a213f9bdcff5",
+    "case/multi_DIC/CylinderDIC/images/cam_0/002.bmp": "55847e73f93cb35b0b2d7d98c89faf0c0132001da3873810faa1772c506609b6",
+    "case/multi_DIC/CylinderDIC/images/cam_1/001.bmp": "ce86930bd88dc6840c262da4c8e5ec6b66508fa12f0f967c6a315b809f10ed26",
+    "case/multi_DIC/CylinderDIC/images/cam_1/002.bmp": "8c8cbf9585325a93e49ff7e6795759a97a02953c8e014385b3f3af731e2640b7",
+    "case/multi_DIC/CylinderDIC/images/cam_10/001.bmp": "8753967e929e51d2394b55d041397befd0f2fb325098b0199fecfa2c5bf38f18",
+    "case/multi_DIC/CylinderDIC/images/cam_10/002.bmp": "8296478b0ca29e37e35c5bfd51be83c9a90e572ee11b4b88b7ea954e1913090b",
+    "case/multi_DIC/CylinderDIC/images/cam_11/001.bmp": "a1d412f28b3973ad7bd9d5576be61ac7c746839cddf3fd1b5ee70b55b217f786",
+    "case/multi_DIC/CylinderDIC/images/cam_11/002.bmp": "82bacc85f3a864ba73c31ca812b7a006d2d311f11aac92cb8bec722c810badd5",
+    "case/multi_DIC/CylinderDIC/images/cam_2/001.bmp": "5ed7f2b9256499921816e84d76ca53f071b9595c5c2051b3b9ba40cfb5d1197a",
+    "case/multi_DIC/CylinderDIC/images/cam_2/002.bmp": "01cab86fec76d94829f7e68f898c3d02b296c4511ec26358745db9c7e7e305cc",
+    "case/multi_DIC/CylinderDIC/images/cam_3/001.bmp": "bc776d9ca3f4d11e4a4a5d9ca80bf391ac22cdac01ff30a8d9d3d7b5f0802210",
+    "case/multi_DIC/CylinderDIC/images/cam_3/002.bmp": "2b224f45db69a0544728950ea656e6738b72d51d01c1ea3f81fdd26b6c18571f",
+    "case/multi_DIC/CylinderDIC/images/cam_4/001.bmp": "f290c8916c74a904a549e4fbba19ea929da3c0b0dfc3a29d28e46d07c3d7312d",
+    "case/multi_DIC/CylinderDIC/images/cam_4/002.bmp": "cd974885110e8e54e1bb6313ddbbefa03abd23ccc51ec7d17026f810fa3b3e34",
+    "case/multi_DIC/CylinderDIC/images/cam_5/001.bmp": "c6f3728eac975370d119f493e1ca69e7b610b15808ca5fcba033d6d70df9f7e9",
+    "case/multi_DIC/CylinderDIC/images/cam_5/002.bmp": "bd269f04c1e64758bb0f4dfcc7c4a4686eeae6604583cde42ad749e2118483a6",
+    "case/multi_DIC/CylinderDIC/images/cam_6/001.bmp": "9ff87bd9b095985ece9128bdeaa6f1ede3fcc43c9cb0c7224c9726ab8bc06e42",
+    "case/multi_DIC/CylinderDIC/images/cam_6/002.bmp": "cd51bf48659ab4c83c379794427801d4de311a5159403cc53ee62d3343edac23",
+    "case/multi_DIC/CylinderDIC/images/cam_7/001.bmp": "b44e8b738e714e934a2a0d740fc5116a5fef58469163b1e7c14ae4a4ecb60886",
+    "case/multi_DIC/CylinderDIC/images/cam_7/002.bmp": "15722f58ea6ffd429e8757d79d4ff19e4afd0024f94325deaf380d3b4faaccf4",
+    "case/multi_DIC/CylinderDIC/images/cam_8/001.bmp": "36e8bbb05a7d09bd2822b156bbac027d39947a0cc01f41ef24d5d75387b6550b",
+    "case/multi_DIC/CylinderDIC/images/cam_8/002.bmp": "74d01783e3af7eeba9a0a6e79026afd6b0a7fd79d924cf10767bcc4f2b77b84e",
+    "case/multi_DIC/CylinderDIC/images/cam_9/001.bmp": "8238551462de5f45f1b63570b5bb5e898b9c90a592d467f9ff7cb4f6a10bb20b",
+    "case/multi_DIC/CylinderDIC/images/cam_9/002.bmp": "2251265d25b009da55b261e4fb5fb09d504c2a183402f016e2a77b306714e481"
+  },
+  "native_extension": {
+    "bytes": 3062976,
+    "path": "python/traditional_dic/_traditional_dic.cpython-311-x86_64-linux-gnu.so",
+    "sha256": "b30c85afeff2fb20e9160e2d6fbabd85e6a4b9347b2f3c357dda94b381c3c739"
+  },
+  "repository": "/home/a306/01project/Traditional-DIC",
+  "resolved_inputs": {
+    "camera_order": [
+      "cam_0",
+      "cam_1",
+      "cam_2",
+      "cam_3",
+      "cam_4",
+      "cam_5",
+      "cam_6",
+      "cam_7",
+      "cam_8",
+      "cam_9",
+      "cam_10",
+      "cam_11"
+    ],
+    "deformed": [
+      "case/multi_DIC/CylinderDIC/images/cam_0/002.bmp",
+      "case/multi_DIC/CylinderDIC/images/cam_1/002.bmp",
+      "case/multi_DIC/CylinderDIC/images/cam_2/002.bmp",
+      "case/multi_DIC/CylinderDIC/images/cam_3/002.bmp",
+      "case/multi_DIC/CylinderDIC/images/cam_4/002.bmp",
+      "case/multi_DIC/CylinderDIC/images/cam_5/002.bmp",
+      "case/multi_DIC/CylinderDIC/images/cam_6/002.bmp",
+      "case/multi_DIC/CylinderDIC/images/cam_7/002.bmp",
+      "case/multi_DIC/CylinderDIC/images/cam_8/002.bmp",
+      "case/multi_DIC/CylinderDIC/images/cam_9/002.bmp",
+      "case/multi_DIC/CylinderDIC/images/cam_10/002.bmp",
+      "case/multi_DIC/CylinderDIC/images/cam_11/002.bmp"
+    ],
+    "deformed_frame": "002.bmp",
+    "reference": [
+      "case/multi_DIC/CylinderDIC/images/cam_0/001.bmp",
+      "case/multi_DIC/CylinderDIC/images/cam_1/001.bmp",
+      "case/multi_DIC/CylinderDIC/images/cam_2/001.bmp",
+      "case/multi_DIC/CylinderDIC/images/cam_3/001.bmp",
+      "case/multi_DIC/CylinderDIC/images/cam_4/001.bmp",
+      "case/multi_DIC/CylinderDIC/images/cam_5/001.bmp",
+      "case/multi_DIC/CylinderDIC/images/cam_6/001.bmp",
+      "case/multi_DIC/CylinderDIC/images/cam_7/001.bmp",
+      "case/multi_DIC/CylinderDIC/images/cam_8/001.bmp",
+      "case/multi_DIC/CylinderDIC/images/cam_9/001.bmp",
+      "case/multi_DIC/CylinderDIC/images/cam_10/001.bmp",
+      "case/multi_DIC/CylinderDIC/images/cam_11/001.bmp"
+    ],
+    "reference_frame": "001.bmp",
+    "roi_frame": null
+  },
+  "runtime_evidence": {
+    "calibration_run_a": {
+      "runtime_seconds": 3.863696717657149,
+      "status": "succeeded"
+    },
+    "calibration_run_b": {
+      "runtime_seconds": 3.458903164602816,
+      "status": "succeeded"
+    },
+    "mask_generation_run_a": {
+      "runtime_seconds": 6.596070799045265,
+      "status": "succeeded"
+    },
+    "mask_generation_run_b": {
+      "runtime_seconds": 6.351177944801748,
+      "status": "succeeded"
+    },
+    "pair_selection_run_a": {
+      "runtime_seconds": 0.01815074123442173,
+      "status": "succeeded"
+    },
+    "pair_selection_run_b": {
+      "runtime_seconds": 0.017946290783584118,
+      "status": "succeeded"
+    },
+    "pairwise_reconstruction_run_a": {
+      "runtime_seconds": 12.801084918901324,
+      "status": "succeeded"
+    },
+    "pairwise_reconstruction_run_b": {
+      "runtime_seconds": 12.860205464065075,
+      "status": "succeeded"
+    },
+    "pairwise_subset_fields": {
+      "runtime_seconds": 1085.4069411475211,
+      "status": "succeeded"
+    },
+    "scale_run_a": {
+      "runtime_seconds": 0.30294586811214685,
+      "status": "succeeded"
+    },
+    "scale_run_b": {
+      "runtime_seconds": 0.2957119010388851,
+      "status": "succeeded"
+    },
+    "stitch_run_a": {
+      "runtime_seconds": 42.78888453077525,
+      "status": "succeeded"
+    },
+    "stitch_run_b": {
+      "runtime_seconds": 38.34664886351675,
+      "status": "succeeded"
+    }
+  },
+  "schema_version": "1.0",
+  "source_artifacts": [
+    "calibration_result.json",
+    "calibration_scale.json",
+    "pair_selection_report.json",
+    "12 pair masks",
+    "36 pairwise Subset fields",
+    "24 pairwise reconstruction CSVs",
+    "deterministic stitched surface outputs"
+  ],
+  "source_case": "case/multi_DIC/CylinderDIC",
+  "stitching_determinism": {
+    "classification": "BITWISE_IDENTICAL",
+    "fresh_process_runs": 5,
+    "repair": "ScopedFlannRng save/restore with fixed local seed and mutex",
+    "same_process_runs": 5,
+    "seed": "0xF0C0D1CE"
+  },
+  "workflow_capability": {
+    "mesh_2d": true,
+    "multiview_3d_solver": "subset",
+    "stereo_3d_solver": "subset",
+    "subset_2d": true
+  }
+}

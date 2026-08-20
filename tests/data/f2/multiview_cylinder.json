@@ -1,0 +1,24 @@
+{
+  "workflow_kind": "multiview_3d",
+  "source_files": ["config/multiview_3d.yaml", "config/subset_2d.yaml"],
+  "capabilities": {"workflow": "multiview_3d", "pairwise_2d_solver": "subset", "pairwise_3d_solver": "subset"},
+  "effective": {
+    "run_subset": true,
+    "run_mesh": false,
+    "pairwise_2d_solver": "subset",
+    "pairwise_3d_solver": "subset",
+    "stitch_solver": "subset",
+    "subset_radius": 41,
+    "calibration_backend": "cpp_colmap_like",
+    "scale_board_rows": 7,
+    "scale_board_cols": 9,
+    "scale_square_size": 10.0
+  },
+  "provenance": {
+    "pairwise_2d_dic.run_mesh": "config/multiview_3d.yaml",
+    "pairwise_2d_solver": "config/multiview_3d.yaml",
+    "subset_config.subset.radius": "config/subset_2d.yaml",
+    "scale.square_size": "config/multiview_3d.yaml"
+  },
+  "warnings": ["LEGACY_MESH_KEY_IGNORED"]
+}

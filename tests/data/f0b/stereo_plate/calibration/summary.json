@@ -1,0 +1,14 @@
+{
+  "accepted_pair_count": 17,
+  "image_dimensions": [
+    1440,
+    1080
+  ],
+  "initial_rms_error": 0.23178258493759027,
+  "left_found_count": 20,
+  "pair_count": 20,
+  "rejected_pair_count": 3,
+  "right_found_count": 20,
+  "rms_error": 0.08936435334798994,
+  "schema_version": "1.0"
+}

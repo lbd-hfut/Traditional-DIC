@@ -1,0 +1,20 @@
+{
+  "workflow_kind": "stereo_3d",
+  "source_files": ["config/stereo_3d.yaml", "config/subset_2d.yaml", "config/calibration.yaml"],
+  "capabilities": {"workflow": "stereo_3d", "correspondence_solver": "subset"},
+  "effective": {
+    "quality_metric": "znssd",
+    "max_reprojection_error_px": 5.0,
+    "subset_radius": 41,
+    "subset_method": "icgn",
+    "board_type": "chessboard",
+    "board_rows": 8,
+    "board_cols": 11,
+    "board_spacing": 5.0
+  },
+  "provenance": {
+    "reconstruction.quality_metric": "config/stereo_3d.yaml",
+    "subset_config.subset.radius": "config/subset_2d.yaml",
+    "calibration_config.board.rows": "config/calibration.yaml"
+  }
+}

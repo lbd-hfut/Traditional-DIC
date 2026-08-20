@@ -1,0 +1,37 @@
+{
+  "deformed_semantic": "Llast",
+  "field_name": "left_temporal",
+  "header": [
+    "id",
+    "x",
+    "y",
+    "u",
+    "v",
+    "correlation",
+    "valid"
+  ],
+  "quality": {
+    "correlation_max_valid": 0.024332369678311577,
+    "correlation_mean_valid": 0.0069503195068014575,
+    "valid_fraction": 0.07874485596707818
+  },
+  "reference_semantic": "L0",
+  "roi_source": "case/stereo_DIC/plate_center_load/ROI.bmp",
+  "row_count": 97200,
+  "schema_version": "1.0",
+  "solver": "subset",
+  "source_artifact_sha256": "319f3dc27e81f490bd8aee78172a7e9f77b7eec471025a837bc53bfd7b58d63c",
+  "source_image_a": "case/stereo_DIC/plate_center_load/cam1/00_L.bmp",
+  "source_image_b": "case/stereo_DIC/plate_center_load/cam1/04_L.bmp",
+  "subset_config": "config/subset_2d.yaml",
+  "subset_config_sha256": "409ab1ae3b6d474bcbd5b26a5231d0d3957896c8d5666fb24c63de30b0879f2b",
+  "tolerance_policy": {
+    "atol": 1e-12,
+    "max_abs": 1e-10,
+    "max_rmse": 1e-12,
+    "name": "INITIAL_F0B_FIELD_TOLERANCE",
+    "reason": "Independent tight policy aligned with deterministic F0A Subset behavior; field repeatability was not rerun.",
+    "rtol": 1e-10
+  },
+  "valid_count": 7654
+}

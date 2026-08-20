@@ -1,0 +1,154 @@
+{
+  "camera_count": 12,
+  "camera_labels": [
+    "cam_0",
+    "cam_1",
+    "cam_2",
+    "cam_3",
+    "cam_4",
+    "cam_5",
+    "cam_6",
+    "cam_7",
+    "cam_8",
+    "cam_9",
+    "cam_10",
+    "cam_11"
+  ],
+  "cameras": [
+    {
+      "image_height": 1080,
+      "image_size": [
+        1440,
+        1080
+      ],
+      "image_width": 1440,
+      "label": "cam_0",
+      "rms_error": 0.0
+    },
+    {
+      "image_height": 1080,
+      "image_size": [
+        1440,
+        1080
+      ],
+      "image_width": 1440,
+      "label": "cam_1",
+      "rms_error": 0.0
+    },
+    {
+      "image_height": 1080,
+      "image_size": [
+        1440,
+        1080
+      ],
+      "image_width": 1440,
+      "label": "cam_2",
+      "rms_error": 0.0
+    },
+    {
+      "image_height": 1080,
+      "image_size": [
+        1440,
+        1080
+      ],
+      "image_width": 1440,
+      "label": "cam_3",
+      "rms_error": 0.0
+    },
+    {
+      "image_height": 1080,
+      "image_size": [
+        1440,
+        1080
+      ],
+      "image_width": 1440,
+      "label": "cam_4",
+      "rms_error": 0.0
+    },
+    {
+      "image_height": 1080,
+      "image_size": [
+        1440,
+        1080
+      ],
+      "image_width": 1440,
+      "label": "cam_5",
+      "rms_error": 0.0
+    },
+    {
+      "image_height": 1080,
+      "image_size": [
+        1440,
+        1080
+      ],
+      "image_width": 1440,
+      "label": "cam_6",
+      "rms_error": 0.0
+    },
+    {
+      "image_height": 1080,
+      "image_size": [
+        1440,
+        1080
+      ],
+      "image_width": 1440,
+      "label": "cam_7",
+      "rms_error": 0.0
+    },
+    {
+      "image_height": 1080,
+      "image_size": [
+        1440,
+        1080
+      ],
+      "image_width": 1440,
+      "label": "cam_8",
+      "rms_error": 0.0
+    },
+    {
+      "image_height": 1080,
+      "image_size": [
+        1440,
+        1080
+      ],
+      "image_width": 1440,
+      "label": "cam_9",
+      "rms_error": 0.0
+    },
+    {
+      "image_height": 1080,
+      "image_size": [
+        1440,
+        1080
+      ],
+      "image_width": 1440,
+      "label": "cam_10",
+      "rms_error": 0.0
+    },
+    {
+      "image_height": 1080,
+      "image_size": [
+        1440,
+        1080
+      ],
+      "image_width": 1440,
+      "label": "cam_11",
+      "rms_error": 0.0
+    }
+  ],
+  "image_paths": [
+    "case/multi_DIC/CylinderDIC/images/cam_0/001.bmp",
+    "case/multi_DIC/CylinderDIC/images/cam_1/001.bmp",
+    "case/multi_DIC/CylinderDIC/images/cam_2/001.bmp",
+    "case/multi_DIC/CylinderDIC/images/cam_3/001.bmp",
+    "case/multi_DIC/CylinderDIC/images/cam_4/001.bmp",
+    "case/multi_DIC/CylinderDIC/images/cam_5/001.bmp",
+    "case/multi_DIC/CylinderDIC/images/cam_6/001.bmp",
+    "case/multi_DIC/CylinderDIC/images/cam_7/001.bmp",
+    "case/multi_DIC/CylinderDIC/images/cam_8/001.bmp",
+    "case/multi_DIC/CylinderDIC/images/cam_9/001.bmp",
+    "case/multi_DIC/CylinderDIC/images/cam_10/001.bmp",
+    "case/multi_DIC/CylinderDIC/images/cam_11/001.bmp"
+  ],
+  "schema_version": "1.0"
+}

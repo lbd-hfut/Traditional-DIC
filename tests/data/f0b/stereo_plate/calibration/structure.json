@@ -1,0 +1,426 @@
+{
+  "board": {
+    "cols": 11,
+    "rows": 8,
+    "spacing": 5.0,
+    "type": "chessboard"
+  },
+  "cameras": {
+    "left": {
+      "image_height": 1080,
+      "image_size": [
+        1440,
+        1080
+      ],
+      "image_width": 1440,
+      "label": ""
+    },
+    "right": {
+      "image_height": 1080,
+      "image_size": [
+        1440,
+        1080
+      ],
+      "image_width": 1440,
+      "label": ""
+    }
+  },
+  "detections": {
+    "left": [
+      {
+        "found": true,
+        "image_path": "case/stereo_DIC/plate_center_load/calibrate1/01.bmp",
+        "image_size": [
+          1440,
+          1080
+        ],
+        "point_count": 88
+      },
+      {
+        "found": true,
+        "image_path": "case/stereo_DIC/plate_center_load/calibrate1/02.bmp",
+        "image_size": [
+          1440,
+          1080
+        ],
+        "point_count": 88
+      },
+      {
+        "found": true,
+        "image_path": "case/stereo_DIC/plate_center_load/calibrate1/03.bmp",
+        "image_size": [
+          1440,
+          1080
+        ],
+        "point_count": 88
+      },
+      {
+        "found": true,
+        "image_path": "case/stereo_DIC/plate_center_load/calibrate1/04.bmp",
+        "image_size": [
+          1440,
+          1080
+        ],
+        "point_count": 88
+      },
+      {
+        "found": true,
+        "image_path": "case/stereo_DIC/plate_center_load/calibrate1/05.bmp",
+        "image_size": [
+          1440,
+          1080
+        ],
+        "point_count": 88
+      },
+      {
+        "found": true,
+        "image_path": "case/stereo_DIC/plate_center_load/calibrate1/06.bmp",
+        "image_size": [
+          1440,
+          1080
+        ],
+        "point_count": 88
+      },
+      {
+        "found": true,
+        "image_path": "case/stereo_DIC/plate_center_load/calibrate1/07.bmp",
+        "image_size": [
+          1440,
+          1080
+        ],
+        "point_count": 88
+      },
+      {
+        "found": true,
+        "image_path": "case/stereo_DIC/plate_center_load/calibrate1/08.bmp",
+        "image_size": [
+          1440,
+          1080
+        ],
+        "point_count": 88
+      },
+      {
+        "found": true,
+        "image_path": "case/stereo_DIC/plate_center_load/calibrate1/09.bmp",
+        "image_size": [
+          1440,
+          1080
+        ],
+        "point_count": 88
+      },
+      {
+        "found": true,
+        "image_path": "case/stereo_DIC/plate_center_load/calibrate1/10.bmp",
+        "image_size": [
+          1440,
+          1080
+        ],
+        "point_count": 88
+      },
+      {
+        "found": true,
+        "image_path": "case/stereo_DIC/plate_center_load/calibrate1/11.bmp",
+        "image_size": [
+          1440,
+          1080
+        ],
+        "point_count": 88
+      },
+      {
+        "found": true,
+        "image_path": "case/stereo_DIC/plate_center_load/calibrate1/12.bmp",
+        "image_size": [
+          1440,
+          1080
+        ],
+        "point_count": 88
+      },
+      {
+        "found": true,
+        "image_path": "case/stereo_DIC/plate_center_load/calibrate1/13.bmp",
+        "image_size": [
+          1440,
+          1080
+        ],
+        "point_count": 88
+      },
+      {
+        "found": true,
+        "image_path": "case/stereo_DIC/plate_center_load/calibrate1/14.bmp",
+        "image_size": [
+          1440,
+          1080
+        ],
+        "point_count": 88
+      },
+      {
+        "found": true,
+        "image_path": "case/stereo_DIC/plate_center_load/calibrate1/15.bmp",
+        "image_size": [
+          1440,
+          1080
+        ],
+        "point_count": 88
+      },
+      {
+        "found": true,
+        "image_path": "case/stereo_DIC/plate_center_load/calibrate1/16.bmp",
+        "image_size": [
+          1440,
+          1080
+        ],
+        "point_count": 88
+      },
+      {
+        "found": true,
+        "image_path": "case/stereo_DIC/plate_center_load/calibrate1/17.bmp",
+        "image_size": [
+          1440,
+          1080
+        ],
+        "point_count": 88
+      },
+      {
+        "found": true,
+        "image_path": "case/stereo_DIC/plate_center_load/calibrate1/18.bmp",
+        "image_size": [
+          1440,
+          1080
+        ],
+        "point_count": 88
+      },
+      {
+        "found": true,
+        "image_path": "case/stereo_DIC/plate_center_load/calibrate1/19.bmp",
+        "image_size": [
+          1440,
+          1080
+        ],
+        "point_count": 88
+      },
+      {
+        "found": true,
+        "image_path": "case/stereo_DIC/plate_center_load/calibrate1/20.bmp",
+        "image_size": [
+          1440,
+          1080
+        ],
+        "point_count": 88
+      }
+    ],
+    "right": [
+      {
+        "found": true,
+        "image_path": "case/stereo_DIC/plate_center_load/calibrate2/01.bmp",
+        "image_size": [
+          1440,
+          1080
+        ],
+        "point_count": 88
+      },
+      {
+        "found": true,
+        "image_path": "case/stereo_DIC/plate_center_load/calibrate2/02.bmp",
+        "image_size": [
+          1440,
+          1080
+        ],
+        "point_count": 88
+      },
+      {
+        "found": true,
+        "image_path": "case/stereo_DIC/plate_center_load/calibrate2/03.bmp",
+        "image_size": [
+          1440,
+          1080
+        ],
+        "point_count": 88
+      },
+      {
+        "found": true,
+        "image_path": "case/stereo_DIC/plate_center_load/calibrate2/04.bmp",
+        "image_size": [
+          1440,
+          1080
+        ],
+        "point_count": 88
+      },
+      {
+        "found": true,
+        "image_path": "case/stereo_DIC/plate_center_load/calibrate2/05.bmp",
+        "image_size": [
+          1440,
+          1080
+        ],
+        "point_count": 88
+      },
+      {
+        "found": true,
+        "image_path": "case/stereo_DIC/plate_center_load/calibrate2/06.bmp",
+        "image_size": [
+          1440,
+          1080
+        ],
+        "point_count": 88
+      },
+      {
+        "found": true,
+        "image_path": "case/stereo_DIC/plate_center_load/calibrate2/07.bmp",
+        "image_size": [
+          1440,
+          1080
+        ],
+        "point_count": 88
+      },
+      {
+        "found": true,
+        "image_path": "case/stereo_DIC/plate_center_load/calibrate2/08.bmp",
+        "image_size": [
+          1440,
+          1080
+        ],
+        "point_count": 88
+      },
+      {
+        "found": true,
+        "image_path": "case/stereo_DIC/plate_center_load/calibrate2/09.bmp",
+        "image_size": [
+          1440,
+          1080
+        ],
+        "point_count": 88
+      },
+      {
+        "found": true,
+        "image_path": "case/stereo_DIC/plate_center_load/calibrate2/10.bmp",
+        "image_size": [
+          1440,
+          1080
+        ],
+        "point_count": 88
+      },
+      {
+        "found": true,
+        "image_path": "case/stereo_DIC/plate_center_load/calibrate2/11.bmp",
+        "image_size": [
+          1440,
+          1080
+        ],
+        "point_count": 88
+      },
+      {
+        "found": true,
+        "image_path": "case/stereo_DIC/plate_center_load/calibrate2/12.bmp",
+        "image_size": [
+          1440,
+          1080
+        ],
+        "point_count": 88
+      },
+      {
+        "found": true,
+        "image_path": "case/stereo_DIC/plate_center_load/calibrate2/13.bmp",
+        "image_size": [
+          1440,
+          1080
+        ],
+        "point_count": 88
+      },
+      {
+        "found": true,
+        "image_path": "case/stereo_DIC/plate_center_load/calibrate2/14.bmp",
+        "image_size": [
+          1440,
+          1080
+        ],
+        "point_count": 88
+      },
+      {
+        "found": true,
+        "image_path": "case/stereo_DIC/plate_center_load/calibrate2/15.bmp",
+        "image_size": [
+          1440,
+          1080
+        ],
+        "point_count": 88
+      },
+      {
+        "found": true,
+        "image_path": "case/stereo_DIC/plate_center_load/calibrate2/16.bmp",
+        "image_size": [
+          1440,
+          1080
+        ],
+        "point_count": 88
+      },
+      {
+        "found": true,
+        "image_path": "case/stereo_DIC/plate_center_load/calibrate2/17.bmp",
+        "image_size": [
+          1440,
+          1080
+        ],
+        "point_count": 88
+      },
+      {
+        "found": true,
+        "image_path": "case/stereo_DIC/plate_center_load/calibrate2/18.bmp",
+        "image_size": [
+          1440,
+          1080
+        ],
+        "point_count": 88
+      },
+      {
+        "found": true,
+        "image_path": "case/stereo_DIC/plate_center_load/calibrate2/19.bmp",
+        "image_size": [
+          1440,
+          1080
+        ],
+        "point_count": 88
+      },
+      {
+        "found": true,
+        "image_path": "case/stereo_DIC/plate_center_load/calibrate2/20.bmp",
+        "image_size": [
+          1440,
+          1080
+        ],
+        "point_count": 88
+      }
+    ]
+  },
+  "kept_pair_indices": [
+    1,
+    2,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19
+  ],
+  "outlier_rejection_applied": true,
+  "rejected_pair_indices": [
+    0,
+    3,
+    11
+  ],
+  "rejection_reasons": [
+    "reprojection_outlier+left_right_error_mismatch",
+    "reprojection_outlier",
+    "reprojection_outlier+left_right_error_mismatch"
+  ],
+  "schema_version": "1.0",
+  "world_scale": 1.0
+}

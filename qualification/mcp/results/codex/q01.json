@@ -1,0 +1,19 @@
+{
+  "client": "codex",
+  "client_version": "0.148.0",
+  "availability": "AVAILABLE",
+  "transport": "stdio",
+  "scenario": "Q01",
+  "scenarios": {"q01": "PASS"},
+  "tool_evidence": ["traditional_dic_capabilities"],
+  "capability_contract": {
+    "subset_2d": {"supported": true, "solver": "subset"},
+    "mesh_2d": {"supported": true, "solver": "mesh"},
+    "stereo_3d": {"supported": true, "solver": "subset"},
+    "multiview_3d": {"supported": true, "solver": "subset"}
+  },
+  "critical_violations": [],
+  "overall": "PARTIALLY_QUALIFIED",
+  "raw_transcript": "/tmp/traditional-dic-m2-transcripts/codex/q01-r3/attempt-1",
+  "notes": "Session-only --approve-for-me allowed the MCP call; no global Codex configuration was changed."
+}

@@ -1,0 +1,22 @@
+{
+  "workflow_kind": "subset_2d",
+  "source_files": ["config/subset_2d.yaml"],
+  "capabilities": {"workflow": "subset_2d", "solver": "subset"},
+  "effective": {
+    "subset_radius": 41,
+    "shape_order": 1,
+    "optimization_method": "icgn",
+    "max_iterations": 50,
+    "convergence_threshold": 1e-06,
+    "criterion": "znssd",
+    "search_radius": 30,
+    "seed_subset_radius": 10,
+    "seed_count": 16,
+    "propagation_spacing": 3,
+    "strain_radius": 15.0
+  },
+  "provenance": {
+    "subset.radius": "config/subset_2d.yaml",
+    "optimization.max_iterations": "config/subset_2d.yaml"
+  }
+}

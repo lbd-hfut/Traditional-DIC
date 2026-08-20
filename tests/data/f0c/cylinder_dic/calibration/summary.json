@@ -1,0 +1,7 @@
+{
+  "mean_reprojection_error": 0.1417771056913531,
+  "observation_count": 14605,
+  "schema_version": "1.0",
+  "source_artifact_sha256": "9bf190f6a2f183ae3bff66d8d364e5908fe5dd656a4381294860db83c1c74503",
+  "sparse_point_count": 6893
+}

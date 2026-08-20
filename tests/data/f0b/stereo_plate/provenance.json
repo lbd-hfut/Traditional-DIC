@@ -1,0 +1,189 @@
+{
+  "baseline_commit": "806832419b0ab3ac40050d8c05c3bd0bed5098f6",
+  "calibration_input_sha256": {
+    "case/stereo_DIC/plate_center_load/calibrate1/01.bmp": "78e86a5c7bc8faaac7355eb9380f701a916af5b385f87ad32633d8c18659f1c6",
+    "case/stereo_DIC/plate_center_load/calibrate1/02.bmp": "f866d1e1626a28d390dc1903cf593a386df93f7604a7c11899f5fab507cb0184",
+    "case/stereo_DIC/plate_center_load/calibrate1/03.bmp": "c61ae85d7f1ac56db7377d7ccf498352f7b86e139e6b8929ae44a80a842c08cf",
+    "case/stereo_DIC/plate_center_load/calibrate1/04.bmp": "3e98d390ac41e0c868c82a2f8a8eea0dda60b327f49674a8fbd569f752d0affe",
+    "case/stereo_DIC/plate_center_load/calibrate1/05.bmp": "a1ae6c0261461f7c675e3fff9f9981990e1a6da83ceb179c0c7c30906703d427",
+    "case/stereo_DIC/plate_center_load/calibrate1/06.bmp": "dcbf4efdd2777f815c9392d90c1d306fe5eb83f673b7270185b8c3ba2a94893e",
+    "case/stereo_DIC/plate_center_load/calibrate1/07.bmp": "04c678ef66618d7d76513cab82cb901a4ac9443073fe405141e48b1d72f6149f",
+    "case/stereo_DIC/plate_center_load/calibrate1/08.bmp": "72e4c687aa047191bf3b97505c0c5dd41ec9c1b4b8641aa0efd85f1e92822dc7",
+    "case/stereo_DIC/plate_center_load/calibrate1/09.bmp": "ce468528d6fbaa886031992318e3a8bcd9f1c377709e2093a2beb60349d91581",
+    "case/stereo_DIC/plate_center_load/calibrate1/10.bmp": "2c470b7e6feb9c6f86c29b95a9c9de5c10554007002f03c774fcb397321c8736",
+    "case/stereo_DIC/plate_center_load/calibrate1/11.bmp": "fea9c9988c13a68757fc56b542db48a8ec14d6279d98cf95c1991569c5e8b9f5",
+    "case/stereo_DIC/plate_center_load/calibrate1/12.bmp": "bce5669a7cedc5534ebfc40e8dd5b98b511b3a84d80cb871c0e9f955d924de68",
+    "case/stereo_DIC/plate_center_load/calibrate1/13.bmp": "bf934cce0d4a6342e75b412a587f79c49f756a4b7a9d72f766d1a5343ba542d6",
+    "case/stereo_DIC/plate_center_load/calibrate1/14.bmp": "5b4e9f7fb5a923efe7db6e1b7bfeea7054ced406c9537c42ca3cddc6b5a88ced",
+    "case/stereo_DIC/plate_center_load/calibrate1/15.bmp": "28e7f53b5a1eccc55ea36f39cbe9096a78baf0b8617098e245428072b197efa5",
+    "case/stereo_DIC/plate_center_load/calibrate1/16.bmp": "05b81ae52b248bb9a619dc86bcda2be30338d05b2c0f8fad381a9ae29db90e8e",
+    "case/stereo_DIC/plate_center_load/calibrate1/17.bmp": "5713bb62845b62d5204ed6c1c4015f3b8a556b9328deb7e8b80aff84bcf6e58a",
+    "case/stereo_DIC/plate_center_load/calibrate1/18.bmp": "630e8c2ed5be4fae5eccbb24ca742b6e0d5b08258678be2ab4673156051a0a2c",
+    "case/stereo_DIC/plate_center_load/calibrate1/19.bmp": "464342dfe81ebe09620aea86b7140e4598501e04ae9cc19d839a222ca1fb9fab",
+    "case/stereo_DIC/plate_center_load/calibrate1/20.bmp": "5e1d0c8194ce9ac48454af0a720f742e8a3ce3407dd09611b568e3c3e5f96741",
+    "case/stereo_DIC/plate_center_load/calibrate2/01.bmp": "6c02578724758b67a3a8e2d00b042ed9532f34f8e789e06c4e7196df4a453f24",
+    "case/stereo_DIC/plate_center_load/calibrate2/02.bmp": "e00ff39a8d2e9859b9b425b7f48769214a5d3d520011ed3fde11f6b4e45cd315",
+    "case/stereo_DIC/plate_center_load/calibrate2/03.bmp": "27aeb08ab2f7f95fe48f026423b384fbed3e6a308a4a522cd056a3ab91666c82",
+    "case/stereo_DIC/plate_center_load/calibrate2/04.bmp": "ccbf579a94879b14ed07d9b7d0b222ee670a14f2691b732e26fa11b265ade238",
+    "case/stereo_DIC/plate_center_load/calibrate2/05.bmp": "16625cc26de29df1642be74d8cef074db2db59f3840e04a4896d0f01227a3dd2",
+    "case/stereo_DIC/plate_center_load/calibrate2/06.bmp": "240e3a09b082bd360bed99468f5cc14ff86f42bcdc2689f9c227140e001abcde",
+    "case/stereo_DIC/plate_center_load/calibrate2/07.bmp": "e8d649f44f5d6eddb7a5bd8db9cbc4e238e43b0331a419c937a8a876d3c0c62d",
+    "case/stereo_DIC/plate_center_load/calibrate2/08.bmp": "f5b1012575a9172d9bdd01b194d084340a2109a544351fb21066e39fb30c6055",
+    "case/stereo_DIC/plate_center_load/calibrate2/09.bmp": "311a8bf538fd47e2be0ceabe0bbbe80ab72875c7d013bfd594fd7c375209552e",
+    "case/stereo_DIC/plate_center_load/calibrate2/10.bmp": "afa641432f52062a74fc812787924407d1ab8fb58b3632591ae5d55579751503",
+    "case/stereo_DIC/plate_center_load/calibrate2/11.bmp": "898b36593689615c4d2b6a41312eb5ec9c2b781a18492a6dc18f31fbaa064aed",
+    "case/stereo_DIC/plate_center_load/calibrate2/12.bmp": "7a999b82871b0b6cfa6df633eeb04455a27da6cca145e74214b4a58bd8d01347",
+    "case/stereo_DIC/plate_center_load/calibrate2/13.bmp": "c007fd3cd0f45e7633f3925bcffb56e31cd50e4db574e663b17fb5b7d026beae",
+    "case/stereo_DIC/plate_center_load/calibrate2/14.bmp": "48e02df3a1e04ad68e692ffc0fb0386ae8be0c1f0069bc2fc6f4f57ea3bbfc3d",
+    "case/stereo_DIC/plate_center_load/calibrate2/15.bmp": "76c802428b34dcc9fde2c3537bda63cffdf9b6c56a8f381abebff98aef61708f",
+    "case/stereo_DIC/plate_center_load/calibrate2/16.bmp": "339a4fc66db998d807bc99c837241e0e6648f0600df52ad08b15fb243df81d8e",
+    "case/stereo_DIC/plate_center_load/calibrate2/17.bmp": "255ddb38b61cc08e22d135a8ed9ab1c90f582e87ac33c2918c99f4c6f2e65ac8",
+    "case/stereo_DIC/plate_center_load/calibrate2/18.bmp": "d891eceaf5667553f9bdd299fb08bc7058ed8dd15d91301c25d00540c2e930f1",
+    "case/stereo_DIC/plate_center_load/calibrate2/19.bmp": "28e2f5a0f5ff9aa6ed9e3ccf91088a69b3aa936894604e183a1553b53f99e683",
+    "case/stereo_DIC/plate_center_load/calibrate2/20.bmp": "50221b640f9e81567ea0fb2f4aff854d9537ab3d1d240d1009c7ebb07207582e"
+  },
+  "calibration_order": {
+    "left": [
+      "case/stereo_DIC/plate_center_load/calibrate1/01.bmp",
+      "case/stereo_DIC/plate_center_load/calibrate1/02.bmp",
+      "case/stereo_DIC/plate_center_load/calibrate1/03.bmp",
+      "case/stereo_DIC/plate_center_load/calibrate1/04.bmp",
+      "case/stereo_DIC/plate_center_load/calibrate1/05.bmp",
+      "case/stereo_DIC/plate_center_load/calibrate1/06.bmp",
+      "case/stereo_DIC/plate_center_load/calibrate1/07.bmp",
+      "case/stereo_DIC/plate_center_load/calibrate1/08.bmp",
+      "case/stereo_DIC/plate_center_load/calibrate1/09.bmp",
+      "case/stereo_DIC/plate_center_load/calibrate1/10.bmp",
+      "case/stereo_DIC/plate_center_load/calibrate1/11.bmp",
+      "case/stereo_DIC/plate_center_load/calibrate1/12.bmp",
+      "case/stereo_DIC/plate_center_load/calibrate1/13.bmp",
+      "case/stereo_DIC/plate_center_load/calibrate1/14.bmp",
+      "case/stereo_DIC/plate_center_load/calibrate1/15.bmp",
+      "case/stereo_DIC/plate_center_load/calibrate1/16.bmp",
+      "case/stereo_DIC/plate_center_load/calibrate1/17.bmp",
+      "case/stereo_DIC/plate_center_load/calibrate1/18.bmp",
+      "case/stereo_DIC/plate_center_load/calibrate1/19.bmp",
+      "case/stereo_DIC/plate_center_load/calibrate1/20.bmp"
+    ],
+    "right": [
+      "case/stereo_DIC/plate_center_load/calibrate2/01.bmp",
+      "case/stereo_DIC/plate_center_load/calibrate2/02.bmp",
+      "case/stereo_DIC/plate_center_load/calibrate2/03.bmp",
+      "case/stereo_DIC/plate_center_load/calibrate2/04.bmp",
+      "case/stereo_DIC/plate_center_load/calibrate2/05.bmp",
+      "case/stereo_DIC/plate_center_load/calibrate2/06.bmp",
+      "case/stereo_DIC/plate_center_load/calibrate2/07.bmp",
+      "case/stereo_DIC/plate_center_load/calibrate2/08.bmp",
+      "case/stereo_DIC/plate_center_load/calibrate2/09.bmp",
+      "case/stereo_DIC/plate_center_load/calibrate2/10.bmp",
+      "case/stereo_DIC/plate_center_load/calibrate2/11.bmp",
+      "case/stereo_DIC/plate_center_load/calibrate2/12.bmp",
+      "case/stereo_DIC/plate_center_load/calibrate2/13.bmp",
+      "case/stereo_DIC/plate_center_load/calibrate2/14.bmp",
+      "case/stereo_DIC/plate_center_load/calibrate2/15.bmp",
+      "case/stereo_DIC/plate_center_load/calibrate2/16.bmp",
+      "case/stereo_DIC/plate_center_load/calibrate2/17.bmp",
+      "case/stereo_DIC/plate_center_load/calibrate2/18.bmp",
+      "case/stereo_DIC/plate_center_load/calibrate2/19.bmp",
+      "case/stereo_DIC/plate_center_load/calibrate2/20.bmp"
+    ]
+  },
+  "canonical_case": "case/stereo_DIC/plate_center_load",
+  "config_paths": [
+    "config/case_paths.yaml",
+    "config/calibration.yaml",
+    "config/stereo_3d.yaml",
+    "config/subset_2d.yaml"
+  ],
+  "config_sha256": {
+    "config/calibration.yaml": "9c2f97114488a21544c3315b71d57bae5a3c7172d2f9ca5ea9eab86f3c90e16c",
+    "config/case_paths.yaml": "e574be1b42d4a77ee316476459e8071944030378affed6770a26fa42b38e8899",
+    "config/stereo_3d.yaml": "2645a9bd89aa967d904b1a9ef565e45dbff0cb10fe5c3be33a05e44d553ca2db",
+    "config/subset_2d.yaml": "409ab1ae3b6d474bcbd5b26a5231d0d3957896c8d5666fb24c63de30b0879f2b"
+  },
+  "field_repeatability": {
+    "executed": false,
+    "reason": "F0A already protects the Subset engine; F0B locks canonical Stereo field routing from one expensive three-field run."
+  },
+  "generation_command": "python -m tests.support.generate_f0b_baseline (explicit arguments recorded in implementation report)",
+  "input_sha256": {
+    "case/stereo_DIC/plate_center_load/ROI.bmp": "06fbfc83fcde6097f8ca2d0e055a41556744dcf5672c52c1ad2992aaf3475a2f",
+    "case/stereo_DIC/plate_center_load/cam1/00_L.bmp": "aa7ac7b7a6a5c61a936a1408300182ac0fee3c11e350f2bfcbdf67c8e476ac25",
+    "case/stereo_DIC/plate_center_load/cam1/04_L.bmp": "b49b239d6f09b5f8dec90c461c4bec8a9c7581d5b528cc247a0b07a8f20d6faf",
+    "case/stereo_DIC/plate_center_load/cam2/00_R.bmp": "459078c9d1c4503f58a62aa28d1f3dc5d49a165fcfe74a7647274e68abac6330",
+    "case/stereo_DIC/plate_center_load/cam2/04_R.bmp": "f6c861c856d8f9c6875a6b469fb6fde0a39065621ee4d0564a74771017865b53"
+  },
+  "native_extension": {
+    "bytes": 3062976,
+    "path": "/home/a306/01project/Traditional-DIC/python/traditional_dic/_traditional_dic.cpython-311-x86_64-linux-gnu.so",
+    "sha256": "b30c85afeff2fb20e9160e2d6fbabd85e6a4b9347b2f3c357dda94b381c3c739"
+  },
+  "numpy_version": "2.4.6",
+  "opencv_version": "5.0.0",
+  "platform": "Linux-6.17.0-35-generic-x86_64-with-glibc2.42",
+  "python_version": "3.11.15",
+  "repository": "Traditional-DIC",
+  "resolved_inputs": {
+    "L0": "case/stereo_DIC/plate_center_load/cam1/00_L.bmp",
+    "Llast": "case/stereo_DIC/plate_center_load/cam1/04_L.bmp",
+    "R0": "case/stereo_DIC/plate_center_load/cam2/00_R.bmp",
+    "ROI": "case/stereo_DIC/plate_center_load/ROI.bmp",
+    "Rlast": "case/stereo_DIC/plate_center_load/cam2/04_R.bmp"
+  },
+  "runtime_evidence": {
+    "architectural_contract": "stereo_3d=subset_only",
+    "field_repeatability": {
+      "executed": false,
+      "reason": "F0A already protects the Subset engine; F0B locks canonical Stereo field routing from one expensive three-field run."
+    },
+    "operations": {
+      "calibration_run_a": {
+        "runtime_seconds": 4.608458023518324,
+        "started_unix": 1787108146.0148294,
+        "status": "succeeded"
+      },
+      "calibration_run_b": {
+        "runtime_seconds": 3.632478455081582,
+        "started_unix": 1787108150.6233861,
+        "status": "succeeded"
+      },
+      "reconstruction_run_a": {
+        "runtime_seconds": 0.8524206317961216,
+        "started_unix": 1787108184.0172925,
+        "status": "succeeded"
+      },
+      "reconstruction_run_b": {
+        "runtime_seconds": 0.8652061419561505,
+        "started_unix": 1787108184.8698242,
+        "status": "succeeded"
+      },
+      "three_subset_fields": {
+        "runtime_seconds": 29.761065331287682,
+        "started_unix": 1787108154.2559576,
+        "status": "succeeded"
+      }
+    },
+    "resolved_inputs": {
+      "calibration_left": "/home/a306/01project/Traditional-DIC/case/stereo_DIC/plate_center_load/calibrate1",
+      "calibration_right": "/home/a306/01project/Traditional-DIC/case/stereo_DIC/plate_center_load/calibrate2",
+      "case_root": "/home/a306/01project/Traditional-DIC/case/stereo_DIC/plate_center_load",
+      "left_deformed": "/home/a306/01project/Traditional-DIC/case/stereo_DIC/plate_center_load/cam1/04_L.bmp",
+      "left_reference": "/home/a306/01project/Traditional-DIC/case/stereo_DIC/plate_center_load/cam1/00_L.bmp",
+      "right_deformed": "/home/a306/01project/Traditional-DIC/case/stereo_DIC/plate_center_load/cam2/04_R.bmp",
+      "right_reference": "/home/a306/01project/Traditional-DIC/case/stereo_DIC/plate_center_load/cam2/00_R.bmp",
+      "roi": "/home/a306/01project/Traditional-DIC/case/stereo_DIC/plate_center_load/ROI.bmp"
+    },
+    "staging_directory": "/tmp/traditional-dic-f0b-8068324",
+    "working_directory": "/home/a306/01project/Traditional-DIC",
+    "world_scale": 1.0
+  },
+  "schema_version": "1.0",
+  "staging_method": "existing workflow/API outputs redirected to explicit repository-external /tmp tree",
+  "traditional_dic_package": "/home/a306/01project/Traditional-DIC/python/traditional_dic/__init__.py",
+  "workflow_capability": {
+    "mesh_2d": true,
+    "multiview_3d_solver": "subset",
+    "stereo_3d_solver": "subset",
+    "subset_2d": true
+  }
+}

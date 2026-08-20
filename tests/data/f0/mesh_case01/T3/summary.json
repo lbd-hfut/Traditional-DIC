@@ -1,0 +1,93 @@
+{
+  "baseline_kind": "mesh_full_artifact",
+  "element_family": "T3",
+  "headers": {
+    "dense_U": [
+      "id",
+      "x",
+      "y",
+      "u",
+      "v",
+      "mag",
+      "valid"
+    ],
+    "dense_strain": [
+      "x",
+      "y",
+      "du_dx",
+      "du_dy",
+      "dv_dx",
+      "dv_dy",
+      "exx",
+      "eyy",
+      "exy",
+      "sample_count",
+      "valid"
+    ],
+    "final_U": [
+      "node",
+      "x",
+      "y",
+      "u",
+      "v",
+      "mag"
+    ]
+  },
+  "row_counts": {
+    "dense_U": 53544,
+    "dense_strain": 53544,
+    "final_U": 119
+  },
+  "schema_version": "1.0",
+  "source_artifacts": {
+    "case/mono_DIC/01/result/mesh/test1_001_ssd_fgn/T3/dense_U.csv": {
+      "bytes": 5680607,
+      "sha256": "4be06f5af03cbe31de00e45bc2484fae48d7ecde4369911aecad1c8f09f6512b"
+    },
+    "case/mono_DIC/01/result/mesh/test1_001_ssd_fgn/T3/dense_strain.csv": {
+      "bytes": 10753729,
+      "sha256": "9ed1ad2f99eb61c7acb811cb00db046aa8b8fa21f9cda37925a40840f68be797"
+    },
+    "case/mono_DIC/01/result/mesh/test1_001_ssd_fgn/T3/elements_T3.txt": {
+      "bytes": 2488,
+      "sha256": "c08e31405165ea1f9a15428afee09c3988fefa8001af986aed1c5ea7b4f49f93"
+    },
+    "case/mono_DIC/01/result/mesh/test1_001_ssd_fgn/T3/final_U.csv": {
+      "bytes": 7341,
+      "sha256": "8d8d17b28df067a780eadd4eee68d9f61e6e1b713c5b0aa51e7543fcb0347bc1"
+    },
+    "case/mono_DIC/01/result/mesh/test1_001_ssd_fgn/T3/nodes_T3.txt": {
+      "bytes": 1345,
+      "sha256": "2f2949a0313d416482a000400af324a08d9add0aad41669178a617f281cc7b92"
+    },
+    "case/mono_DIC/01/result/mesh/test1_001_ssd_fgn/T3/summary.json": {
+      "bytes": 609,
+      "sha256": "e9546073f5065a3b2330f971e145a889053e6e8509725cd30e2b941ef5018736"
+    }
+  },
+  "statistics": {
+    "criterion": "ssd",
+    "dense_displacement_file": "dense_U.csv",
+    "dense_samples": 53544,
+    "elements": 194,
+    "elements_file": "elements_T3.txt",
+    "generation_summary": {
+      "method": "structured_roi",
+      "target_element_size": 41.0
+    },
+    "initialization": "fedic_fft",
+    "mag_max": 0.02892779693629562,
+    "mag_mean": 0.011233484089587874,
+    "mesh_preview": "/home/a306/01project/Traditional-DIC/case/mono_DIC/01/visualization/mesh/test1_001_ssd_fgn/T3/mesh_preview_T3.png",
+    "nodal_displacement_file": "final_U.csv",
+    "nodes": 119,
+    "nodes_file": "nodes_T3.txt",
+    "solver": "fedic_element_fgn"
+  },
+  "topology": {
+    "element_count": 194,
+    "elements_columns": 4,
+    "node_count": 119,
+    "nodes_columns": 3
+  }
+}

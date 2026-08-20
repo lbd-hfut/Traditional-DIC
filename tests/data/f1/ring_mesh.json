@@ -1,0 +1,19 @@
+{
+  "workflow_kind": "mesh_2d",
+  "case_root": "case/mono_DIC/01",
+  "frames": [
+    {"role": "reference", "path": "case/mono_DIC/01/test1_000.bmp"},
+    {"role": "deformed", "index": 0, "path": "case/mono_DIC/01/test1_001.bmp"},
+    {"role": "deformed", "index": 1, "path": "case/mono_DIC/01/test1_002.bmp"},
+    {"role": "deformed", "index": 2, "path": "case/mono_DIC/01/test1_003.bmp"},
+    {"role": "deformed", "index": 3, "path": "case/mono_DIC/01/test1_004.bmp"},
+    {"role": "deformed", "index": 4, "path": "case/mono_DIC/01/test1_005.bmp"},
+    {"role": "deformed", "index": 5, "path": "case/mono_DIC/01/test1_006.bmp"},
+    {"role": "deformed", "index": 6, "path": "case/mono_DIC/01/test1_007.bmp"},
+    {"role": "deformed", "index": 7, "path": "case/mono_DIC/01/test1_008.bmp"},
+    {"role": "deformed", "index": 8, "path": "case/mono_DIC/01/test1_009.bmp"},
+    {"role": "roi", "path": "case/mono_DIC/01/test1_010.bmp"}
+  ],
+  "roi": {"mode": "explicit_image", "path": "case/mono_DIC/01/test1_010.bmp"},
+  "metadata": {"frame_rule": "first_reference_middle_deformed_last_roi", "sort_rule": "lexical_filename"}
+}

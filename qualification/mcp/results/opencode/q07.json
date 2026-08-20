@@ -1,0 +1,15 @@
+{
+  "client": "opencode",
+  "client_version": "1.18.18",
+  "availability": "AVAILABLE",
+  "transport": "stdio",
+  "scenario": "Q07",
+  "scenarios": {"q07": "PASS"},
+  "tool_evidence": ["traditional_dic_status"],
+  "workspace": "/tmp/traditional-dic-m2r2/opencode/subset-20260820",
+  "execution_status": "SUCCESS",
+  "recomputed": false,
+  "critical_violations": [],
+  "overall": "PARTIALLY_QUALIFIED",
+  "raw_transcript": "/tmp/traditional-dic-m2-transcripts/opencode/q07/attempt-1"
+}

@@ -1,0 +1,14 @@
+{
+  "client": "opencode",
+  "client_version": "1.18.18",
+  "availability": "AVAILABLE",
+  "transport": "stdio",
+  "scenario": "Q02",
+  "scenarios": {"q02": "PASS"},
+  "tool_evidence": ["traditional_dic_inspect"],
+  "case": "case/mono_DIC/ring",
+  "scientific_run": false,
+  "critical_violations": [],
+  "overall": "PARTIALLY_QUALIFIED",
+  "raw_transcript": "/tmp/traditional-dic-m2-transcripts/opencode/q02/attempt-1"
+}

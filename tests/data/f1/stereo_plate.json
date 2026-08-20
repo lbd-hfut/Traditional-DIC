@@ -1,0 +1,13 @@
+{
+  "workflow_kind": "stereo_3d",
+  "case_root": "case/stereo_DIC/plate_center_load",
+  "frames": {
+    "left_reference": "case/stereo_DIC/plate_center_load/cam1/00_L.bmp",
+    "right_reference": "case/stereo_DIC/plate_center_load/cam2/00_R.bmp",
+    "left_deformed": "case/stereo_DIC/plate_center_load/cam1/04_L.bmp",
+    "right_deformed": "case/stereo_DIC/plate_center_load/cam2/04_R.bmp"
+  },
+  "roi": {"mode": "explicit_image", "path": "case/stereo_DIC/plate_center_load/ROI.bmp"},
+  "calibration": {"count": 20, "first": ["case/stereo_DIC/plate_center_load/calibrate1/01.bmp", "case/stereo_DIC/plate_center_load/calibrate2/01.bmp"], "last": ["case/stereo_DIC/plate_center_load/calibrate1/20.bmp", "case/stereo_DIC/plate_center_load/calibrate2/20.bmp"]},
+  "stereo_roles": {"reference_disparity": "left_reference_to_right_reference", "left_temporal": "left_reference_to_left_deformed", "deformed_disparity": "left_reference_to_right_deformed"}
+}

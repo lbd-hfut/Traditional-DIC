@@ -1,0 +1,52 @@
+{
+  "baseline_commit": "806832419b0ab3ac40050d8c05c3bd0bed5098f6",
+  "baseline_scope": "F0A subset + mesh behavior artifacts",
+  "datasets": {
+    "mesh_case01": "mesh_case01",
+    "subset_ring": "subset_ring"
+  },
+  "files": {
+    "mesh_case01/Q4/baseline.npz": {
+      "bytes": 3890347,
+      "sha256": "741c2e23d4c390618aabb0095c3b5a830060fe38346fb9f211a4f1715dcaffe9"
+    },
+    "mesh_case01/Q4/summary.json": {
+      "bytes": 2512,
+      "sha256": "55a865bfd9bbc1622122eef1467332aa845bf4f1a47e6ec7672510bd2de9bee4"
+    },
+    "mesh_case01/Q8/baseline.npz": {
+      "bytes": 4467431,
+      "sha256": "9f81be3e20096f0098089d47a2cf2d34abaa4f5faff93448e7e4f42514a193f8"
+    },
+    "mesh_case01/Q8/summary.json": {
+      "bytes": 2513,
+      "sha256": "71ffb96954b527f870d7b4c62b55659c97ef3486b6789b34fb7849ea2c5905bb"
+    },
+    "mesh_case01/T3/baseline.npz": {
+      "bytes": 4000957,
+      "sha256": "2bfcbce9d137ba317aa413fb9019314fdbc75ca563574d0ed8ef3fbeb02a4d4a"
+    },
+    "mesh_case01/T3/summary.json": {
+      "bytes": 2514,
+      "sha256": "b76449cbeac635026d274fb2b770cf3265ba8cea06614ec6d19cc63b14c3f9a3"
+    },
+    "mesh_case01/provenance.json": {
+      "bytes": 6554,
+      "sha256": "6e442aaa4c74fe22a98ef917cdb97146ed0f3e512a31b03ae51cbd8a4f00b3b7"
+    },
+    "subset_ring/baseline.npz": {
+      "bytes": 5191571,
+      "sha256": "bb42e97076837b8bc8e19e5cf4a6d72bbaa1f9b980dc9abba00c93bd8aef89fb"
+    },
+    "subset_ring/provenance.json": {
+      "bytes": 2040,
+      "sha256": "a8a0bfd534473f6fba9ea3687756c89dd09d533cc0559064b3b0b15472578464"
+    },
+    "subset_ring/summary.json": {
+      "bytes": 1506,
+      "sha256": "e5454fa89e7a36875886010c5c1e60455dfca8b66faf1d6a496b6e23338f004f"
+    }
+  },
+  "immutable_at_pytest_runtime": true,
+  "schema_version": "1.0"
+}

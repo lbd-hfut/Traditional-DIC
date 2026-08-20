@@ -1,0 +1,22 @@
+{
+  "workflow_kind": "mesh_2d",
+  "source_files": ["config/mesh_2d.yaml"],
+  "capabilities": {"workflow": "mesh_2d", "solver": "mesh", "element_types": ["T3", "Q4", "Q8"]},
+  "effective": {
+    "selected_element_type": "Q8",
+    "mesh_element_type": "Q8",
+    "generation_element_type": "Q8",
+    "optimization_method": "fedic_element_fgn",
+    "objective": "ssd",
+    "max_iterations": 50,
+    "convergence_threshold": 1e-06,
+    "fft_window_size": 75,
+    "fft_search_radius": 50,
+    "strain_radius": 15.0
+  },
+  "provenance": {
+    "mesh.element_type": "override:mesh.element_type",
+    "mesh_generation.element_type": "override:mesh_generation.element_type",
+    "optimization.method": "config/mesh_2d.yaml"
+  }
+}

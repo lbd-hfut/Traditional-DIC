@@ -1,0 +1,35 @@
+{
+  "schema_version": "1.0",
+  "client": "claude_code",
+  "client_version": "2.1.233",
+  "availability": "AVAILABLE",
+  "transport": "stdio",
+  "scenario": "q02",
+  "scenarios": {
+    "q02": "PASS"
+  },
+  "critical_violations": [],
+  "overall": "PARTIALLY_QUALIFIED",
+  "session_id": "f23fd487-544c-483a-bba4-8099fbf6914c",
+  "tool_evidence": {
+    "tool": "traditional_dic_inspect",
+    "workflow": "subset_2d",
+    "case": "case/mono_DIC/ring",
+    "valid": true,
+    "resolved_reference": "case/mono_DIC/ring/001.bmp",
+    "resolved_deformed": "case/mono_DIC/ring/002.bmp",
+    "resolved_roi": "case/mono_DIC/ring/003.bmp",
+    "roi_mode": "explicit_image",
+    "config_source": "config/subset_2d.yaml"
+  },
+  "capture": {
+    "attempt": 1,
+    "classification": "COMPLETED",
+    "exit_code": 0,
+    "timed_out": false,
+    "process_alive_at_timeout": false,
+    "duration_seconds": 24.302,
+    "raw_transcript": "/tmp/traditional-dic-m2-transcripts/claude/q02/attempt-1"
+  },
+  "notes": "Fresh session; read-only inspection; no scientific run; no repository mutation."
+}

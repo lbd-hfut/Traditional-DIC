@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Traditional-DIC multi-agent qualification result",
+  "type": "object",
+  "required": ["schema_version", "agent", "availability", "overall", "scenario_results", "critical_violations"],
+  "properties": {
+    "schema_version": {"type": "string", "const": "1.0"},
+    "agent": {"type": "string"},
+    "availability": {"enum": ["QUALIFIED", "FAILED", "BLOCKED_ENVIRONMENT", "NOT_AVAILABLE"]},
+    "overall": {"enum": ["FULLY_QUALIFIED", "PARTIALLY_QUALIFIED", "FAILED", "BLOCKED_ENVIRONMENT", "NOT_AVAILABLE"]},
+    "scenario_results": {"type": "object", "additionalProperties": {"enum": ["PASS", "FAIL", "BLOCKED", "NOT_RUN"]}},
+    "critical_violations": {"type": "array", "items": {"type": "string"}}
+  }
+}

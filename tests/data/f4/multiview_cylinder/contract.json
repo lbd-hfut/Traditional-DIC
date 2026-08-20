@@ -1,0 +1,13 @@
+{
+  "schema_version": "1.0",
+  "workflow_kind": "multiview_3d",
+  "primary_result_type": "stitched_3d_surface",
+  "capability_contract": {
+    "subset_2d": true,
+    "mesh_2d": true,
+    "stereo_3d_solver": "subset",
+    "multiview_3d_solver": "subset"
+  },
+  "metric_keys": ["camera_count", "pair_count", "field_count", "stitched_point_count"],
+  "dynamic_fields_excluded": ["run_id", "timestamps", "duration_seconds"]
+}

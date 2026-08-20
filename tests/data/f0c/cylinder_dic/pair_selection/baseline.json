@@ -1,0 +1,173 @@
+{
+  "circularity": null,
+  "is_circular": true,
+  "mode": "auto_natural",
+  "neighbor_order": 1,
+  "pair_distances": {
+    "cam_0-cam_1": 0.9950952998977192,
+    "cam_1-cam_2": 0.9928962040963522,
+    "cam_10-cam_11": 0.9928913464092961,
+    "cam_11-cam_0": 0.9923060395415597,
+    "cam_2-cam_3": 0.9925897339332586,
+    "cam_3-cam_4": 0.9907557765797528,
+    "cam_4-cam_5": 0.993380366740028,
+    "cam_5-cam_6": 0.9902238871263689,
+    "cam_6-cam_7": 0.9952072952798191,
+    "cam_7-cam_8": 0.9928027851796195,
+    "cam_8-cam_9": 0.9940456035206959,
+    "cam_9-cam_10": 0.9905654700866486
+  },
+  "pair_names": [
+    [
+      "cam_0",
+      "cam_1"
+    ],
+    [
+      "cam_1",
+      "cam_2"
+    ],
+    [
+      "cam_2",
+      "cam_3"
+    ],
+    [
+      "cam_3",
+      "cam_4"
+    ],
+    [
+      "cam_4",
+      "cam_5"
+    ],
+    [
+      "cam_5",
+      "cam_6"
+    ],
+    [
+      "cam_6",
+      "cam_7"
+    ],
+    [
+      "cam_7",
+      "cam_8"
+    ],
+    [
+      "cam_8",
+      "cam_9"
+    ],
+    [
+      "cam_9",
+      "cam_10"
+    ],
+    [
+      "cam_10",
+      "cam_11"
+    ],
+    [
+      "cam_11",
+      "cam_0"
+    ]
+  ],
+  "pairs": [
+    [
+      0,
+      1
+    ],
+    [
+      1,
+      2
+    ],
+    [
+      2,
+      3
+    ],
+    [
+      3,
+      4
+    ],
+    [
+      4,
+      5
+    ],
+    [
+      5,
+      6
+    ],
+    [
+      6,
+      7
+    ],
+    [
+      7,
+      8
+    ],
+    [
+      8,
+      9
+    ],
+    [
+      9,
+      10
+    ],
+    [
+      10,
+      11
+    ],
+    [
+      11,
+      0
+    ]
+  ],
+  "reconstruction_policy": "pair_level_stereo_surface",
+  "rejected_pairs": [],
+  "schema_version": "1.0",
+  "shared_track_counts": {
+    "cam_0-cam_1": 491,
+    "cam_1-cam_2": 522,
+    "cam_10-cam_11": 465,
+    "cam_11-cam_0": 464,
+    "cam_2-cam_3": 517,
+    "cam_3-cam_4": 500,
+    "cam_4-cam_5": 562,
+    "cam_5-cam_6": 482,
+    "cam_6-cam_7": 494,
+    "cam_7-cam_8": 486,
+    "cam_8-cam_9": 485,
+    "cam_9-cam_10": 460
+  },
+  "source_artifact_sha256": "85272ed4cbdbca58d8b4403f6b965ef193495dbd26159bcfd3b1079b5d2f0aa1",
+  "spatial_order": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11
+  ],
+  "spatial_order_names": [
+    "cam_0",
+    "cam_1",
+    "cam_2",
+    "cam_3",
+    "cam_4",
+    "cam_5",
+    "cam_6",
+    "cam_7",
+    "cam_8",
+    "cam_9",
+    "cam_10",
+    "cam_11"
+  ],
+  "thresholds": {
+    "auto_circularity_threshold": 0.45,
+    "auto_max_neighbor_distance_ratio": 2.0,
+    "auto_min_shared_tracks": 20,
+    "auto_wrap_distance_ratio": 1.8,
+    "auto_wrap_min_shared_ratio": 0.35
+  }
+}

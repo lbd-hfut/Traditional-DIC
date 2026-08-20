@@ -1,0 +1,13 @@
+{
+  "schema_version": "1.0",
+  "client": "claude_code",
+  "client_version": "2.1.233",
+  "availability": "AVAILABLE",
+  "transport": "stdio",
+  "scenario": "q01",
+  "scenarios": {"q01": "PASS"},
+  "critical_violations": [],
+  "overall": "FULLY_QUALIFIED",
+  "tool_evidence": {"tools": ["traditional_dic_capabilities"], "capability_contract": "subset_2d and mesh_2d supported; stereo_3d and multiview_3d subset-only"},
+  "capture": {"classification": "COMPLETED", "source": "existing M2-R evidence; not rerun in M2-R2", "raw_transcript": null}
+}

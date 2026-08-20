@@ -1,0 +1,81 @@
+{
+  "architectural_contract": {
+    "mesh_scope": "standalone_2d_only",
+    "multiview_3d_solver": "subset",
+    "stereo_3d_solver": "subset"
+  },
+  "baseline_commit": "806832419b0ab3ac40050d8c05c3bd0bed5098f6",
+  "baseline_scope": "F0C Multiview Subset-only calibration, scale, pair selection, masks, fields, pairwise reconstruction, and deterministic stitching",
+  "files": {
+    "cylinder_dic/calibration/numerical.npz": {
+      "bytes": 17999,
+      "sha256": "1c3266d8ba9bb885dcef850b1e1d49445e967d4b29d6c0114965a61e187f7f9f"
+    },
+    "cylinder_dic/calibration/repeatability.json": {
+      "bytes": 432,
+      "sha256": "c6b949976d300454c80aee0d1d04900af2b5163284ba864ecf37fc2646c461f7"
+    },
+    "cylinder_dic/calibration/structure.json": {
+      "bytes": 3017,
+      "sha256": "8d4b6a3b7d724526bed6cd05f8cbee7e6a5d7a9c874c8c3d6db5440b16037cc6"
+    },
+    "cylinder_dic/calibration/summary.json": {
+      "bytes": 235,
+      "sha256": "961716008b448bddd6f999ac9aa412076db168b982bae4e3ed332070c992bef0"
+    },
+    "cylinder_dic/fields/baseline.npz": {
+      "bytes": 509570,
+      "sha256": "9a6644d7c807609878d4e90c4f4ae94463ca812a14189579044a1ed7def7f9ac"
+    },
+    "cylinder_dic/fields/metadata.json": {
+      "bytes": 1137025,
+      "sha256": "a034aaabe5eb9a827870db8b53303f0ffd5d10b956a16e016d45d0ae10e87a28"
+    },
+    "cylinder_dic/masks/masks.npz": {
+      "bytes": 71931,
+      "sha256": "0097f0a170decbc5fc796af82ecae05629f7a01fc15c7d808c2632612f40d672"
+    },
+    "cylinder_dic/masks/metadata.json": {
+      "bytes": 22170,
+      "sha256": "48db77905b4c997527e7fe452b9a193d929f2c0eb41b5650555a75e09cb880c8"
+    },
+    "cylinder_dic/pair_selection/baseline.json": {
+      "bytes": 2550,
+      "sha256": "5e5b4132a6ef0539034dc966ed1b112ef7409f85c01f265d080f1ff4549e629e"
+    },
+    "cylinder_dic/pairwise_reconstruction/baseline.npz": {
+      "bytes": 5599674,
+      "sha256": "0af8b37dbb7882eb39b7c968351bdc6ab160035fdd7c1e6c03ed402405363d23"
+    },
+    "cylinder_dic/pairwise_reconstruction/metadata.json": {
+      "bytes": 730764,
+      "sha256": "4ac97943e6837e601d4ac0799980f05e7112e21f561817c2eb9eaa307971d5d4"
+    },
+    "cylinder_dic/provenance.json": {
+      "bytes": 10516,
+      "sha256": "15b4baf678a10a45016dde58228e8688129d36635bd9e052bda959db277069b1"
+    },
+    "cylinder_dic/scale/baseline.json": {
+      "bytes": 647,
+      "sha256": "008c420e21b0104d49c62d5b07e0c0d4c959680183f494b311a3b77326e13f73"
+    },
+    "cylinder_dic/stitching/baseline.npz": {
+      "bytes": 8785212,
+      "sha256": "bc19e1e6b13bc19fb6bc041cf920d35aa4858cbbbcb8c0f52dea5a6facc4f0a2"
+    },
+    "cylinder_dic/stitching/metadata.json": {
+      "bytes": 72836,
+      "sha256": "c3806dafff22be9c9e9917758a8db948a518a1400bcc93e1eb6d12e4f07dbdcd"
+    },
+    "cylinder_dic/stitching/repeatability.json": {
+      "bytes": 5034,
+      "sha256": "8711065d77b940bd72c797b4952acfe0b938fda52472a07748d7b60dafecf6fe"
+    },
+    "cylinder_dic/stitching/summary.json": {
+      "bytes": 2138,
+      "sha256": "5ce8f5b2313282ea28bcb502d204e0842f4c5bdbf1a1862292bb5cfcd2bb84ac"
+    }
+  },
+  "immutable_at_pytest_runtime": true,
+  "schema_version": "1.0"
+}
