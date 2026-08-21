@@ -1,0 +1,62 @@
+name: Release qualification
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  release-qualification:
+    name: Release qualification (Linux, CPython 3.11)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: conda-incubator/setup-miniconda@v4
+        with:
+          activate-environment: traditional-dic
+          environment-file: environment.yml
+          python-version: "3.11"
+          auto-activate-base: false
+      - name: Environment identity and source regression
+        shell: bash -l {0}
+        run: |
+          uname -a
+          python --version
+          cmake --version
+          c++ --version | head -1
+          conda list 'opencv|ceres|yaml-cpp'
+          python -m pip install --upgrade build scikit-build-core pybind11 pytest
+          PYTHONPATH=python python -m pytest tests -q
+      - name: Build and qualify exact direct artifact
+        shell: bash -l {0}
+        run: |
+          set -euo pipefail
+          DIST="$RUNNER_TEMP/traditional-dic-dist"
+          WORK="$RUNNER_TEMP/traditional-dic-r2"
+          mkdir -p "$DIST" "$WORK"
+          python -m build --outdir "$DIST"
+          WHEEL=$(find "$DIST" -maxdepth 1 -name '*.whl' -print -quit)
+          test -n "$WHEEL"
+          sha256sum "$WHEEL" | tee "$WORK/direct-wheel-before.sha256"
+          python qualification/package/verify_release.py \
+            --source-root "$GITHUB_WORKSPACE" \
+            --dist-dir "$DIST" \
+            --case-root "$GITHUB_WORKSPACE/case" \
+            --work-root "$WORK" \
+            --report "$WORK/r2-ci-qualification.json"
+          sha256sum "$WHEEL" | tee "$WORK/direct-wheel-after.sha256"
+          diff -u "$WORK/direct-wheel-before.sha256" "$WORK/direct-wheel-after.sha256"
+          python -c "import json; assert json.load(open('$WORK/r2-ci-qualification.json'))['release_candidate_eligible'] is True"
+      - name: Upload qualification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: traditional-dic-release-qualification-linux-cp311
+          path: |
+            ${{ runner.temp }}/traditional-dic-dist/*.whl
+            ${{ runner.temp }}/traditional-dic-dist/*.tar.gz
+            ${{ runner.temp }}/traditional-dic-r2/r2-ci-qualification.json
+            ${{ runner.temp }}/traditional-dic-r2/direct-wheel-*.sha256
+          if-no-files-found: warn
+          retention-days: 14
