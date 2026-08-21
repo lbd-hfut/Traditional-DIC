@@ -1,0 +1,16 @@
+{
+  "client": "codex",
+  "client_version": "0.148.0",
+  "availability": "AVAILABLE",
+  "transport": "stdio",
+  "scenario": "Q11",
+  "scenarios": {"q11": "PASS"},
+  "tool_evidence": ["traditional_dic_capabilities"],
+  "request": "multiview_3d solver=both",
+  "rejection_code": "UNSUPPORTED_SOLVER_FOR_WORKFLOW",
+  "computation_started": false,
+  "fallback_applied": false,
+  "critical_violations": [],
+  "overall": "PARTIALLY_QUALIFIED",
+  "raw_transcript": "/tmp/traditional-dic-m2-transcripts/codex/q11/attempt-1"
+}

@@ -1,0 +1,62 @@
+{
+  "baseline_kind": "subset_ring_full_artifact",
+  "headers": {
+    "displacements": [
+      "x",
+      "y",
+      "u",
+      "v",
+      "du_dx",
+      "du_dy",
+      "dv_dx",
+      "dv_dy",
+      "correlation",
+      "valid"
+    ],
+    "strain": [
+      "x",
+      "y",
+      "du_dx",
+      "du_dy",
+      "dv_dx",
+      "dv_dy",
+      "exx",
+      "eyy",
+      "exy",
+      "sample_count",
+      "valid"
+    ]
+  },
+  "row_counts": {
+    "displacements": 102400,
+    "strain": 48928
+  },
+  "schema_version": "1.0",
+  "source_artifacts": {
+    "case/mono_DIC/ring/result/subset/002_znssd_icgn_1st/displacements.csv": {
+      "bytes": 10370195,
+      "sha256": "54b6bc9b9e8ab0c42dbd1d697d641aa8aa937c94e72fd54bb891ee75cff0f27e"
+    },
+    "case/mono_DIC/ring/result/subset/002_znssd_icgn_1st/stats.json": {
+      "bytes": 356,
+      "sha256": "5211846796e2096bcd85a06020d20b515e372380ae7e843db6eb5a2b2cd7511b"
+    },
+    "case/mono_DIC/ring/result/subset/002_znssd_icgn_1st/strain.csv": {
+      "bytes": 8343118,
+      "sha256": "77b8514d9bbc4c6a904f7ef6073b5e45e5f730ed0f3b8c4df12acea8f6504438"
+    }
+  },
+  "statistics": {
+    "invalid_points": 53472,
+    "mag_max": 1.3638083981778417,
+    "mag_mean": 0.5035650818616175,
+    "total_points": 102400,
+    "u_mean": -4.535760274460471e-05,
+    "u_std": 0.4145933148500679,
+    "v_mean": 1.987195386629144e-05,
+    "v_std": 0.41571051046252894,
+    "valid_points": 48928,
+    "znssd_max": 0.024653632149216197,
+    "znssd_mean": 0.000973368234606958
+  }
+}

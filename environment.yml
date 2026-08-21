@@ -1,0 +1,15 @@
+name: traditional-dic
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pip
+  - numpy
+  - pyyaml
+  - pillow
+  - scipy
+  - matplotlib
+  - opencv=5
+  - py-opencv=5
+  - ceres-solver
+  - yaml-cpp

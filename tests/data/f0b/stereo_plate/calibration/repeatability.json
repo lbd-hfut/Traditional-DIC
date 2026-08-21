@@ -1,0 +1,379 @@
+{
+  "classification": "NUMERICALLY_CLOSE",
+  "fields": {
+    "R_lr": {
+      "atol": 0.0002,
+      "max_abs_diff": 5.5305576141595654e-05,
+      "max_rmse": 0.0001,
+      "mean_abs_diff": 2.866274850627731e-05,
+      "reason": "Rotation tolerance is approximately four times observed A/B variation.",
+      "rmse": 3.4853441722955664e-05,
+      "rtol": 0.0001,
+      "shape": [
+        3,
+        3
+      ],
+      "within_policy": true
+    },
+    "essential": {
+      "atol": 1.5,
+      "max_abs_diff": 0.597483604020681,
+      "max_rmse": 0.75,
+      "mean_abs_diff": 0.14997198603183237,
+      "reason": "Essential matrix variation follows the translation estimate.",
+      "rmse": 0.2787794079030639,
+      "rtol": 0.005,
+      "shape": [
+        3,
+        3
+      ],
+      "within_policy": true
+    },
+    "fundamental": {
+      "atol": 0.0001,
+      "max_abs_diff": 3.92754673471038e-05,
+      "max_rmse": 5e-05,
+      "mean_abs_diff": 9.909502226437253e-06,
+      "reason": "Tight scale-appropriate bound above observed 3.93e-5 maximum.",
+      "rmse": 1.8471104718768782e-05,
+      "rtol": 0.005,
+      "shape": [
+        3,
+        3
+      ],
+      "within_policy": true
+    },
+    "initial_per_pair_errors": {
+      "atol": 1e-06,
+      "max_abs_diff": 6.558712929705113e-08,
+      "max_rmse": 5e-07,
+      "mean_abs_diff": 1.6826324787666547e-08,
+      "reason": "Initial calibration fields varied only below 7.3e-8.",
+      "rmse": 2.4285407021923515e-08,
+      "rtol": 1e-05,
+      "shape": [
+        20
+      ],
+      "within_policy": true
+    },
+    "initial_per_pair_left_errors": {
+      "atol": 1e-06,
+      "max_abs_diff": 7.282319386403557e-08,
+      "max_rmse": 5e-07,
+      "mean_abs_diff": 1.8816532328796987e-08,
+      "reason": "Initial calibration fields varied only below 7.3e-8.",
+      "rmse": 2.582120632274231e-08,
+      "rtol": 1e-05,
+      "shape": [
+        20
+      ],
+      "within_policy": true
+    },
+    "initial_per_pair_right_errors": {
+      "atol": 1e-06,
+      "max_abs_diff": 5.8358624932530745e-08,
+      "max_rmse": 5e-07,
+      "mean_abs_diff": 1.8702087750677165e-08,
+      "reason": "Initial calibration fields varied only below 7.3e-8.",
+      "rmse": 2.5420487929112407e-08,
+      "rtol": 1e-05,
+      "shape": [
+        20
+      ],
+      "within_policy": true
+    },
+    "initial_rms_error": {
+      "atol": 1e-06,
+      "max_abs_diff": 1.7181374378782976e-09,
+      "max_rmse": 5e-07,
+      "mean_abs_diff": 1.7181374378782976e-09,
+      "reason": "Initial calibration fields varied only below 7.3e-8.",
+      "rmse": 1.7181374378782976e-09,
+      "rtol": 1e-05,
+      "shape": [],
+      "within_policy": true
+    },
+    "left__K": {
+      "atol": 10.0,
+      "max_abs_diff": 0.7371286035004232,
+      "max_rmse": 5.0,
+      "mean_abs_diff": 0.18898935059434685,
+      "reason": "OpenCV stereo optimization varied intrinsics across same-environment A/B runs.",
+      "rmse": 0.30922584192886005,
+      "rtol": 0.005,
+      "shape": [
+        3,
+        3
+      ],
+      "within_policy": true
+    },
+    "left__R": {
+      "atol": 0.0,
+      "max_abs_diff": 0.0,
+      "max_rmse": 0.0,
+      "mean_abs_diff": 0.0,
+      "reason": "Observed bitwise-stable detection or fixed left-camera extrinsic field.",
+      "rmse": 0.0,
+      "rtol": 0.0,
+      "shape": [
+        3,
+        3
+      ],
+      "within_policy": true
+    },
+    "left__camera_center": {
+      "atol": 0.0,
+      "max_abs_diff": 0.0,
+      "max_rmse": 0.0,
+      "mean_abs_diff": 0.0,
+      "reason": "Observed bitwise-stable detection or fixed left-camera extrinsic field.",
+      "rmse": 0.0,
+      "rtol": 0.0,
+      "shape": [
+        3
+      ],
+      "within_policy": true
+    },
+    "left__detection_points": {
+      "atol": 0.0,
+      "max_abs_diff": 0.0,
+      "max_rmse": 0.0,
+      "mean_abs_diff": 0.0,
+      "reason": "Observed bitwise-stable detection or fixed left-camera extrinsic field.",
+      "rmse": 0.0,
+      "rtol": 0.0,
+      "shape": [
+        20,
+        88,
+        2
+      ],
+      "within_policy": true
+    },
+    "left__distortion": {
+      "atol": 0.75,
+      "max_abs_diff": 0.07425452161464818,
+      "max_rmse": 0.35,
+      "mean_abs_diff": 0.02155755061583653,
+      "reason": "Distortion coefficients inherit observed OpenCV optimization variation.",
+      "rmse": 0.03640185143911033,
+      "rtol": 0.01,
+      "shape": [
+        5
+      ],
+      "within_policy": true
+    },
+    "left__projection_matrix": {
+      "atol": 2000.0,
+      "max_abs_diff": 0.7371286035004232,
+      "max_rmse": 600.0,
+      "mean_abs_diff": 0.14174201294576014,
+      "reason": "Projection values combine intrinsics and translation; limit exceeds observed 837.63 maximum.",
+      "rmse": 0.26779743461702404,
+      "rtol": 0.005,
+      "shape": [
+        3,
+        4
+      ],
+      "within_policy": true
+    },
+    "left__rms_error": {
+      "atol": 0.0005,
+      "max_abs_diff": 2.3152680215396404e-05,
+      "max_rmse": 0.00025,
+      "mean_abs_diff": 2.3152680215396404e-05,
+      "reason": "Final RMS/per-pair errors varied below 1.27e-4.",
+      "rmse": 2.3152680215396404e-05,
+      "rtol": 0.005,
+      "shape": [],
+      "within_policy": true
+    },
+    "left__t": {
+      "atol": 0.0,
+      "max_abs_diff": 0.0,
+      "max_rmse": 0.0,
+      "mean_abs_diff": 0.0,
+      "reason": "Observed bitwise-stable detection or fixed left-camera extrinsic field.",
+      "rmse": 0.0,
+      "rtol": 0.0,
+      "shape": [
+        3
+      ],
+      "within_policy": true
+    },
+    "per_pair_errors": {
+      "atol": 0.0005,
+      "max_abs_diff": 0.00012617458316901975,
+      "max_rmse": 0.00025,
+      "mean_abs_diff": 4.988368188136893e-05,
+      "reason": "Final RMS/per-pair errors varied below 1.27e-4.",
+      "rmse": 6.255524027037131e-05,
+      "rtol": 0.005,
+      "shape": [
+        17
+      ],
+      "within_policy": true
+    },
+    "per_pair_left_errors": {
+      "atol": 0.0005,
+      "max_abs_diff": 0.0001251068766978808,
+      "max_rmse": 0.00025,
+      "mean_abs_diff": 4.8954697834850925e-05,
+      "reason": "Final RMS/per-pair errors varied below 1.27e-4.",
+      "rmse": 6.213980076792066e-05,
+      "rtol": 0.005,
+      "shape": [
+        17
+      ],
+      "within_policy": true
+    },
+    "per_pair_right_errors": {
+      "atol": 0.0005,
+      "max_abs_diff": 0.0001278329135830647,
+      "max_rmse": 0.00025,
+      "mean_abs_diff": 5.375242726411792e-05,
+      "reason": "Final RMS/per-pair errors varied below 1.27e-4.",
+      "rmse": 6.571461927044305e-05,
+      "rtol": 0.005,
+      "shape": [
+        17
+      ],
+      "within_policy": true
+    },
+    "right__K": {
+      "atol": 10.0,
+      "max_abs_diff": 4.575384787718576,
+      "max_rmse": 5.0,
+      "mean_abs_diff": 1.1215410326212552,
+      "reason": "OpenCV stereo optimization varied intrinsics across same-environment A/B runs.",
+      "rmse": 2.1660997358484284,
+      "rtol": 0.005,
+      "shape": [
+        3,
+        3
+      ],
+      "within_policy": true
+    },
+    "right__R": {
+      "atol": 0.0002,
+      "max_abs_diff": 5.5305576141595654e-05,
+      "max_rmse": 0.0001,
+      "mean_abs_diff": 2.866274850627731e-05,
+      "reason": "Rotation tolerance is approximately four times observed A/B variation.",
+      "rmse": 3.4853441722955664e-05,
+      "rtol": 0.0001,
+      "shape": [
+        3,
+        3
+      ],
+      "within_policy": true
+    },
+    "right__camera_center": {
+      "atol": 1.5,
+      "max_abs_diff": 0.5659885456575893,
+      "max_rmse": 0.75,
+      "mean_abs_diff": 0.2393606984312916,
+      "reason": "Translation tolerance is approximately twice observed A/B maximum.",
+      "rmse": 0.3376821078038075,
+      "rtol": 0.005,
+      "shape": [
+        3
+      ],
+      "within_policy": true
+    },
+    "right__detection_points": {
+      "atol": 0.0,
+      "max_abs_diff": 0.0,
+      "max_rmse": 0.0,
+      "mean_abs_diff": 0.0,
+      "reason": "Observed bitwise-stable detection or fixed left-camera extrinsic field.",
+      "rmse": 0.0,
+      "rtol": 0.0,
+      "shape": [
+        20,
+        88,
+        2
+      ],
+      "within_policy": true
+    },
+    "right__distortion": {
+      "atol": 0.75,
+      "max_abs_diff": 0.337670793903726,
+      "max_rmse": 0.35,
+      "mean_abs_diff": 0.07151170667895895,
+      "reason": "Distortion coefficients inherit observed OpenCV optimization variation.",
+      "rmse": 0.15126562254119785,
+      "rtol": 0.01,
+      "shape": [
+        5
+      ],
+      "within_policy": true
+    },
+    "right__projection_matrix": {
+      "atol": 2000.0,
+      "max_abs_diff": 837.6296654629987,
+      "max_rmse": 600.0,
+      "mean_abs_diff": 99.40358566557357,
+      "reason": "Projection values combine intrinsics and translation; limit exceeds observed 837.63 maximum.",
+      "rmse": 261.38336751932803,
+      "rtol": 0.005,
+      "shape": [
+        3,
+        4
+      ],
+      "within_policy": true
+    },
+    "right__rms_error": {
+      "atol": 0.0005,
+      "max_abs_diff": 2.3152680215396404e-05,
+      "max_rmse": 0.00025,
+      "mean_abs_diff": 2.3152680215396404e-05,
+      "reason": "Final RMS/per-pair errors varied below 1.27e-4.",
+      "rmse": 2.3152680215396404e-05,
+      "rtol": 0.005,
+      "shape": [],
+      "within_policy": true
+    },
+    "right__t": {
+      "atol": 1.5,
+      "max_abs_diff": 0.5973794830859731,
+      "max_rmse": 0.75,
+      "mean_abs_diff": 0.20356744853027067,
+      "reason": "Translation tolerance is approximately twice observed A/B maximum.",
+      "rmse": 0.34494644136969527,
+      "rtol": 0.005,
+      "shape": [
+        3
+      ],
+      "within_policy": true
+    },
+    "rms_error": {
+      "atol": 0.0005,
+      "max_abs_diff": 2.3152680215396404e-05,
+      "max_rmse": 0.00025,
+      "mean_abs_diff": 2.3152680215396404e-05,
+      "reason": "Final RMS/per-pair errors varied below 1.27e-4.",
+      "rmse": 2.3152680215396404e-05,
+      "rtol": 0.005,
+      "shape": [],
+      "within_policy": true
+    },
+    "t_lr": {
+      "atol": 1.5,
+      "max_abs_diff": 0.5973794830859731,
+      "max_rmse": 0.75,
+      "mean_abs_diff": 0.20356744853027067,
+      "reason": "Translation tolerance is approximately twice observed A/B maximum.",
+      "rmse": 0.34494644136969527,
+      "rtol": 0.005,
+      "shape": [
+        3
+      ],
+      "within_policy": true
+    }
+  },
+  "policy_name": "INITIAL_F0B_CALIBRATION_TOLERANCE",
+  "run_a_sha256": "c78094a7a8ab0e28a5e91f2c304ef010e422a85c25ae03c0e9e13e5999b8b3f6",
+  "run_b_sha256": "ce1042a4c98a8824dcfe77c3b95e1b5cceb40d1f429b87afc8c08309f0f29342",
+  "schema_version": "1.0",
+  "structure_identical": true
+}

@@ -20,10 +20,19 @@ if(pybind11_FOUND)
         # shared runtime there like every other library in the process.
         target_link_options(_traditional_dic PRIVATE -static-libstdc++ -static-libgcc)
     endif()
-    add_custom_command(TARGET _traditional_dic POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            $<TARGET_FILE:_traditional_dic>
-            "${CMAKE_CURRENT_SOURCE_DIR}/python/traditional_dic/$<TARGET_FILE_NAME:_traditional_dic>")
+    # Keep the existing source-tree development workflow, but let
+    # scikit-build-core own the install-tree artifact used for wheels.
+    if(NOT SKBUILD)
+        add_custom_command(TARGET _traditional_dic POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                $<TARGET_FILE:_traditional_dic>
+                "${CMAKE_CURRENT_SOURCE_DIR}/python/traditional_dic/$<TARGET_FILE_NAME:_traditional_dic>")
+    endif()
+    install(TARGETS _traditional_dic LIBRARY DESTINATION traditional_dic)
+    install(
+        DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/config/"
+        DESTINATION traditional_dic/resources/config
+        FILES_MATCHING PATTERN "*.yaml")
 else()
     message(STATUS "pybind11 not found; Python module skipped.")
 endif()

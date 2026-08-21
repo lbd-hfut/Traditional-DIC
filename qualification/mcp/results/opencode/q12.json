@@ -1,0 +1,16 @@
+{
+  "client": "opencode",
+  "client_version": "1.18.18",
+  "availability": "AVAILABLE",
+  "transport": "stdio",
+  "scenario": "Q12",
+  "scenarios": {"q12": "PASS"},
+  "tool_evidence": ["traditional_dic_status", "traditional_dic_summarize"],
+  "workspace": "/tmp/traditional-dic-m2r2/opencode/subset-20260820",
+  "primary_artifact": "displacements:002_znssd_icgn_1st__displacements.csv",
+  "artifact_kind": "displacement_field",
+  "recomputed": false,
+  "critical_violations": [],
+  "overall": "PARTIALLY_QUALIFIED",
+  "raw_transcript": "/tmp/traditional-dic-m2-transcripts/opencode/q12/attempt-1"
+}

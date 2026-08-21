@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Traditional-DIC M2 MCP client qualification result",
+  "type": "object",
+  "required": ["schema_version", "client", "availability", "transport", "scenarios", "critical_violations", "overall"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "client": {"enum": ["codex", "claude_code", "opencode", "deepcode"]},
+    "availability": {"enum": ["AVAILABLE", "NOT_AVAILABLE", "BLOCKED_AUTH", "BLOCKED_PROVIDER", "BLOCKED_RUNTIME"]},
+    "transport": {"enum": ["stdio", "streamable_http", "not_applicable"]},
+    "scenarios": {"type": "object", "additionalProperties": {"enum": ["PASS", "FAIL", "BLOCKED", "NOT_RUN", "NOT_AVAILABLE"]}},
+    "critical_violations": {"type": "array", "items": {"type": "string"}},
+    "overall": {"enum": ["FULLY_QUALIFIED", "PARTIALLY_QUALIFIED", "FAILED", "BLOCKED_ENVIRONMENT", "BLOCKED_AUTH", "BLOCKED_PROVIDER", "NOT_AVAILABLE"]}
+  }
+}

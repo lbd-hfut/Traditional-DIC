@@ -1,0 +1,18 @@
+{
+  "edge_cv": 7.145517162293673e-05,
+  "schema_version": "1.0",
+  "sfm_square_size_mean": 0.04021448550033554,
+  "sfm_square_size_median": 0.040214008289322284,
+  "sfm_square_size_std": 2.8735329631545767e-06,
+  "sfm_to_world_scale": 248.66661541440243,
+  "source_artifact_sha256": "02754cee0589b97871892097bed8dc7dd5ad2b52672de2a7137beefc33d955c7",
+  "tolerance_policy": {
+    "atol": 1e-12,
+    "name": "INITIAL_F0C_SCALE_TOLERANCE",
+    "reason": "A/B scale outputs were bitwise identical in the canonical environment.",
+    "rtol": 1e-10
+  },
+  "triangulated_corners": 63,
+  "valid_edges": 110,
+  "world_to_sfm_scale": 0.004021448550033554
+}

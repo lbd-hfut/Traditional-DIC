@@ -107,3 +107,22 @@ def mesh_method_tag(config: dict[str, Any] | None) -> str:
 def mesh_generation_config(config: dict[str, Any] | None) -> dict[str, Any]:
     """Extract mesh-generation settings from a loaded config dictionary."""
     return deepcopy((config or {}).get("mesh_generation", {}) or {})
+
+
+def resolve_config(*args: Any, **kwargs: Any):
+    """Lazily dispatch to the F2 authoritative configuration resolver."""
+    from .config_resolver import resolve_config as _resolve_config
+
+    return _resolve_config(*args, **kwargs)
+
+
+def inspect_config(*args: Any, **kwargs: Any):
+    from .config_resolver import inspect_config as _inspect_config
+
+    return _inspect_config(*args, **kwargs)
+
+
+def validate_config(*args: Any, **kwargs: Any):
+    from .config_resolver import validate_config as _validate_config
+
+    return _validate_config(*args, **kwargs)

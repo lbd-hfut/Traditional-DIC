@@ -1,0 +1,14 @@
+{
+  "classification": "BITWISE_IDENTICAL",
+  "policy_name": "INITIAL_F0C_CALIBRATION_TOLERANCE",
+  "run_a_sha256": "9bf190f6a2f183ae3bff66d8d364e5908fe5dd656a4381294860db83c1c74503",
+  "run_b_sha256": "9bf190f6a2f183ae3bff66d8d364e5908fe5dd656a4381294860db83c1c74503",
+  "schema_version": "1.0",
+  "structure_identical": true,
+  "tolerance": {
+    "atol": 1e-12,
+    "max_abs": 1e-10,
+    "max_rmse": 1e-12,
+    "rtol": 1e-10
+  }
+}

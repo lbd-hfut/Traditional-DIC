@@ -7,3 +7,42 @@ name = "traditional-dic"
 version = "0.1.0"
 description = "Traditional 2D/3D DIC skeleton with C++17 and Python bindings"
 requires-python = ">=3.9"
+dependencies = [
+  "numpy>=1.23",
+  "PyYAML>=6.0",
+  "Pillow>=9.0",
+  "scipy>=1.9",
+  "matplotlib>=3.6",
+  "opencv-python>=4.8",
+]
+
+[project.optional-dependencies]
+mcp = [
+  "mcp>=2,<3; python_version >= '3.10'",
+]
+
+[project.scripts]
+traditional-dic = "traditional_dic.cli:main"
+traditional-dic-mcp = "traditional_dic.mcp_server:main"
+
+[tool.scikit-build]
+wheel.packages = ["python/traditional_dic"]
+sdist.exclude = [
+  "/build/**",
+  "/case/**",
+  "/qualification/**",
+  "/tests/**",
+  "/python/traditional_dic/__pycache__/**",
+  "/python/traditional_dic/_traditional_dic*.so",
+]
+
+[tool.scikit-build.cmake.define]
+TRADITIONAL_DIC_BUILD_PYTHON = "ON"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+  "unit: fast tests for F0 regression support utilities",
+  "regression: portable or historical F0 behavior-artifact regression tests",
+  "requires_local_history: comparison requiring ignored case result artifacts",
+]

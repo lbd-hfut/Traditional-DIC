@@ -1,0 +1,56 @@
+{
+  "baseline_commit": "806832419b0ab3ac40050d8c05c3bd0bed5098f6",
+  "config_paths": [
+    "config/subset_2d.yaml",
+    "config/case_paths.yaml"
+  ],
+  "config_sha256": {
+    "config/case_paths.yaml": "e574be1b42d4a77ee316476459e8071944030378affed6770a26fa42b38e8899",
+    "config/subset_2d.yaml": "409ab1ae3b6d474bcbd5b26a5231d0d3957896c8d5666fb24c63de30b0879f2b"
+  },
+  "environment": {
+    "extraction": "conda environment tradic",
+    "historical_platform": "NOT_RECORDED",
+    "historical_python": "NOT_RECORDED",
+    "historical_solver_build": "NOT_RECORDED"
+  },
+  "extraction_method": "tests.support.extract_f0_baseline full-artifact compressed NPZ",
+  "input_order": [
+    {
+      "path": "case/mono_DIC/ring/001.bmp",
+      "role": "reference"
+    },
+    {
+      "path": "case/mono_DIC/ring/002.bmp",
+      "role": "deformed"
+    },
+    {
+      "path": "case/mono_DIC/ring/003.bmp",
+      "role": "roi"
+    }
+  ],
+  "input_sha256": {
+    "case/mono_DIC/ring/001.bmp": "4b2511ff729c57977f1d0ec774e63ae1c726c954c0c622cf47d777a3068c62d1",
+    "case/mono_DIC/ring/002.bmp": "47071438346b22be0bf59d8cde8c7261828d1f82f18ce147e74d4dc86af5c58d",
+    "case/mono_DIC/ring/003.bmp": "6b21a11e4f2b6785795a094ca81a002a1d0ebc0fce35559a1f23bd7ddf58988a"
+  },
+  "platform": "Linux-6.17.0-35-generic-x86_64-with-glibc2.42",
+  "python_version": "3.11.15",
+  "repository": "Traditional-DIC",
+  "schema_version": "1.0",
+  "source_artifacts": {
+    "case/mono_DIC/ring/result/subset/002_znssd_icgn_1st/displacements.csv": {
+      "bytes": 10370195,
+      "sha256": "54b6bc9b9e8ab0c42dbd1d697d641aa8aa937c94e72fd54bb891ee75cff0f27e"
+    },
+    "case/mono_DIC/ring/result/subset/002_znssd_icgn_1st/stats.json": {
+      "bytes": 356,
+      "sha256": "5211846796e2096bcd85a06020d20b515e372380ae7e843db6eb5a2b2cd7511b"
+    },
+    "case/mono_DIC/ring/result/subset/002_znssd_icgn_1st/strain.csv": {
+      "bytes": 8343118,
+      "sha256": "77b8514d9bbc4c6a904f7ef6073b5e45e5f730ed0f3b8c4df12acea8f6504438"
+    }
+  },
+  "source_case": "case/mono_DIC/ring"
+}

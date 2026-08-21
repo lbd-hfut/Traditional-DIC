@@ -1,0 +1,15 @@
+{
+  "client": "codex",
+  "client_version": "0.148.0",
+  "availability": "AVAILABLE",
+  "transport": "stdio",
+  "scenario": "Q14",
+  "scenarios": {"q14": "FAIL"},
+  "tool_evidence": [],
+  "workspace": "/tmp/traditional-dic-m2r2/codex/mesh-20260820",
+  "deviation": "Codex used the normalized CLI fallback rather than the functioning connected MCP tools for this interface-neutral task.",
+  "low_level_bypass": false,
+  "critical_violations": [],
+  "overall": "FAILED",
+  "raw_transcript": "/tmp/traditional-dic-m2-transcripts/codex/q14/attempt-1"
+}

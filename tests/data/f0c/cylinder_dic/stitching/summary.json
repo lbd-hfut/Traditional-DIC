@@ -1,0 +1,105 @@
+{
+  "cleaned_removed_faces": 4523,
+  "cleaned_removed_points": 1738,
+  "element": null,
+  "face_count": 350873,
+  "hole_faces": 0,
+  "min_gap_factor": 0.2,
+  "mode": "multidic",
+  "overlap_removed_faces": 787,
+  "pairs": [
+    {
+      "element": null,
+      "faces": 28273,
+      "pair": "cam_0-cam_1",
+      "points": 14327,
+      "skipped": false
+    },
+    {
+      "element": null,
+      "faces": 29982,
+      "pair": "cam_1-cam_2",
+      "points": 15203,
+      "skipped": false
+    },
+    {
+      "element": null,
+      "faces": 28024,
+      "pair": "cam_2-cam_3",
+      "points": 14235,
+      "skipped": false
+    },
+    {
+      "element": null,
+      "faces": 31977,
+      "pair": "cam_3-cam_4",
+      "points": 16202,
+      "skipped": false
+    },
+    {
+      "element": null,
+      "faces": 27467,
+      "pair": "cam_4-cam_5",
+      "points": 13915,
+      "skipped": false
+    },
+    {
+      "element": null,
+      "faces": 30602,
+      "pair": "cam_5-cam_6",
+      "points": 15517,
+      "skipped": false
+    },
+    {
+      "element": null,
+      "faces": 30237,
+      "pair": "cam_6-cam_7",
+      "points": 15338,
+      "skipped": false
+    },
+    {
+      "element": null,
+      "faces": 28770,
+      "pair": "cam_7-cam_8",
+      "points": 14610,
+      "skipped": false
+    },
+    {
+      "element": null,
+      "faces": 30812,
+      "pair": "cam_8-cam_9",
+      "points": 15622,
+      "skipped": false
+    },
+    {
+      "element": null,
+      "faces": 30831,
+      "pair": "cam_9-cam_10",
+      "points": 15629,
+      "skipped": false
+    },
+    {
+      "element": null,
+      "faces": 29040,
+      "pair": "cam_10-cam_11",
+      "points": 14717,
+      "skipped": false
+    },
+    {
+      "element": null,
+      "faces": 30168,
+      "pair": "cam_11-cam_0",
+      "points": 15271,
+      "skipped": false
+    }
+  ],
+  "point_count": 180586,
+  "raw_face_count": 355396,
+  "raw_point_count": 180586,
+  "schema_version": "1.0",
+  "smooth_displacement_knn": 0,
+  "solver": "subset",
+  "source_artifact_sha256": "9f65a55a9e959c88c6329b511765760f1375c84d06cb97181f0d19111d998b95",
+  "triangle_edge_scale": 3.0,
+  "zipper_faces": 0
+}

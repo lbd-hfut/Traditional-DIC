@@ -1,0 +1,13 @@
+{
+  "schema_version": "1.0",
+  "workflow_kind": "stereo_3d",
+  "primary_result_type": "stereo_3d_displacement",
+  "capability_contract": {
+    "subset_2d": true,
+    "mesh_2d": true,
+    "stereo_3d_solver": "subset",
+    "multiview_3d_solver": "subset"
+  },
+  "metric_keys": ["input_valid", "final_valid", "valid_fraction"],
+  "dynamic_fields_excluded": ["run_id", "timestamps", "duration_seconds"]
+}

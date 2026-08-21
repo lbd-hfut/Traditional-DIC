@@ -1,0 +1,17 @@
+{
+  "client": "opencode",
+  "client_version": "1.18.18",
+  "availability": "AVAILABLE",
+  "transport": "stdio",
+  "scenario": "Q03",
+  "scenarios": {"q03": "PASS"},
+  "tool_evidence": ["traditional_dic_validate"],
+  "workflow": "stereo_3d",
+  "case": "case/stereo_DIC/plate_center_load",
+  "valid": true,
+  "correspondence_solver": "subset",
+  "scientific_run": false,
+  "critical_violations": [],
+  "overall": "PARTIALLY_QUALIFIED",
+  "raw_transcript": "/tmp/traditional-dic-m2-transcripts/opencode/q03/attempt-1"
+}

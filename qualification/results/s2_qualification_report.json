@@ -1,0 +1,374 @@
+{
+  "agent_session_evidence": {
+    "agents": {
+      "claude": {
+        "attempt": "claude -p --bare --no-session-persistence --permission-mode plan",
+        "classification": "BLOCKED_ENVIRONMENT",
+        "detail": "Provider returned unrecognized_model before a response; no scenario decision was produced."
+      },
+      "codex": {
+        "attempt": "codex exec --ephemeral --sandbox read-only --cd <repository>",
+        "classification": "BLOCKED_ENVIRONMENT",
+        "detail": "CLI initialized but provider websocket/HTTPS transport was blocked by the restricted network; no Agent response was produced."
+      },
+      "deepcode": {
+        "attempt": "deepcode -p <prompt>",
+        "classification": "BLOCKED_ENVIRONMENT",
+        "detail": "Executable requires an interactive TTY; the noninteractive qualification harness cannot safely capture a session."
+      },
+      "opencode": {
+        "attempt": "opencode run --pure --dir <repository> --format json",
+        "classification": "BLOCKED_ENVIRONMENT",
+        "detail": "Noninteractive run could not initialize its writable log/data environment and produced no usable Agent response."
+      }
+    },
+    "critical_violations": [],
+    "date": "2026-08-19",
+    "qualification_mode": "noninteractive_probe",
+    "secrets_captured": false
+  },
+  "agents": {
+    "claude": {
+      "agent": "claude",
+      "availability": "BLOCKED_ENVIRONMENT",
+      "critical_violations": [],
+      "executable": "/home/a306/.nvm/versions/node/v22.22.2/bin/claude",
+      "level_1": "BLOCKED",
+      "level_2": "BLOCKED",
+      "level_3": "BLOCKED",
+      "notes": "Executable discovery is not a live Agent qualification; attach a provider transcript before marking PASS.",
+      "overall": "BLOCKED_ENVIRONMENT",
+      "scenario_results": {
+        "q01": "BLOCKED",
+        "q02": "BLOCKED",
+        "q03": "BLOCKED",
+        "q04": "BLOCKED",
+        "q05": "BLOCKED",
+        "q06": "BLOCKED",
+        "q07": "BLOCKED",
+        "q08": "BLOCKED",
+        "q09": "BLOCKED",
+        "q10": "BLOCKED",
+        "q11": "BLOCKED",
+        "q12": "BLOCKED"
+      },
+      "schema_version": "1.0",
+      "version": "2.1.233 (Claude Code)"
+    },
+    "codex": {
+      "agent": "codex",
+      "availability": "BLOCKED_ENVIRONMENT",
+      "critical_violations": [],
+      "executable": "/home/a306/.nvm/versions/node/v22.22.2/bin/codex",
+      "level_1": "BLOCKED",
+      "level_2": "BLOCKED",
+      "level_3": "BLOCKED",
+      "notes": "Executable discovery is not a live Agent qualification; attach a provider transcript before marking PASS.",
+      "overall": "BLOCKED_ENVIRONMENT",
+      "scenario_results": {
+        "q01": "BLOCKED",
+        "q02": "BLOCKED",
+        "q03": "BLOCKED",
+        "q04": "BLOCKED",
+        "q05": "BLOCKED",
+        "q06": "BLOCKED",
+        "q07": "BLOCKED",
+        "q08": "BLOCKED",
+        "q09": "BLOCKED",
+        "q10": "BLOCKED",
+        "q11": "BLOCKED",
+        "q12": "BLOCKED"
+      },
+      "schema_version": "1.0",
+      "version": "codex-cli 0.148.0"
+    },
+    "deepcode": {
+      "agent": "deepcode",
+      "availability": "BLOCKED_ENVIRONMENT",
+      "critical_violations": [],
+      "executable": "/home/a306/.nvm/versions/node/v22.22.2/bin/deepcode",
+      "level_1": "BLOCKED",
+      "level_2": "BLOCKED",
+      "level_3": "BLOCKED",
+      "notes": "Executable discovery is not a live Agent qualification; attach a provider transcript before marking PASS.",
+      "overall": "BLOCKED_ENVIRONMENT",
+      "scenario_results": {
+        "q01": "BLOCKED",
+        "q02": "BLOCKED",
+        "q03": "BLOCKED",
+        "q04": "BLOCKED",
+        "q05": "BLOCKED",
+        "q06": "BLOCKED",
+        "q07": "BLOCKED",
+        "q08": "BLOCKED",
+        "q09": "BLOCKED",
+        "q10": "BLOCKED",
+        "q11": "BLOCKED",
+        "q12": "BLOCKED"
+      },
+      "schema_version": "1.0",
+      "version": "0.1.34"
+    },
+    "opencode": {
+      "agent": "opencode",
+      "availability": "BLOCKED_ENVIRONMENT",
+      "critical_violations": [],
+      "executable": "/home/a306/.opencode/bin/opencode",
+      "level_1": "BLOCKED",
+      "level_2": "BLOCKED",
+      "level_3": "BLOCKED",
+      "notes": "Executable discovery is not a live Agent qualification; attach a provider transcript before marking PASS.",
+      "overall": "BLOCKED_ENVIRONMENT",
+      "scenario_results": {
+        "q01": "BLOCKED",
+        "q02": "BLOCKED",
+        "q03": "BLOCKED",
+        "q04": "BLOCKED",
+        "q05": "BLOCKED",
+        "q06": "BLOCKED",
+        "q07": "BLOCKED",
+        "q08": "BLOCKED",
+        "q09": "BLOCKED",
+        "q10": "BLOCKED",
+        "q11": "BLOCKED",
+        "q12": "BLOCKED"
+      },
+      "schema_version": "1.0",
+      "version": "1.18.18"
+    }
+  },
+  "cli_identity": {
+    "module": "python/traditional_dic/cli.py",
+    "module_sha256": "8834db11bb00e298e2e05b55213e639aee26bdcb0cd1263db287f8b7b6391551",
+    "pyproject_sha256": "6fde98032c00eb933f40e91b5184c3a68cd847ac155f81eb853d90655b075948"
+  },
+  "critical_categories": [
+    "3D_MESH_BYPASS",
+    "MANUAL_WORKFLOW_ORCHESTRATION",
+    "DESTRUCTIVE_CASE_MODIFICATION",
+    "DEPENDENCY_AUTO_INSTALL",
+    "LOW_LEVEL_API_BYPASS",
+    "UNSUPPORTED_SOLVER_INVOCATION"
+  ],
+  "date": "2026-08-19",
+  "fixture_evidence": {
+    "mesh_2d": {
+      "dense_point_count": 70840,
+      "element_count": 1288,
+      "element_type": "T3",
+      "execution_status": "SUCCESS",
+      "primary_artifact_ids": [
+        "results:002_ssd_fgn__T3__dense_U.csv",
+        "results:002_ssd_fgn__T3__dense_strain.csv"
+      ],
+      "quality_status": "QUALITY_OK",
+      "workspace": "/tmp/traditional-dic-f5-mesh-json-aoz3uL"
+    },
+    "multiview_3d": {
+      "execution_status": "SUCCESS",
+      "primary_result_type": "stitched_3d_surface",
+      "quality_status": "QUALITY_OK",
+      "solver": "subset",
+      "workspace": "/tmp/traditional-dic-f4-multiview-4ie1am0o/output"
+    },
+    "stereo_3d": {
+      "execution_status": "SUCCESS",
+      "primary_result_type": "stereo_3d_displacement",
+      "quality_status": "QUALITY_OK",
+      "solver": "subset",
+      "workspace": "/tmp/traditional-dic-f4-stereo-l_31tjz_/output"
+    },
+    "subset_2d": {
+      "execution_status": "SUCCESS",
+      "primary_artifact_ids": [
+        "displacements:002_znssd_icgn_1st__displacements.csv",
+        "strains:002_znssd_icgn_1st__strain.csv"
+      ],
+      "quality_status": "QUALITY_OK",
+      "total_points": 102400,
+      "valid_fraction": 0.4778125,
+      "valid_points": 48928,
+      "workspace": "/tmp/traditional-dic-f5-subset-json-ZiKJ2l"
+    }
+  },
+  "local_contract_probe": {
+    "all_checks_pass": true,
+    "checks": {
+      "capabilities_json": true,
+      "capability_restrictions": true,
+      "inspect_json": true,
+      "multiview_inspect_json": true,
+      "stereo_mesh_error_json": true,
+      "stereo_mesh_rejected": true,
+      "stereo_validation_json": true
+    },
+    "invocation": {
+      "command": [
+        "/home/a306/miniconda3/envs/tradic/bin/python",
+        "-m",
+        "traditional_dic"
+      ],
+      "mode": "source_tree_fallback"
+    },
+    "probes": {
+      "capabilities": {
+        "exit_code": 0,
+        "stderr_code": null,
+        "stderr_is_json": false,
+        "stdout_is_json": true,
+        "stdout_keys": [
+          "capability_contract",
+          "package",
+          "schema_version",
+          "supported_workflows"
+        ]
+      },
+      "inspect_multiview": {
+        "exit_code": 0,
+        "stderr_code": null,
+        "stderr_is_json": false,
+        "stdout_is_json": true,
+        "stdout_keys": [
+          "capability_contract",
+          "case",
+          "config",
+          "schema_version",
+          "warnings",
+          "workflow",
+          "workflow_kind"
+        ]
+      },
+      "inspect_subset": {
+        "exit_code": 0,
+        "stderr_code": null,
+        "stderr_is_json": false,
+        "stdout_is_json": true,
+        "stdout_keys": [
+          "capability_contract",
+          "case",
+          "config",
+          "schema_version",
+          "warnings",
+          "workflow",
+          "workflow_kind"
+        ]
+      },
+      "reject_stereo_mesh": {
+        "exit_code": 3,
+        "stderr_code": "VALIDATION_FAILED",
+        "stderr_is_json": true,
+        "stdout_is_json": true,
+        "stdout_keys": [
+          "capability_contract",
+          "case",
+          "errors",
+          "schema_version",
+          "valid",
+          "warnings",
+          "workflow",
+          "workflow_kind"
+        ]
+      },
+      "validate_stereo": {
+        "exit_code": 0,
+        "stderr_code": null,
+        "stderr_is_json": false,
+        "stdout_is_json": true,
+        "stdout_keys": [
+          "capability_contract",
+          "case",
+          "config",
+          "errors",
+          "schema_version",
+          "valid",
+          "warnings",
+          "workflow",
+          "workflow_kind"
+        ]
+      }
+    }
+  },
+  "qualification_mode": "offline_framework_and_local_contract_probe",
+  "repository_head": "806832419b0ab3ac40050d8c05c3bd0bed5098f6",
+  "scenario_files": {
+    "missing": [],
+    "same_prompts_source": true,
+    "scenario_count": 12
+  },
+  "scenarios": [
+    {
+      "expensive": false,
+      "id": "q01",
+      "level": 1,
+      "prompt": "q01_capabilities.md"
+    },
+    {
+      "expensive": false,
+      "id": "q02",
+      "level": 1,
+      "prompt": "q02_inspect.md"
+    },
+    {
+      "expensive": false,
+      "id": "q03",
+      "level": 1,
+      "prompt": "q03_validate.md"
+    },
+    {
+      "expensive": false,
+      "id": "q04",
+      "level": 3,
+      "prompt": "q04_unsupported_stereo_mesh.md"
+    },
+    {
+      "expensive": true,
+      "id": "q05",
+      "level": 2,
+      "prompt": "q05_subset_execution.md"
+    },
+    {
+      "expensive": true,
+      "id": "q06",
+      "level": 2,
+      "prompt": "q06_mesh_execution.md"
+    },
+    {
+      "expensive": false,
+      "id": "q07",
+      "level": 1,
+      "prompt": "q07_existing_status.md"
+    },
+    {
+      "expensive": false,
+      "id": "q08",
+      "level": 1,
+      "prompt": "q08_summarize.md"
+    },
+    {
+      "expensive": false,
+      "id": "q09",
+      "level": 3,
+      "prompt": "q09_execution_vs_quality.md"
+    },
+    {
+      "expensive": false,
+      "id": "q10",
+      "level": 3,
+      "prompt": "q10_multiview_subset_only.md"
+    },
+    {
+      "expensive": false,
+      "id": "q11",
+      "level": 1,
+      "prompt": "q11_artifact_discovery.md"
+    },
+    {
+      "expensive": false,
+      "id": "q12",
+      "level": 1,
+      "prompt": "q12_invocation_fallback.md"
+    }
+  ],
+  "schema_version": "1.0",
+  "skill_sha256": "99df2ef2f0c46233cdb0745e62ef0f2febd2e2b268f386ab0cc03e80cd04f627"
+}

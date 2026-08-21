@@ -1,0 +1,18 @@
+{
+  "client": "opencode",
+  "client_version": "1.18.18",
+  "availability": "AVAILABLE",
+  "transport": "stdio",
+  "scenario": "Q09",
+  "scenarios": {"q09": "PASS"},
+  "tool_evidence": ["traditional_dic_status", "traditional_dic_summarize"],
+  "workspace": "/tmp/traditional-dic-m2r2/opencode/subset-20260820",
+  "execution_status": "SUCCESS",
+  "quality_status": "QUALITY_OK",
+  "valid_fraction": 0.4778125,
+  "interpretation": "execution succeeded; valid_fraction is a separate scientific quality metric",
+  "recomputed": false,
+  "critical_violations": [],
+  "overall": "PARTIALLY_QUALIFIED",
+  "raw_transcript": "/tmp/traditional-dic-m2-transcripts/opencode/q09/attempt-1"
+}

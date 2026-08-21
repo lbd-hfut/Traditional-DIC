@@ -1,0 +1,17 @@
+{
+  "client": "opencode",
+  "client_version": "1.18.18",
+  "availability": "AVAILABLE",
+  "transport": "stdio",
+  "scenario": "Q14",
+  "scenarios": {"q14": "PASS"},
+  "tool_evidence": ["traditional_dic_status", "traditional_dic_summarize"],
+  "workspace": "/tmp/traditional-dic-m2r2/opencode/mesh-20260820",
+  "execution_status": "SUCCESS",
+  "quality_status": "QUALITY_OK",
+  "recomputed": false,
+  "low_level_bypass": false,
+  "critical_violations": [],
+  "overall": "FULLY_QUALIFIED",
+  "raw_transcript": "/tmp/traditional-dic-m2-transcripts/opencode/q14/attempt-1"
+}

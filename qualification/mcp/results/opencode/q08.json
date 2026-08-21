@@ -1,0 +1,18 @@
+{
+  "client": "opencode",
+  "client_version": "1.18.18",
+  "availability": "AVAILABLE",
+  "transport": "stdio",
+  "scenario": "Q08",
+  "scenarios": {"q08": "PASS"},
+  "tool_evidence": ["traditional_dic_summarize"],
+  "workspace": "/tmp/traditional-dic-m2r2/opencode/subset-20260820",
+  "execution_status": "SUCCESS",
+  "quality_status": "QUALITY_OK",
+  "valid_fraction": 0.4778125,
+  "recomputed": false,
+  "primary_artifacts": ["displacements.csv", "strain.csv", "stats.json"],
+  "critical_violations": [],
+  "overall": "PARTIALLY_QUALIFIED",
+  "raw_transcript": "/tmp/traditional-dic-m2-transcripts/opencode/q08/attempt-1"
+}

@@ -1,0 +1,17 @@
+{
+  "client": "codex",
+  "client_version": "0.148.0",
+  "availability": "AVAILABLE",
+  "transport": "stdio",
+  "scenario": "Q10",
+  "scenarios": {"q10": "PASS"},
+  "tool_evidence": ["traditional_dic_capabilities", "traditional_dic_inspect"],
+  "workflow": "multiview_3d",
+  "case": "case/multi_DIC/CylinderDIC",
+  "solver": "subset",
+  "scientific_run": false,
+  "manual_camera_orchestration": false,
+  "critical_violations": [],
+  "overall": "PARTIALLY_QUALIFIED",
+  "raw_transcript": "/tmp/traditional-dic-m2-transcripts/codex/q10/attempt-1"
+}

@@ -1,0 +1,17 @@
+{
+  "client": "opencode",
+  "client_version": "1.18.18",
+  "availability": "AVAILABLE",
+  "transport": "stdio",
+  "scenario": "Q13",
+  "scenarios": {"q13": "PASS"},
+  "tool_evidence": ["traditional_dic_status", "traditional_dic_summarize"],
+  "workspace": "/tmp/traditional-dic-f4-multiview-4ie1am0o/output",
+  "execution_status": "SUCCESS",
+  "quality_status": "QUALITY_OK",
+  "recomputed": false,
+  "camera_count": 12,
+  "critical_violations": [],
+  "overall": "PARTIALLY_QUALIFIED",
+  "raw_transcript": "/tmp/traditional-dic-m2-transcripts/opencode/q13/attempt-1"
+}

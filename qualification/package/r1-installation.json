@@ -1,0 +1,30 @@
+{
+  "schema_version": "1.0",
+  "phase": "R1",
+  "distribution": {
+    "name": "traditional-dic",
+    "version": "0.1.0",
+    "wheel_tag": "cp311-cp311-linux_x86_64"
+  },
+  "platform": "Linux x86_64",
+  "python": "3.11.15",
+  "supported_runtime": "Conda-forge Python 3.11 with OpenCV 5, Ceres Solver, and yaml-cpp",
+  "wheel": {
+    "filename": "traditional_dic-0.1.0-cp311-cp311-linux_x86_64.whl",
+    "size_bytes": 1200227,
+    "sha256": "360753ec062d67670f9702ac544b1f5f415982cd53c5cf14473ffa46ccbb7046"
+  },
+  "clean_install": {
+    "working_directory": "/tmp",
+    "pythonpath_required": false,
+    "package_origin": "site-packages",
+    "extension_origin": "site-packages",
+    "base_cli": "PASS",
+    "mcp_stdio": "PASS",
+    "mcp_streamable_http": "PASS",
+    "cli_subset": "SUCCESS",
+    "cli_mesh_t3": "SUCCESS",
+    "mcp_subset": "SUCCESS",
+    "mcp_mesh_t3": "SUCCESS"
+  }
+}

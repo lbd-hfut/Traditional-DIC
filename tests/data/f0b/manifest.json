@@ -1,0 +1,73 @@
+{
+  "architectural_contract": {
+    "mesh_scope": "standalone_2d_only",
+    "multiview_3d_solver": "subset",
+    "stereo_3d_solver": "subset"
+  },
+  "baseline_commit": "806832419b0ab3ac40050d8c05c3bd0bed5098f6",
+  "baseline_scope": "F0B Stereo Subset-only calibration, three fields, and reconstruction",
+  "files": {
+    "stereo_plate/calibration/numerical.npz": {
+      "bytes": 36241,
+      "sha256": "0cd317e8ca53901def42da76f16656cbe995c4ec558b81bfe58951752cc108e5"
+    },
+    "stereo_plate/calibration/repeatability.json": {
+      "bytes": 10581,
+      "sha256": "491a3711f8462ec5a064d57b2129486b7d53e6d2af458f22951634b0c8e84b00"
+    },
+    "stereo_plate/calibration/structure.json": {
+      "bytes": 9307,
+      "sha256": "922e0aeb64abe3ef9fcd8d5a682f7aa9e28ec39f30f05255b2824159e61e1c04"
+    },
+    "stereo_plate/calibration/summary.json": {
+      "bytes": 288,
+      "sha256": "37cd170f7b128ba3a68f375e245b298796cd506c8539ff41b4ab2afd02265ee8"
+    },
+    "stereo_plate/fields/deformed_disparity.json": {
+      "bytes": 1172,
+      "sha256": "856ec6027be8290c107eb8f76530f6a391830182588e0fa71bcab7ef330b787d"
+    },
+    "stereo_plate/fields/deformed_disparity.npz": {
+      "bytes": 332587,
+      "sha256": "f54b5054e7f087dd03ccb53220168cd672f2baeb29b4c32ef5ab877f9472cfc3"
+    },
+    "stereo_plate/fields/left_temporal.json": {
+      "bytes": 1170,
+      "sha256": "9bf71591e3c4ef83e254b4ffde64fc48d6c490e0deb5e9553d4715ec7f5d6417"
+    },
+    "stereo_plate/fields/left_temporal.npz": {
+      "bytes": 338061,
+      "sha256": "eafe178c89d2d80c9949e20d3acea916310dfe9ef2002504320165c389e2e383"
+    },
+    "stereo_plate/fields/reference_disparity.json": {
+      "bytes": 1172,
+      "sha256": "a7aa7d6c560c6b370e039f5e000a2a1d8ed1c79190c1c809d11594ce1388a176"
+    },
+    "stereo_plate/fields/reference_disparity.npz": {
+      "bytes": 332570,
+      "sha256": "9484ba81c73805c6673269a45c385c77195197c7a4b8fe9e7b8cf9a22c811b48"
+    },
+    "stereo_plate/provenance.json": {
+      "bytes": 12563,
+      "sha256": "d6abc9981d3eccfcffa0dccdf4715a90c94b79ba68f79ac673fe8ec41593b943"
+    },
+    "stereo_plate/reconstruction/baseline.npz": {
+      "bytes": 992437,
+      "sha256": "263171a9a4c141f4607652bb03bd22e89af7b3482d09dd5de2ba138deb657c82"
+    },
+    "stereo_plate/reconstruction/provenance.json": {
+      "bytes": 666,
+      "sha256": "a5818234212529b8954b4906b7a15605d6ceac28458484f0284f4fa6f5df1e7f"
+    },
+    "stereo_plate/reconstruction/repeatability.json": {
+      "bytes": 3654,
+      "sha256": "de1588ea02c51b1b4992c7334931c8f115e1c2d9f1042835b0c9e37312449a95"
+    },
+    "stereo_plate/reconstruction/summary.json": {
+      "bytes": 967,
+      "sha256": "360ac12492ae4a950e2e3ca9bbbcbe27c22863cc32e6934a9bcd2baf72efb010"
+    }
+  },
+  "immutable_at_pytest_runtime": true,
+  "schema_version": "1.0"
+}

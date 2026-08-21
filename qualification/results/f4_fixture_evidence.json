@@ -1,0 +1,40 @@
+{
+  "subset_2d": {
+    "workspace": "/tmp/traditional-dic-f5-subset-json-ZiKJ2l",
+    "execution_status": "SUCCESS",
+    "quality_status": "QUALITY_OK",
+    "primary_artifact_ids": [
+      "displacements:002_znssd_icgn_1st__displacements.csv",
+      "strains:002_znssd_icgn_1st__strain.csv"
+    ],
+    "valid_points": 48928,
+    "total_points": 102400,
+    "valid_fraction": 0.4778125
+  },
+  "mesh_2d": {
+    "workspace": "/tmp/traditional-dic-f5-mesh-json-aoz3uL",
+    "execution_status": "SUCCESS",
+    "quality_status": "QUALITY_OK",
+    "primary_artifact_ids": [
+      "results:002_ssd_fgn__T3__dense_U.csv",
+      "results:002_ssd_fgn__T3__dense_strain.csv"
+    ],
+    "element_type": "T3",
+    "element_count": 1288,
+    "dense_point_count": 70840
+  },
+  "stereo_3d": {
+    "workspace": "/tmp/traditional-dic-f4-stereo-l_31tjz_/output",
+    "execution_status": "SUCCESS",
+    "quality_status": "QUALITY_OK",
+    "primary_result_type": "stereo_3d_displacement",
+    "solver": "subset"
+  },
+  "multiview_3d": {
+    "workspace": "/tmp/traditional-dic-f4-multiview-4ie1am0o/output",
+    "execution_status": "SUCCESS",
+    "quality_status": "QUALITY_OK",
+    "primary_result_type": "stitched_3d_surface",
+    "solver": "subset"
+  }
+}

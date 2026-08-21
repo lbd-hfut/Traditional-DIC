@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <mutex>
 #include <stdexcept>
 #include <vector>
 
@@ -42,6 +43,39 @@ bool finite(const Eigen::Vector3d& value)
     return value.array().isFinite().all();
 }
 
+#ifdef TRADITIONAL_DIC_HAS_OPENCV
+class ScopedFlannRng
+{
+public:
+    ScopedFlannRng()
+        : lock_(mutex()), previous_(cv::theRNG())
+    {
+        // OpenCV FLANN randomizes KD-tree construction through the process
+        // global RNG.  Keep this boundary repeatable without leaking a
+        // changed RNG stream to the rest of the application.
+        cv::theRNG() = cv::RNG(0xF0C0D1CEULL);
+    }
+
+    ~ScopedFlannRng()
+    {
+        cv::theRNG() = previous_;
+    }
+
+    ScopedFlannRng(const ScopedFlannRng&) = delete;
+    ScopedFlannRng& operator=(const ScopedFlannRng&) = delete;
+
+private:
+    static std::mutex& mutex()
+    {
+        static std::mutex value;
+        return value;
+    }
+
+    std::unique_lock<std::mutex> lock_;
+    cv::RNG previous_;
+};
+#endif
+
 } // namespace
 
 SurfaceOutlierCleaningResult clean_surface_outliers(
@@ -73,6 +107,7 @@ SurfaceOutlierCleaningResult clean_surface_outliers(
     }
     const int k = std::min(options.neighbor_count, static_cast<int>(point_ids.size()) - 1);
     if (k >= 2) {
+        ScopedFlannRng flann_rng;
         cv::Mat point_matrix(static_cast<int>(point_ids.size()), 3, CV_32F);
         for (int row = 0; row < point_matrix.rows; ++row) {
             const auto& point = reference[static_cast<std::size_t>(point_ids[row])];

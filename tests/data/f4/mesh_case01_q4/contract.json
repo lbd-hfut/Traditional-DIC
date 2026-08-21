@@ -1,0 +1,13 @@
+{
+  "schema_version": "1.0",
+  "workflow_kind": "mesh_2d",
+  "primary_result_type": "2d_mesh_displacement",
+  "capability_contract": {
+    "subset_2d": true,
+    "mesh_2d": true,
+    "stereo_3d_solver": "subset",
+    "multiview_3d_solver": "subset"
+  },
+  "metric_keys": ["element_types", "node_count", "element_count"],
+  "dynamic_fields_excluded": ["run_id", "timestamps", "duration_seconds"]
+}

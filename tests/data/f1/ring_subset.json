@@ -1,0 +1,11 @@
+{
+  "workflow_kind": "subset_2d",
+  "case_root": "case/mono_DIC/ring",
+  "frames": [
+    {"role": "reference", "path": "case/mono_DIC/ring/001.bmp"},
+    {"role": "deformed", "index": 0, "path": "case/mono_DIC/ring/002.bmp"},
+    {"role": "roi", "path": "case/mono_DIC/ring/003.bmp"}
+  ],
+  "roi": {"mode": "explicit_image", "path": "case/mono_DIC/ring/003.bmp"},
+  "metadata": {"frame_rule": "first_reference_middle_deformed_last_roi", "sort_rule": "lexical_filename"}
+}

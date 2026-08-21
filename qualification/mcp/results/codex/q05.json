@@ -1,0 +1,19 @@
+{
+  "client": "codex",
+  "client_version": "0.148.0",
+  "availability": "AVAILABLE",
+  "transport": "stdio",
+  "scenario": "Q05",
+  "scenarios": {"q05": "PASS"},
+  "tool_evidence": ["traditional_dic_inspect", "traditional_dic_validate", "traditional_dic_run", "traditional_dic_status", "traditional_dic_summarize"],
+  "workflow": "subset_2d",
+  "workspace": "/tmp/traditional-dic-m2r2/codex/subset-20260820",
+  "execution_status": "SUCCESS",
+  "quality_status": "QUALITY_OK",
+  "valid_fraction": 0.4778125,
+  "f4_files": ["manifest.json", "status.json", "metrics.json", "result.json"],
+  "source_case_unchanged": true,
+  "critical_violations": [],
+  "overall": "PARTIALLY_QUALIFIED",
+  "raw_transcript": "/tmp/traditional-dic-m2-transcripts/codex/q05/attempt-1"
+}
